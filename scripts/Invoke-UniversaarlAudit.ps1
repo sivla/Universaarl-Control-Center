@@ -69,6 +69,51 @@ function Invoke-GitRead {
     }
 }
 
+function Test-VersionedEnvironmentExample {
+    param([Parameter(Mandatory)][string]$Repository)
+
+    $findings = [Collections.Generic.List[object]]::new()
+    $contentResult = Invoke-GitRead -Repository $Repository -Arguments @('show', 'HEAD:.env.example')
+    if ($contentResult.exitCode -ne 0) {
+        return [pscustomobject]@{ present = $false; safe = $null; findings = @() }
+    }
+
+    $content = [string]$contentResult.output
+    if ([Text.Encoding]::UTF8.GetByteCount($content) -gt 65536) {
+        $findings.Add((New-Finding high 'ENV-EXAMPLE-001' 'Die versionierte `.env.example` ist groesser als 64 KiB.'))
+    }
+
+    $lineNumber = 0
+    foreach ($line in $content -split "`n") {
+        $lineNumber++
+        $trimmed = $line.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith('#')) { continue }
+        if ($trimmed -notmatch '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
+            $findings.Add((New-Finding medium 'ENV-EXAMPLE-002' "Die versionierte `.env.example` enthaelt in Zeile $lineNumber keinen gueltigen Schluessel-Platzhalter."))
+            continue
+        }
+
+        $name = $Matches[1]
+        $value = $Matches[2].Trim().Trim([char[]]@('"', "'"))
+        $isPlaceholder = [string]::IsNullOrWhiteSpace($value) -or $value -match '^(?:<[^>]+>|\$\{[^}]+\}|REPLACE(?:_ME)?|CHANGEME)$'
+        $sensitiveName = $name -match '(?i)(token|secret|password|passwd|api[_-]?key|client[_-]?secret|cookie|session|auth)'
+        $absoluteHostPath = $value -match '^(?:[A-Za-z]:[\\/]|\\\\|/(?:Users|home|tmp|var/tmp)/)'
+        $tenantOrTokenShape = $value -match '(?i)(?:\.onmicrosoft\.com\b|\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b|\beyJ[A-Za-z0-9_-]{20,}|\bgh[oprsu]_[A-Za-z0-9]{20,})'
+
+        if ($sensitiveName -and -not $isPlaceholder) {
+            $findings.Add((New-Finding critical 'ENV-EXAMPLE-003' "Die versionierte `.env.example` enthaelt fuer den vertraulichen Schluessel '$name' einen echten Wert statt eines Platzhalters."))
+        }
+        if ($absoluteHostPath) {
+            $findings.Add((New-Finding high 'ENV-EXAMPLE-004' "Die versionierte `.env.example` enthaelt fuer '$name' einen absoluten Hostpfad."))
+        }
+        if ($tenantOrTokenShape) {
+            $findings.Add((New-Finding critical 'ENV-EXAMPLE-005' "Die versionierte `.env.example` enthaelt fuer '$name' eine Mandanten- oder Geheimniskennung."))
+        }
+    }
+
+    [pscustomobject]@{ present = $true; safe = $findings.Count -eq 0; findings = @($findings) }
+}
+
 function Test-IsExcludedRelativePath {
     param([Parameter(Mandatory)][string]$RelativePath)
 
@@ -143,6 +188,8 @@ function Get-ProjectObservation {
     $activeChangeName = $null
     $reviewWorkingEmpty = $false
     $reviewHeadEmpty = $false
+    $environmentExamplePresent = $false
+    $environmentExampleSafe = $null
 
     if ($exists) {
         $score += 15
@@ -156,7 +203,7 @@ function Get-ProjectObservation {
             dirty = $false; staged = 0; unstaged = 0; untracked = 0; conflicts = 0
             packageName = $null; requiredScriptFound = $false; lockfileFound = $false
             dependenciesPresent = $false; unpinnedDependencyCount = 0; activeChangeCount = $null; activeChangeName = $null
-            reviewWorkingEmpty = $false; reviewHeadEmpty = $false
+            reviewWorkingEmpty = $false; reviewHeadEmpty = $false; environmentExamplePresent = $false; environmentExampleSafe = $null
             structuralScore = 0; evidenceCoverage = 8; validation = 'not-run'; validationExitCode = $null
             fingerprintBefore = $null; fingerprintAfter = $null; targetUnchanged = $null
             findings = @($findings)
@@ -354,6 +401,13 @@ function Get-ProjectObservation {
         }
     }
 
+    if ($hasCommit) {
+        $environmentExample = Test-VersionedEnvironmentExample -Repository $TargetPath
+        $environmentExamplePresent = $environmentExample.present
+        $environmentExampleSafe = $environmentExample.safe
+        foreach ($finding in @($environmentExample.findings)) { $findings.Add($finding) }
+    }
+
     [pscustomobject]@{
         id = [string]$Project.id; name = [string]$Project.name; pathAlias = [string]$Project.pathAlias
         exists = $exists; gitRepository = $gitRepository; hasCommit = $hasCommit; branch = $branch; commit = $commit
@@ -362,6 +416,7 @@ function Get-ProjectObservation {
         dependenciesPresent = $dependenciesPresent; unpinnedDependencyCount = $unpinnedDependencyCount
         activeChangeCount = $activeChangeCount; activeChangeName = $activeChangeName
         reviewWorkingEmpty = $reviewWorkingEmpty; reviewHeadEmpty = $reviewHeadEmpty
+        environmentExamplePresent = $environmentExamplePresent; environmentExampleSafe = $environmentExampleSafe
         structuralScore = [Math]::Min(100, $score)
         evidenceCoverage = [Math]::Round(($checksObserved / $checksTotal) * 80)
         validation = 'not-run'; validationExitCode = $null
@@ -760,6 +815,8 @@ foreach ($result in $results) {
     $markdown.Add("- Aktive OpenSpec-Aenderungen: **$($result.activeChangeCount)**")
     if ($result.activeChangeName) { $markdown.Add("- Aktive Aenderung: ``$($result.activeChangeName)``") }
     $markdown.Add("- ``REVIEW.md`` in Arbeitskopie/HEAD leer: **$(Get-YesNoText $result.reviewWorkingEmpty) / $(Get-YesNoText $result.reviewHeadEmpty)**")
+    $environmentExampleDisplay = if (-not $result.environmentExamplePresent) { 'nicht vorhanden' } else { Get-YesNoText $result.environmentExampleSafe }
+    $markdown.Add("- Versionierte ``.env.example`` im Commit geprueft und sicher: **$environmentExampleDisplay**")
     $markdown.Add('')
     if (@($result.findings).Count -eq 0) {
         $markdown.Add('Keine Befunde.')

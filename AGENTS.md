@@ -14,7 +14,7 @@ Die Pfade dürfen über die in `monitor.config.json` genannten Umgebungsvariable
 - Keine Abhaengigkeiten, Zweige, entfernten Repositories, Nachverfolgungszweige, Git-Marken, Freigaben oder Zusammenfuehrungsanfragen in den Zielprojekten anlegen oder veraendern.
 - Keine automatischen Reparaturen durchführen. Befunde und Verbesserungsvorschläge gehören in Berichte dieses Repositories.
 - Ausfuehrbare Tests und Erstellungsvorgaenge nur in einer bereinigten Wegwerfkopie ausserhalb der Zielprojekte starten.
-- `.env*`, Authentifizierungszustaende, Zugriffsschluessel, Geheimnisse, Browserprofile, Ablaufspuren, Videos und Laufzeitnachweise weder lesen noch kopieren.
+- Reale `.env*`, Authentifizierungszustaende, Zugriffsschluessel, Geheimnisse, Browserprofile, Ablaufspuren, Videos und Laufzeitnachweise weder lesen noch kopieren. Einzige Ausnahme ist die versionierte `HEAD:.env.example`: Sie wird ausschliesslich aus dem Commit auf Platzhalter, Groesse, Mandantenkennungen und absolute Hostpfade geprueft und niemals als Laufzeitkonfiguration verwendet.
 - Zielcode darf keine geerbten Zugangsdaten erhalten. Prüfprozesse verwenden eine minimale, bereinigte Umgebung.
 - Nur Berichte, Konfiguration und Kontrollcode in diesem Repository veraendern.
 - Eine andere Aenderung an einem Zielprojekt ist nur zulaessig, wenn der Benutzer sie spaeter ausdruecklich und projektspezifisch beauftragt. Sie ist nie Teil eines normalen Kontroll- oder Veroeffentlichungslaufs.

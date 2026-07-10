@@ -83,6 +83,7 @@ Ein unsauberer Arbeitsbaum ist nicht automatisch ein Softwarefehler, verhindert 
 - Externe Zielpfade stehen auf einer festen Positivliste.
 - NTFS-Verzeichnisverknuepfungen werden beim Kopieren nicht verfolgt.
 - Vertrauliche und erzeugte Verzeichnisse werden aus der abgeschotteten Pruefumgebung ausgeschlossen.
+- Reale `.env*` bleiben ungelesen; nur die versionierte `HEAD:.env.example` wird als Dokumentationsvertrag auf Platzhalter, Groesse, Mandantenkennungen und absolute Hostpfade geprueft.
 - Pruefprozesse erben keine Benutzergeheimnisse und erhalten ein getrenntes Benutzer- und Zwischenspeicherverzeichnis.
 - Eine Vorher-/Nachher-Inhaltspruefsumme stellt sicher, dass das Kontrollzentrum die relevanten Quelldaten nicht veraendert hat.
 - Das Kontrollzentrum berichtet und empfiehlt; es repariert keines der beiden Projekte automatisch.

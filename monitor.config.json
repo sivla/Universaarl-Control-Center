@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "name": "Universaarl Kontrollzentrum",
+  "reportDirectory": "reports",
+  "validationTimeoutSeconds": 240,
+  "projects": [
+    {
+      "id": "blueprint",
+      "name": "Universaarl BC Blueprint V2",
+      "pathAlias": "<BLUEPRINT_ROOT>",
+      "defaultPath": "C:\\Users\\kkali\\Universaarl-BC-Blueprint-V2",
+      "pathEnvironmentVariable": "UNIVERSAARL_BLUEPRINT_PATH",
+      "reviewFile": "REVIEW.md",
+      "requiredNpmScript": "test",
+      "validationArguments": ["test"],
+      "maxActiveChanges": 1,
+      "publish": {
+        "enabled": true,
+        "remote": "origin",
+        "branch": "codex/universaarl-blueprint-v2",
+        "expectedPushUrl": "https://github.com/sivla/FiBu.git",
+        "blockReason": null
+      }
+    },
+    {
+      "id": "project-twin",
+      "name": "Universaarl Project Twin",
+      "pathAlias": "<TWIN_ROOT>",
+      "defaultPath": "C:\\Users\\kkali\\Documents\\Universaarl-Project-Twin",
+      "pathEnvironmentVariable": "UNIVERSAARL_TWIN_PATH",
+      "reviewFile": "REVIEW.md",
+      "requiredNpmScript": "check",
+      "validationArguments": ["run", "check"],
+      "maxActiveChanges": 1,
+      "publish": {
+        "enabled": true,
+        "remote": "origin",
+        "branch": "codex/read-only-project-twin-mvp",
+        "expectedPushUrl": "https://github.com/sivla/FiBu.git",
+        "blockReason": null
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "id": "twin-reads-blueprint",
+      "consumerProjectId": "project-twin",
+      "providerProjectId": "blueprint",
+      "environmentVariable": "UABC_SOURCE_REPO",
+      "contractMarker": "UABC_SOURCE_REPO"
+    }
+  ]
+}

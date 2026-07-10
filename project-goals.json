@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "projects": {
+    "blueprint": {
+      "objective": "Eine nachweisgestuetzte Business-Central-Einfuehrung von der W0-Architektur bis zur W5-Produktivsetzung und Stabilisierungsphase durchfuehren.",
+      "currentGoal": "Den veroeffentlichten W0-Ausgangsstand einschliesslich Medien-Werkzeugkette reproduzierbar absichern und danach genau ein kleines, vollstaendiges und belegbares W1-Grundlagenergebnis auswaehlen.",
+      "antiGoals": [
+        "Metadaten- oder Steuerungsarbeit ohne Beitrag zu einem fachlichen Auslieferungsziel",
+        "Erfolgsaussagen ohne Nachweise",
+        "BC-Schreibzugriffe ausserhalb einer ausdruecklich freigegebenen playthru-Aenderung"
+      ]
+    },
+    "project-twin": {
+      "objective": "Die externe Blueprint-Wahrheit sicher, nachvollziehbar und ausschliesslich lesend darstellen.",
+      "currentGoal": "Auf e79833b2 einen sicheren responsiven Mehrprojekt-Anwendungsrahmen mit projektbezogenen Nur-Lese-Schnittstellen, undurchsichtigen Nachweiskennungen und ehrlichen Nicht-unterstuetzt-Zustaenden abschliessen; historische Wiedergabe, Zeitplanung und Abrechnung bleiben spaetere Aenderungen.",
+      "antiGoals": [
+        "Rueckschreiben oder eigene fachliche Wahrheit",
+        "Erfundene Termine, Zustaende, Meilensteine oder kaufmaennische Werte",
+        "Oberflaechenfortschritt ohne validierten Quellvertrag und Herkunftsnachweis"
+      ]
+    }
+  },
+  "relationships": {
+    "twin-reads-blueprint": {
+      "objective": "Jeder freigegebene Blueprint-Verbrauchervertrag besitzt eine sichtbare, getestete Twin-Unterstuetzung oder eine ausdruecklich benannte offene Luecke."
+    }
+  }
+}

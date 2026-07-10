@@ -1,0 +1,4 @@
+.work/
+.env.local
+reports/*
+!reports/.gitkeep

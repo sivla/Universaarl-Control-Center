@@ -2,29 +2,31 @@
   "schemaVersion": 1,
   "projects": {
     "blueprint": {
-      "objective": "Eine nachweisgestuetzte Business-Central-Einfuehrung von der W0-Architektur bis zur W5-Produktivsetzung und Stabilisierungsphase durchfuehren.",
-      "currentGoal": "Den veroeffentlichten W0-Ausgangsstand einschliesslich Medien-Werkzeugkette reproduzierbar absichern und danach genau ein kleines, vollstaendiges und belegbares W1-Grundlagenergebnis auswaehlen.",
+      "objective": "Ein vollstaendiges, standardnahes BC-Basic-Einfuehrungsprojekt fuer genau eine ehrlich synthetische Firma in der Sandbox playthru in drei Phasen planen, dokumentieren, schulen und bis zum ersten Monatsabschluss mit fachlich gepruefter UStVA-Vorschau durchfuehren; dabei bleiben hoechstens 80 abrechenbare Stunden und die Gesamtkosten strikt unter 10.000 EUR netto.",
+      "currentGoal": "Als naechsten Schritt ausschliesslich den validierbaren Planungs- und Quellvertrag fuer die drei Phasen bereitstellen: realistische, aber eindeutig synthetische Jira- und Confluence-Inhalte, Datenanforderungen, Trainings, Handbuecher, Monatsabschluss, UStVA-Vorschau, die Stunden- und Kostengrenzen sowie commitgebundene Playwright-Szenarien. Die tatsaechliche Phasenausfuehrung beginnt erst nach der gesonderten Pruefung und Freigabe dieses Vertrags.",
       "antiGoals": [
         "Metadaten- oder Steuerungsarbeit ohne Beitrag zu einem fachlichen Auslieferungsziel",
-        "Erfolgsaussagen ohne Nachweise",
-        "BC-Schreibzugriffe ausserhalb einer ausdruecklich freigegebenen playthru-Aenderung"
+        "Erfundene reale Kundentermine, Arbeitszeiten, Freigaben oder Steuerergebnisse",
+        "Erweiterungen, Integrationen, Produktion, Projekte, Service oder erweitertes Lager im BC-Basic-Erstprojekt",
+        "Produktive Steueruebermittlung oder BC-Schreibzugriffe ausserhalb einer ausdruecklich freigegebenen playthru-Aenderung"
       ]
     },
     "project-twin": {
-      "objective": "Die externe Blueprint-Wahrheit sicher, nachvollziehbar und ausschliesslich lesend darstellen.",
-      "currentGoal": "Auf e79833b2 einen sicheren responsiven Mehrprojekt-Anwendungsrahmen mit projektbezogenen Nur-Lese-Schnittstellen, undurchsichtigen Nachweiskennungen und ehrlichen Nicht-unterstuetzt-Zustaenden abschliessen; historische Wiedergabe, Zeitplanung und Abrechnung bleiben spaetere Aenderungen.",
+      "objective": "Beliebige freigegebene Projektquellen ueber eine generische Mehrprojekt-Oberflaeche sicher und ausschliesslich lesend darstellen, ohne eigene fachliche Projektdaten oder Fachfunktionen zu besitzen.",
+      "currentGoal": "Die responsive, generische Mehrprojekt-Huelle samt sicherer Quellbindung abschliessen und alle fachlichen Ansichten ausschliesslich aus normalisierten Artefakten der jeweils konfigurierten Projektquelle speisen; nicht unterstuetzte Inhalte bleiben sichtbar leer.",
       "requiredBaseCommit": "e79833b2de727e8265ddf897d9d707e648920a6d",
       "currentChange": "establish-responsive-multi-project-shell-foundation",
       "antiGoals": [
         "Rueckschreiben oder eigene fachliche Wahrheit",
         "Erfundene Termine, Zustaende, Meilensteine oder kaufmaennische Werte",
+        "Fachfunktionen ausser Projektwechsel, Quellbindung und lesender Darstellung",
         "Oberflaechenfortschritt ohne validierten Quellvertrag und Herkunftsnachweis"
       ]
     }
   },
   "relationships": {
     "twin-reads-blueprint": {
-      "objective": "Jeder freigegebene Blueprint-Verbrauchervertrag besitzt eine sichtbare, getestete Twin-Unterstuetzung oder eine ausdruecklich benannte offene Luecke."
+      "objective": "Jeder im Twin angezeigte fachliche Wert stammt nachvollziehbar aus einem Blueprint-Artefakt; fehlende oder noch nicht unterstuetzte Quelldaten bleiben sichtbar leer und werden niemals erfunden."
     }
   }
 }

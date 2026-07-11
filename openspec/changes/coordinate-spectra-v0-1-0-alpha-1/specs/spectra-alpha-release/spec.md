@@ -4,7 +4,7 @@
 
 ### Requirement: Der erste Release ist eindeutig identifiziert
 
-Das System MUSS den ersten Spectra-Release als Version `0.1.0-alpha.1` mit
+Das System SHALL den ersten Spectra-Release als Version `0.1.0-alpha.1` mit
 Produktkennung `spectra` und Tag `spectra-v0.1.0-alpha.1` identifizieren.
 
 #### Scenario: Release-Metadaten stimmen ueberein
@@ -16,7 +16,7 @@ Produktkennung `spectra` und Tag `spectra-v0.1.0-alpha.1` identifizieren.
 
 ### Requirement: Projekt-Agenten veroeffentlichen nur Arbeitszweige
 
-Der Spectra-Projekt-Agent MUSS auf einem eigenen Arbeitszweig arbeiten und DARF
+Der Spectra-Projekt-Agent SHALL auf einem eigenen Arbeitszweig arbeiten und DARF
 diesen Zweig pushen. Er DARF weder direkt nach `main` pushen noch selbst mergen,
 taggen oder einen Release veroeffentlichen.
 
@@ -29,7 +29,7 @@ taggen oder einen Release veroeffentlichen.
 
 ### Requirement: Das Kontrollzentrum entscheidet fail-closed
 
-Das Kontrollzentrum MUSS den uebergebenen Spectra-Kandidaten read-only pruefen
+Das Kontrollzentrum SHALL den uebergebenen Spectra-Kandidaten read-only pruefen
 und DARF nur den exakt geprueften Commit zum Merge freigeben.
 
 #### Scenario: Nachweis ist unvollstaendig
@@ -48,7 +48,7 @@ und DARF nur den exakt geprueften Commit zum Merge freigeben.
 
 ### Requirement: Der Alpha-Release bleibt kundenunabhaengig
 
-Der Spectra-Release DARF keine Kundendaten, Kunden-Evidence oder konkrete
+Der Spectra-Release SHALL keine Kundendaten, Kunden-Evidence oder konkrete
 Universaarl-Projektentscheidungen enthalten.
 
 #### Scenario: Release-Diff enthaelt Kundeninhalt

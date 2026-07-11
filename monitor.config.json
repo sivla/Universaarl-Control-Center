@@ -83,7 +83,7 @@
       "id": "twin-reads-blueprint",
       "consumerProjectId": "project-twin",
       "providerProjectId": "blueprint",
-      "contractType": "validated-snapshot",
+      "contractType": "validated-branch-index",
       "environmentVariable": "UABC_SOURCE_REPO",
       "contractMarker": "UABC_SOURCE_REPO"
     }

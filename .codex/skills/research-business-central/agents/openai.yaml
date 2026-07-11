@@ -1,0 +1,4 @@
+interface:
+  display_name: "Business Central Research"
+  short_description: "Ordnet offizielle BC-Quellen den Use Cases zu"
+  default_prompt: "Use $research-business-central to research official Business Central guidance and map it to the current simulation use cases."

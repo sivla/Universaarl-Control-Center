@@ -1,0 +1,4 @@
+interface:
+  display_name: "BC Basic Simulation"
+  short_description: "Fuehrt die synthetische BC-Einfuehrung durch"
+  default_prompt: "Use $run-bc-basic-simulation to review the current BC Basic simulation and execute the next complete project phase."

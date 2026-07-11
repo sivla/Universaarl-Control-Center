@@ -37,30 +37,29 @@ Eine Spectra-Bindung SHALL nur mit `product_id: spectra`, konsistentem annotiert
 - **WHEN** eine Kundenbindung den Status BOUND beansprucht
 - **THEN** SHALL sie zusaetzlich einen finalen `installable_blueprint` mit `INSTALLABLE_BLUEPRINT`, `installable_blueprint: true` und identischer Release-/Blueprintversion nachweisen
 
-### Requirement: Der Snapshot-Handoff ist commitgebunden und maschinenlesbar
+### Requirement: Der Branch-Index-Handoff ist commitgebunden und maschinenlesbar
 
-BC Basic SHALL einen freigegebenen Snapshot ueber ein strikt schemavalidiertes JSON-Manifest bereitstellen, das auf einen repository-relativen, positivgelisteten Datenindex verweist.
+BC Basic SHALL den laufenden Projektstand ueber `exports/project-data/v1/index.yaml` bereitstellen. Der Index SHALL Projekt- und Vertragsidentitaet, erlaubten Branch, Validierungsstatus sowie eine eindeutige positivgelistete Artefaktmenge enthalten.
 
-#### Scenario: Snapshotmanifest fehlt oder ist vorgeschlagen
+#### Scenario: Branch-Index fehlt oder ist ungueltig
 
-- **WHEN** kein Manifest existiert oder Lifecycle beziehungsweise Validierungsstatus nicht freigegeben sind
-- **THEN** SHALL das Kontrollzentrum den Snapshot als blockiert melden
+- **WHEN** kein Index existiert oder Identitaet, Branch, Status oder Allowlist ungueltig sind
+- **THEN** SHALL das Kontrollzentrum den Projekt-Handoff als blockiert melden
 - **AND** SHALL Project Twin keine fachlichen Daten daraus als freigegeben konsumieren
 
-#### Scenario: Snapshotmanifest ist vorhanden
+#### Scenario: Branch-Index ist vorhanden
 
-- **WHEN** ein Manifest fuer eine volle Blueprint-Quell-SHA vorliegt
-- **THEN** SHALL der extern gebundene Snapshot-Metadatencommit genau einen Parent besitzen und dieser dem im Manifest genannten Produzentencommit entsprechen
-- **AND** SHALL Twin Manifest, Schema, Datenindex und fachliche Payloadblobs ausschliesslich aus dem Metadatencommit lesen und den Produzentencommit nur fuer Provenienz und Objektidentitaet verwenden
-- **AND** SHALL der A-zu-B-Diff ausschliesslich den positivgelisteten Snapshotmanifestpfad enthalten
-- **AND** SHALL der Digest nach `uabc-snapshot-records-v1` aus den UTF-8-ordinal sortierten sicheren Pfaden sowie je Record aus Pfad, NUL, Git-Modus, NUL, Dezimalgroesse, NUL, lowercase SHA-256 des Blobinhalts und LF gebildet werden
+- **WHEN** der erlaubte BC-Basic-Branch zu einer vollen Commit-SHA aufgeloest wurde
+- **THEN** SHALL Twin den Index und alle fachlichen Payloadblobs ausschliesslich als Git-Blobs dieser einmal gepinnten Commit-SHA lesen
+- **AND** SHALL kein Arbeitsbaum, kein spaeter bewegter Branchstand und kein Legacy-Snapshotmanifest als Fallback dienen
+- **AND** SHALL jeder Allowlistpfad sicher repository-relativ sowie jede ID und jeder Pfad eindeutig sein
 - **AND** SHALL jeder Index- und Payloadrecord exakt den regulaeren Git-Modus `100644` besitzen
-- **AND** SHALL der Spectra-Releasepayload-Digest getrennt vom BC-Basic-Snapshotpayload-Digest validiert und niemals mit ihm gleichgesetzt werden
-- **AND** SHALL Produzenten-ID, Produzentencommit, Snapshot-Metadatencommit, Schema- und Indexreferenz, `spectraReleaseBinding` mit `productId: spectra` und technischer BCProjectOS-Herkunft sowie Digest gemeinsam validiert werden
+- **AND** SHALL jeder positivgelistete erforderliche Git-Blob vorhanden sein
+- **AND** SHALL das Kontrollzentrum fuer den Bericht einen deterministischen Digest ueber die ordinal sortierten Pfad-/Modus-/Groessen-/Blobdigest-Records bilden
 
 ### Requirement: Project Twin besitzt keine direkte BCProjectOS-Abhaengigkeit
 
-Project Twin SHALL ausschliesslich das validierte Snapshotmanifest und dessen Blueprint-Payload lesen.
+Project Twin SHALL ausschliesslich den validierten Branch-Index und dessen positivgelistete BC-Basic-Payload lesen.
 
 #### Scenario: Direkte Produktquelle wird angeboten
 
@@ -74,6 +73,6 @@ Nicht ausgefuehrte, fehlende, unbekannte, Pending- oder widerspruechliche Nachwe
 
 #### Scenario: Ein vorgelagertes Gate ist offen
 
-- **WHEN** BCProjectOS-Bindung, Snapshotvalidierung, Consumeridentitaet oder commitgebundener Deutsch-Nachweis offen ist
+- **WHEN** BCProjectOS-Bindung, Branch-Index-Validierung, Consumeridentitaet oder commitgebundener Deutsch-Nachweis offen ist
 - **THEN** SHALL der Gesamtstatus nicht Gruen sein
 - **AND** SHALL eine Veroeffentlichung blockiert bleiben

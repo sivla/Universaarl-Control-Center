@@ -1,0 +1,4 @@
+interface:
+  display_name: "Spectra Release Gate"
+  short_description: "Prueft und promotet genau einen Spectra Release"
+  default_prompt: "Use $gate-spectra-release to verify and promote the current Spectra release candidate without scope drift."

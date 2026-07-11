@@ -140,6 +140,67 @@ function Test-UniversaarlSpectraCandidate {
     [pscustomobject]@{ status='passed'; fullValidationPassed=$true; commit=$Commit; version=$Version; expectedTag="spectra-v$Version"; payloadBundleDigest=$bundle; fileCount=$records.Count }
 }
 
+function Test-UniversaarlBranchIndex {
+    param(
+        [Parameter(Mandatory)][string]$Repository,
+        [Parameter(Mandatory)][string]$Commit,
+        [Parameter(Mandatory)][string]$ExpectedBranch
+    )
+    Assert-FullCommitSha $Commit
+    if ($ExpectedBranch -cne 'codex/universaarl-projekt') { throw 'Der erlaubte BC-Basic-Branch ist ungueltig.' }
+
+    $indexPath = 'exports/project-data/v1/index.yaml'
+    $indexEntry = Get-UniversaarlBlobEntry -Repository $Repository -Commit $Commit -Path $indexPath -Required
+    if ($indexEntry.mode -cne '100644') { throw 'Der Branch-Index ist kein regulaerer Git-Blob im Modus 100644.' }
+    $indexText = (Read-UniversaarlCommitText -Repository $Repository -Commit $Commit -Path $indexPath -MaximumBytes 1048576 -Required).content
+
+    $requiredScalars = [ordered]@{
+        schemaVersion = '1'
+        contractId = 'UABC-PROJECT-DATA-V1'
+        projectId = 'UABC-BC-BASIC-001'
+        routeKey = 'bc-basic'
+        readOnly = 'true'
+        contractRole = 'repository-relative-data-allowlist'
+        pathSemantics = 'repository-relative'
+        allowedBranch = $ExpectedBranch
+        validationStatus = 'branch-commit-validierung-erforderlich'
+    }
+    foreach ($name in $requiredScalars.Keys) {
+        $match = [regex]::Match($indexText, "(?m)^$([regex]::Escape($name)):\s*(?<value>[^#\r\n]+?)\s*$")
+        if (-not $match.Success -or $match.Groups['value'].Value -cne [string]$requiredScalars[$name]) {
+            throw "Branch-Indexfeld '$name' fehlt oder ist ungueltig."
+        }
+    }
+
+    $artifactMatches = @([regex]::Matches($indexText, "(?m)^\s*-\s*\{\s*id:\s*(?<id>[^,}\s]+).*?path:\s*(?<path>[^,}\s]+).*?required:\s*(?<required>true|false)\s*\}\s*$"))
+    if ($artifactMatches.Count -eq 0) { throw 'Der Branch-Index enthaelt keine Artefakt-Allowlist.' }
+    $ids = @{}; $paths = @{}; $records = [Collections.Generic.List[object]]::new()
+    foreach ($match in $artifactMatches) {
+        $id = [string]$match.Groups['id'].Value
+        $path = Assert-UniversaarlContractPath ([string]$match.Groups['path'].Value)
+        if ($id -notmatch '^UABC-[A-Z0-9]+(?:-[A-Z0-9]+)*$') { throw "Branch-Index-ID '$id' ist ungueltig." }
+        if ($ids.ContainsKey($id)) { throw "Branch-Index-ID '$id' ist doppelt." }; $ids[$id] = $true
+        if ($paths.ContainsKey($path)) { throw "Branch-Indexpfad '$path' ist doppelt." }; $paths[$path] = $true
+        if ($match.Groups['required'].Value -cne 'true') { throw "Branch-Indexpfad '$path' ist nicht verbindlich erforderlich." }
+        $entry = Get-UniversaarlBlobEntry -Repository $Repository -Commit $Commit -Path $path -Required
+        if ($entry.mode -cne '100644') { throw "Branch-Indexpfad '$path' ist kein regulaerer Git-Blob im Modus 100644." }
+        $bytes = Get-UniversaarlGitBlobBytes -Repository $Repository -Object $entry.object
+        $digest = Get-UniversaarlBytesSha256 $bytes
+        $records.Add([pscustomobject]@{ path=$path; line="$path`0$($entry.mode)`0$($entry.size)`0$digest`n" })
+    }
+    foreach ($requiredPath in @('evidence/simulation/phase-2-p2p-o2c.yaml','evidence/simulation/phase-3-cash-inventory-close.yaml')) {
+        if (-not $paths.ContainsKey($requiredPath)) { throw "Aktuelle Simulationsevidence '$requiredPath' fehlt in der Allowlist." }
+    }
+    $ordered = @($records); [Array]::Sort($ordered, [Comparison[object]]{ param($left,$right) [StringComparer]::Ordinal.Compare([string]$left.path,[string]$right.path) })
+    $bundleText = (@($ordered | ForEach-Object line) -join '')
+    $bundle = Get-UniversaarlBytesSha256 ([Text.UTF8Encoding]::new($false).GetBytes($bundleText))
+    [pscustomobject]@{
+        status='passed'; fullValidationPassed=$true; providerCommit=$Commit; branch=$ExpectedBranch
+        indexPath=$indexPath; indexBlob=$indexEntry.object; artifactCount=$records.Count
+        payloadBundleDigest="sha256:$bundle"; access='nur-lesend'; legacySnapshotRequired=$false
+    }
+}
+
 function Test-UniversaarlSnapshotManifest {
     param([Parameter(Mandatory)][string]$Repository, [Parameter(Mandatory)][string]$MetadataCommit, [Parameter(Mandatory)]$ExpectedBinding)
     Assert-FullCommitSha $MetadataCommit

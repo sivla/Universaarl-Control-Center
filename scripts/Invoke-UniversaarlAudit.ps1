@@ -395,25 +395,25 @@ $SandboxRoot = $null
 
 if ($inputShas['blueprint']) {
     try {
-        $snapshotManifestEntry = Get-UniversaarlBlobEntry -Repository $projectPaths['blueprint'] -Commit $inputShas['blueprint'] -Path 'exports/project-data/v1/snapshot-manifest.json'
-        if ($null -eq $snapshotManifestEntry) {
-            $relationshipFindings.Add((New-Finding critical 'CROSS-SNAPSHOT-MISSING' 'Das commitgebundene Snapshotmanifest fehlt; die validierte Snapshotbeziehung bleibt blockiert.'))
+        $branchIndexEntry = Get-UniversaarlBlobEntry -Repository $projectPaths['blueprint'] -Commit $inputShas['blueprint'] -Path 'exports/project-data/v1/index.yaml'
+        if ($null -eq $branchIndexEntry) {
+            $relationshipFindings.Add((New-Finding critical 'CROSS-BRANCH-INDEX-MISSING' 'Der commitgebundene BC-Basic-Branch-Index fehlt; die validierte Consumerbeziehung bleibt blockiert.'))
         }
         elseif ($spectraRelationship.fullValidationPassed -eq $true -and $null -ne $spectraRelationship.binding) {
-            $snapshotProof = Test-UniversaarlSnapshotManifest -Repository $projectPaths['blueprint'] -MetadataCommit $inputShas['blueprint'] -ExpectedBinding $spectraRelationship.binding
+            $snapshotProof = Test-UniversaarlBranchIndex -Repository $projectPaths['blueprint'] -Commit $inputShas['blueprint'] -ExpectedBranch 'codex/universaarl-projekt'
             $twinBoundaryProof = Test-UniversaarlTwinContractBoundary -Repository $projectPaths['project-twin'] -Commit $inputShas['project-twin']
             $crossStatus = 'passed'
             $crossFullValidationPassed = $true
             $crossStats = [pscustomobject]@{ snapshot=$snapshotProof; twinBoundary=$twinBoundaryProof }
         }
         else {
-            $relationshipFindings.Add((New-Finding critical 'CROSS-SNAPSHOT-UPSTREAM-BLOCKED' 'Das Snapshotmanifest kann ohne vollstaendig gebundene Spectra-Evidence nicht freigegeben werden.'))
+            $relationshipFindings.Add((New-Finding critical 'CROSS-BRANCH-UPSTREAM-BLOCKED' 'Der Branch-Index kann ohne vollstaendig gebundene Spectra-Evidence nicht freigegeben werden.'))
         }
     }
-    catch { $relationshipFindings.Add((New-Finding critical 'CROSS-SNAPSHOT-INVALID' "Das commitgebundene Snapshotmanifest kann nicht sicher als regulaerer Blob beobachtet werden: $($_.Exception.Message)")) }
+    catch { $relationshipFindings.Add((New-Finding critical 'CROSS-BRANCH-INDEX-INVALID' "Der commitgebundene Branch-Index kann nicht sicher validiert werden: $($_.Exception.Message)")) }
 }
 else {
-    $relationshipFindings.Add((New-Finding critical 'CROSS-SNAPSHOT-UNKNOWN' 'Ohne vollstaendige Blueprint-Commit-SHA kann kein Snapshotvertrag geprueft werden.'))
+    $relationshipFindings.Add((New-Finding critical 'CROSS-BRANCH-INDEX-UNKNOWN' 'Ohne vollstaendige Blueprint-Commit-SHA kann kein Branch-Index-Vertrag geprueft werden.'))
 }
 
 if ($RunValidations) {
@@ -553,7 +553,7 @@ $report = [pscustomobject]@{
     projects = @($results)
     relationships = @(
         $spectraRelationship
-        [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'validated-snapshot'; status = $crossStatus; fullValidationPassed = $crossFullValidationPassed; runtimeBindingInspected = $runtimeBindingInspected; legacySmokeStatus = $legacySmokeStatus; providerCommit = $inputShas['blueprint']; consumerCommit = $inputShas['project-twin']; stats = $crossStats; warnings = @($crossWarnings); findings = @($relationshipFindings) }
+        [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'validated-branch-index'; status = $crossStatus; fullValidationPassed = $crossFullValidationPassed; runtimeBindingInspected = $runtimeBindingInspected; legacySmokeStatus = $legacySmokeStatus; providerCommit = $inputShas['blueprint']; consumerCommit = $inputShas['project-twin']; stats = $crossStats; warnings = @($crossWarnings); findings = @($relationshipFindings) }
     )
     safety = [pscustomobject]@{ snapshotSource = 'exact-commit'; worktreeContentHashed = $false; realEnvironmentFilesRead = $false; operatingSystemSandbox = $false; gitOptionalLocksDisabled = $true }
 }

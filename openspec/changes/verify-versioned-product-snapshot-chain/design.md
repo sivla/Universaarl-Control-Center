@@ -35,13 +35,13 @@ Die spaetere Konfiguration verwendet dafuer genau eine `verificationSources.bcpr
 
 Das BCProjectOS-Manifest speichert keinen `release_commit`. Der annotierte `spectra-v<SemVer>`-Tag wird extern auf eine volle Commit-SHA aufgeloest. Der Manifest-Source-Commit muss in dessen Historie liegen; der freigegebene Produktumfang darf sich bis zum Tag-Commit nicht veraendern. `product_id: spectra`, Manifestversion, Blueprintversion, Tag, Modus und SHA-256-Payload-Digest muessen konsistent sein; `releaseTag` entspricht exakt `spectra-v` plus `releaseVersion`.
 
-### Decision: Snapshot-Handoff ist ein JSON-Manifest
+### Decision: Laufender Handoff ist der commitgebundene Branch-Index
 
-BC Basic besitzt intern seine Consumerbindung und den repository-relativen Datenindex. Der projektuebergreifende Handoff erfolgt spaeter ueber `exports/project-data/v1/snapshot-manifest.json` samt versioniertem JSON Schema. Das Manifest verwendet exakt die Felder `schemaVersion`, `producerId`, `projectId`, `contractId`, `producerCommitSha`, `schemaPath`, `indexPath`, `consumer`, `spectraReleaseBinding`, `consumerBindingDigest`, `payloadDigestFormat`, `index`, `payloads`, `payloadBundleDigest` und `validationStatus`; unbekannte Zusatzfelder sind verboten. `spectraReleaseBinding` projiziert die vollstaendige installierbare Spectra-Bindung, waehrend `technicalRepositoryName: BCProjectOS` und die kanonische Repository-URL die technische Herkunft erhalten.
+BC Basic besitzt den repository-relativen Datenindex `exports/project-data/v1/index.yaml`. Dieser Index ist im laufenden Entwicklungsmodus der einzige fachliche Export- und Allowlistvertrag. Er nennt Projekt- und Vertragsidentitaet, den erlaubten Entwicklungszweig, den Validierungsstatus sowie eindeutige IDs und sichere repository-relative Payloadpfade. Die Branchspitze wird genau einmal zu einer vollstaendigen Commit-SHA aufgeloest; Index und Payload werden danach ausschliesslich als Git-Blobs dieser SHA gelesen. Eine Datei im selben Commit muss und darf keine selbstreferenzielle Commit-SHA enthalten.
 
-Das fachliche Quellcommit `A` und sein Payload werden zuerst festgeschrieben. Erst der direkte, einzelne Elternnachfolger `B` darf das daraus erzeugte Manifest enthalten. Die Twin-Registry bindet `B` extern; das Manifest in `B` nennt ausschliesslich `A` als `producerCommitSha`. Twin liest Manifest, Schema, Index und ausgelieferte Payload ausschliesslich als Git-Blobs aus `B`; `A` dient der Provenienz- und Unveraendertheitspruefung. `git diff A B` darf exakt die positivgelistete Datei `exports/project-data/v1/snapshot-manifest.json` neu enthalten oder aendern; Renames, Deletes, Merge-Parents oder weitere Pfade sind verboten. Schema, Generator, Validator, Index und alle Payloadblobs muessen in `A` und `B` objektidentisch sein. Damit wird keine eigene Commit-SHA erfunden.
+Das historische `snapshot-manifest.json` und fruehere A/B-Commits bleiben unveraenderte Historie, sind aber im Branchmodus nicht normativ. Es gibt keinen separaten Manifest-only-Commit, keine Parent-A-Pruefung und keinen A/B-Diff. Fuer eine spaetere Releasefreigabe wird der freizugebende normale Projektcommit oder ein Tag extern festgehalten.
 
-Der Snapshot-Payload-Digest verwendet die kanonische Form `uabc-snapshot-records-v1`. Er umfasst den Datenindex und jeden darin positivgelisteten Artefaktpfad genau einmal. Pfade verwenden ausschliesslich `/`, muessen sicher repository-relativ sein und duerfen keine leeren, Punkt-, Traversierungs-, absoluten, Laufwerks-, URI-, Backslash- oder Steuerzeichensegmente enthalten. Sie werden nach ihren UTF-8-Bytes ordinal sortiert. Jeder Index- und Payloadblob muss ein regulaerer Git-Blob im Modus `100644` sein. Pro Pfad wird exakt folgender Byte-Record gebildet: `pathUtf8 + NUL + gitModeAscii + NUL + sizeBytesDecimalAscii + NUL + sha256HexLowerAscii + LF`. `sha256HexLower` ist der SHA-256-Digest des unveraenderten Git-Blobinhalts, nicht die Git-Objekt-ID. Der Gesamtdigest ist SHA-256 ueber die Verkettung aller Records und wird als `sha256:<64 lowercase hex>` gespeichert. Doppelte Pfade, abweichende Modi, Groessen, Blobs oder Reihenfolgen blockieren.
+Der Kontrollvalidator prueft jeden positivgelisteten Pfad genau einmal. Pfade verwenden ausschliesslich `/`, muessen sicher repository-relativ sein und duerfen keine leeren, Punkt-, Traversierungs-, absoluten, Laufwerks-, URI-, Backslash- oder Steuerzeichensegmente enthalten. Jeder Index- und Payloadblob muss ein regulaerer Git-Blob im Modus `100644` sein. Fuer den Bericht wird weiterhin ein deterministischer SHA-256-Bundledigest ueber ordinal sortierte Pfad-, Modus-, Groessen- und Blobdigest-Records berechnet. Doppelte IDs oder Pfade, fehlende Blobs und unsichere Pfade blockieren.
 
 Der `payloadBundleDigest` in `spectraReleaseBinding` gehoert ausschliesslich zum Spectra-Releasepayload aus BCProjectOS. Der aeussere `payloadBundleDigest` gehoert ausschliesslich zum BC-Basic-Snapshot. Beide Digests muessen jeweils korrekt nachgewiesen werden, duerfen aber niemals aufgrund gleicher Feldnamen gleichgesetzt werden.
 
@@ -53,7 +53,7 @@ Ein finaler `product_contract` / `CONTRACT_REFERENCE_ONLY`-Release kann als guel
 
 ### Decision: Twin liest niemals BCProjectOS direkt
 
-Project Twin validiert das Snapshotmanifest aus dem extern gebundenen Metadatencommit `B` und die darin referenzierten fachlichen Git-Blobs aus dessen direktem Produzenten-Parent `A`. Eine direkte BCProjectOS-Abfrage, Installation oder Runtime-Abhaengigkeit bleibt verboten.
+Project Twin loest den erlaubten BC-Basic-Branch einmal zu einer SHA auf, validiert den Index und liest ausschliesslich die darin positivgelisteten Git-Blobs derselben SHA. Eine direkte BCProjectOS-Abfrage, Installation oder Runtime-Abhaengigkeit bleibt verboten.
 
 ## Validation Model
 
@@ -63,7 +63,7 @@ Der Kontrolllauf prueft spaeter mindestens:
 - kanonische Repository-/Zweigidentitaeten;
 - BCProjectOS-Pending- oder Bound-Zustand als strikte Zustandsmaschine;
 - bei Bound: annotierter Tag, Tag-Commit, finales installierbares Manifest, Source-Ancestry, unveraenderter Payload und SHA-256-Digest;
-- extern gebundenen Snapshot-Metadatencommit, dessen direkten Produzenten-Parent, Snapshotmanifest-Schema, Indexreferenz, Allowlist und neu berechneten Snapshotdigest;
+- aufgeloesten BC-Basic-Branchcommit, Indexidentitaet, Allowlist, sichere eindeutige Pfade, vorhandene Git-Blobs und neu berechneten Berichtsdigest;
 - Twin-Consumeridentitaet, Nur-Lese-Richtung und fehlende direkte BCProjectOS-Kopplung;
 - commitgebundene deutsche Maschinen- und Oberflaechennachweise.
 

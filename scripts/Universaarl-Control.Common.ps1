@@ -4,7 +4,7 @@ $script:UniversaarlTextBlobLimit = 1048576
 $script:UniversaarlReportLimit = 8388608
 $script:UniversaarlLogCharacterLimit = 131072
 # Wird erst zusammen mit einem commitgebundenen Spectra-Release- und
-# Snapshot-A/B-/Schema-/Index-/Digest-Validator auf $true gesetzt. Bis dahin
+# Branch-Index-/Allowlist-/Blob-Validator auf $true gesetzt. Bis dahin
 # kann kein Berichtswert eine Veroeffentlichung freischalten.
 $script:UniversaarlFullContractValidatorAvailable = $true
 if ($null -eq (Get-Variable -Scope Script -Name UniversaarlDirectoryLockRegistry -ErrorAction SilentlyContinue)) {
@@ -294,7 +294,7 @@ function Assert-UniversaarlMonitorConfiguration {
     ) 'Beziehung Twin liest Blueprint'
     if ($snapshotRelationship.consumerProjectId -isnot [string] -or [string]$snapshotRelationship.consumerProjectId -cne 'project-twin' -or
         $snapshotRelationship.providerProjectId -isnot [string] -or [string]$snapshotRelationship.providerProjectId -cne 'blueprint' -or
-        $snapshotRelationship.contractType -isnot [string] -or [string]$snapshotRelationship.contractType -cne 'validated-snapshot' -or
+        $snapshotRelationship.contractType -isnot [string] -or [string]$snapshotRelationship.contractType -cne 'validated-branch-index' -or
         $snapshotRelationship.environmentVariable -isnot [string] -or [string]$snapshotRelationship.environmentVariable -cne 'UABC_SOURCE_REPO' -or
         $snapshotRelationship.contractMarker -isnot [string] -or [string]$snapshotRelationship.contractMarker -cne 'UABC_SOURCE_REPO') {
         throw 'Die Beziehung Twin liest Blueprint ist unvollstaendig oder widerspruechlich.'
@@ -1564,7 +1564,7 @@ function Read-UniversaarlBoundReport {
     $relationshipIds = @($relationships | ForEach-Object { if ($_ -isnot [pscustomobject] -or $_.id -isnot [string]) { throw 'Vertragsbeziehungskennung im Laufbericht ist ungueltig typisiert.' }; $_.id })
     if ($relationships.Count -ne 2 -or @($relationshipIds | Sort-Object -Unique).Count -ne 2 -or
         $relationshipIds -cnotcontains 'blueprint-binds-spectra' -or $relationshipIds -cnotcontains 'twin-reads-blueprint') {
-        throw 'Laufbericht enthaelt nicht exakt die Spectra-Bindungs- und Snapshot-Lesebeziehung.'
+        throw 'Laufbericht enthaelt nicht exakt die Spectra-Bindungs- und Branch-Index-Lesebeziehung.'
     }
     $spectraRelationship = @($relationships | Where-Object { [string]$_.id -ceq 'blueprint-binds-spectra' })[0]
     $snapshotRelationship = @($relationships | Where-Object { [string]$_.id -ceq 'twin-reads-blueprint' })[0]
@@ -1577,11 +1577,11 @@ function Read-UniversaarlBoundReport {
         $spectraRelationship.fullValidationPassed -isnot [bool]) {
         throw 'Spectra-Bindungsbeziehung ist nicht an Produkt-, Evidence- und Blueprint-Commit gebunden.'
     }
-    if ($snapshotRelationship.contractType -isnot [string] -or [string]$snapshotRelationship.contractType -cne 'validated-snapshot' -or
+    if ($snapshotRelationship.contractType -isnot [string] -or [string]$snapshotRelationship.contractType -cne 'validated-branch-index' -or
         $snapshotRelationship.providerCommit -isnot [string] -or $snapshotRelationship.providerCommit -cne $report.inputShas.blueprint -or
         $snapshotRelationship.consumerCommit -isnot [string] -or $snapshotRelationship.consumerCommit -cne $report.inputShas.'project-twin' -or
         $snapshotRelationship.fullValidationPassed -isnot [bool]) {
-        throw 'Snapshot-Lesebeziehung ist nicht an Blueprint- und Twin-Commit gebunden.'
+        throw 'Branch-Index-Lesebeziehung ist nicht an Blueprint- und Twin-Commit gebunden.'
     }
     $allowedRelationshipStatuses = if ($Kind -ceq 'audit') { @('passed', 'failed', 'warning', 'not-run') } else { @('GRUEN', 'GELB', 'ROT') }
     foreach ($relationship in $relationships) {

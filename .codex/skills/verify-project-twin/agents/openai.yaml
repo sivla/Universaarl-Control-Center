@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Twin Verification"
+  short_description: "Prueft Twin, Branchvertrag und Browseransicht"
+  default_prompt: "Use $verify-project-twin to validate the current BC Basic branch integration and visible Twin behavior."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Universaarl Portfolio Orchestrator"
+  short_description: "Steuert alle Projekte nach echten Ergebnissen"
+  default_prompt: "Use $orchestrate-universaarl-portfolio to assess all project handoffs and assign the next outcome-focused delivery blocks."

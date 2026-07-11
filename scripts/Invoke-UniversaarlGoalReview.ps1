@@ -301,17 +301,21 @@ if ($twinState.dirty -eq $true) { $twinFindings.Add((New-GoalFinding low 'GOAL-T
 if ($blueprintState.head -and $twinState.head) {
     $legacyExportEntry = Get-UniversaarlBlobEntry -Repository $blueprintRoot -Commit $blueprintState.head -Path 'exports/project-artifacts/v0.1/index.yaml'
     $projectDataEntry = Get-UniversaarlBlobEntry -Repository $blueprintRoot -Commit $blueprintState.head -Path 'exports/project-data/v1/index.yaml'
-    $snapshotManifestEntry = Get-UniversaarlBlobEntry -Repository $blueprintRoot -Commit $blueprintState.head -Path 'exports/project-data/v1/snapshot-manifest.json'
-    $snapshotManifestPresent = $null -ne $snapshotManifestEntry
+    $branchIndexPresent = $null -ne $projectDataEntry
+    $branchIndexProof = $null
     $twinConsumesLegacy = $twinAdapter -match 'project-artifacts/v0\.1' -or $twinAdapter -match "safeRoots\s*=\s*\[[^\]]*'exports'"
-    $twinConsumesProjectData = $twinRegistry -match 'exports/project-data/v1/snapshot-manifest\.json' -and $twinRegistry -match 'exports/project-data/v1/index\.yaml' -and $twinAdapter -match 'snapshotManifestSchema' -and $twinAdapter -match 'producerCommitSha' -and $twinAdapter -match 'payloadBundleDigest'
+    $twinConsumesProjectData = ($twinRegistry -match 'exports/project-data/v1/index\.yaml' -or $twinAdapter -match 'exports/project-data/v1/index\.yaml') -and $twinAdapter -match 'allowedBranch' -and $twinAdapter -match 'rev-parse'
     if ($null -ne $legacyExportEntry -and -not $twinConsumesLegacy) { $relationshipFindings.Add((New-GoalFinding medium 'GOAL-X-001' 'Der Twin liest den bisherigen Blueprint-Verbrauchervertrag noch nicht.' 'exports/project-artifacts/v0.1/index.yaml; Twin-Adapter' 'Verbraucheranpassung abschliessen oder die Luecke im Zwischenstand ausdruecklich ausweisen.')) }
     if ($null -ne $projectDataEntry -and -not $twinConsumesProjectData) { $relationshipFindings.Add((New-GoalFinding medium 'GOAL-X-002' 'Der Twin liest den projektbezogenen Blueprint-Datenvertrag noch nicht vollstaendig.' 'exports/project-data/v1/index.yaml; Twin-Registry; Twin-Adapter' 'Projektbezogene Indexbindung vor der endgueltigen Freigabe abschliessen.')) }
-    if (-not $snapshotManifestPresent) { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-SNAPSHOT' 'Der commitgebundene validierte Spectra-Snapshot-Metadatencommit B fehlt; der Twin darf den Blueprint-Datenstand nicht als freigegeben lesen.' 'exports/project-data/v1/snapshot-manifest.json im Blueprint-HEAD' 'Erst nach echtem installierbarem Spectra-Release den zweistufigen A/B-Snapshot erzeugen und separat pruefen.')) }
-    else { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-SNAPSHOT-UNVERIFIED' 'Das Snapshotmanifest ist vorhanden, aber A/B-Elternschaft, exakter Diff, Schema, Index und Digests sind im Kontrollzentrum noch nicht vollstaendig commitgebunden validiert.' 'Snapshotmanifest, Produzentencommit A und Metadatencommit B' 'Vollvalidator implementieren; bis dahin keine Snapshot- oder Publisherfreigabe.')) }
+    if (-not $branchIndexPresent) { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-BRANCH-INDEX' 'Der commitgebundene BC-Basic-Branch-Index fehlt; der Twin darf den Projektstand nicht lesen.' 'exports/project-data/v1/index.yaml im Blueprint-HEAD' 'Indexvertrag im normalen Projektcommit erzeugen und validieren.')) }
+    else {
+        try { $branchIndexProof = Test-UniversaarlBranchIndex -Repository $blueprintRoot -Commit $blueprintState.head -ExpectedBranch 'codex/universaarl-projekt' }
+        catch { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-BRANCH-INDEX-INVALID' "Der Branch-Index ist ungueltig: $($_.Exception.Message)" 'commitgebundener Index und positivgelistete Git-Blobs' 'BC-Basic-Branchvertrag korrigieren und erneut pruefen.')) }
+    }
 }
 else {
-    $snapshotManifestPresent = $false
+    $branchIndexPresent = $false
+    $branchIndexProof = $null
     $twinConsumesProjectData = $false
     $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-STATE' 'Das Zusammenspiel kann ohne beide vollstaendigen Eingabe-SHAs nicht bewertet werden.' 'Blueprint- und Twin-HEAD' 'Beide Commitzustaende sicher lesbar machen.'))
 }
@@ -352,13 +356,14 @@ if ($spectraBindingIdentityValid) { $spectraCoverage += 20 }
 $relationshipCoverage = 0
 if ($blueprintCoverage -eq 100) { $relationshipCoverage += 20 }
 if ($twinCoverage -eq 100) { $relationshipCoverage += 20 }
-if ($snapshotManifestPresent) { $relationshipCoverage += 20 }
+if ($branchIndexPresent) { $relationshipCoverage += 20 }
 if ($twinConsumesProjectData) { $relationshipCoverage += 20 }
-# Die letzten 20 Prozent erfordern A/B-, Schema-, Index- und Digestvalidierung.
+# Die letzten 20 Prozent erfordern die vollstaendige commitgebundene Index-/Blobvalidierung.
+if ($null -ne $branchIndexProof -and $branchIndexProof.fullValidationPassed -eq $true) { $relationshipCoverage += 20 }
 $blueprintResult = [pscustomobject]@{ id = 'blueprint'; objective = [string]$GoalConfig.projects.blueprint.objective; currentGoal = [string]$GoalConfig.projects.blueprint.currentGoal; status = Get-GoalStatus @($blueprintFindings); evidenceCoverage = $blueprintCoverage; state = $blueprintState; findings = @($blueprintFindings) }
 $twinResult = [pscustomobject]@{ id = 'project-twin'; objective = [string]$GoalConfig.projects.'project-twin'.objective; currentGoal = [string]$GoalConfig.projects.'project-twin'.currentGoal; status = Get-GoalStatus @($twinFindings); evidenceCoverage = $twinCoverage; state = $twinState; findings = @($twinFindings) }
 $spectraRelationshipResult = [pscustomobject]@{ id = 'blueprint-binds-spectra'; contractType = 'versioned-product-release'; objective = [string]$GoalConfig.relationships.'blueprint-binds-spectra'.objective; status = Get-GoalStatus @($spectraFindings); fullValidationPassed = $false; evidenceCoverage = $spectraCoverage; productName = 'Spectra'; productId = 'spectra'; technicalProjectName = 'BCProjectOS'; sourceCommit = $verificationInput.sourceCommit; consumerCommit = $blueprintState.head; findings = @($spectraFindings) }
-$relationshipResult = [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'validated-snapshot'; objective = [string]$GoalConfig.relationships.'twin-reads-blueprint'.objective; status = Get-GoalStatus @($relationshipFindings); fullValidationPassed = $false; evidenceCoverage = $relationshipCoverage; providerCommit = $blueprintState.head; consumerCommit = $twinState.head; findings = @($relationshipFindings) }
+$relationshipResult = [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'validated-branch-index'; objective = [string]$GoalConfig.relationships.'twin-reads-blueprint'.objective; status = Get-GoalStatus @($relationshipFindings); fullValidationPassed = ($null -ne $branchIndexProof -and $branchIndexProof.fullValidationPassed -eq $true -and $twinConsumesProjectData); evidenceCoverage = $relationshipCoverage; providerCommit = $blueprintState.head; consumerCommit = $twinState.head; proof = $branchIndexProof; findings = @($relationshipFindings) }
 $allFindings = @($blueprintFindings) + @($twinFindings) + @($spectraFindings) + @($relationshipFindings)
 $overall = Get-GoalStatus $allFindings
 $inputShas = [ordered]@{ blueprint = $blueprintState.head; 'project-twin' = $twinState.head }

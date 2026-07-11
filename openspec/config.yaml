@@ -1,0 +1,15 @@
+schema: spec-driven
+
+context: |
+  Das Repository ist das unabhaengige Universaarl Kontrollzentrum.
+  Es ueberwacht genau BC Basic und Project Twin, schreibt keinen Zielcode
+  und prueft die Spectra-Produktbindung aus der technischen BCProjectOS-
+  Evidence-Quelle sowie den Snapshotvertrag nur von ausserhalb.
+
+rules:
+  proposal:
+    - Benenne Projekt- und Source-of-Truth-Grenzen explizit.
+    - Erfinde keine Release-, Snapshot- oder Freigabenachweise.
+  tasks:
+    - Trenne Kontrollzentrum-, Produzenten- und Consumerarbeit.
+    - Markiere nur reproduzierbar nachgewiesene Schritte als erledigt.

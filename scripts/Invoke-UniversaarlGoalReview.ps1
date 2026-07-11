@@ -155,8 +155,23 @@ $twinRoot = Get-UniversaarlConfiguredPath -Project $twinProject
 $blueprintFindings = [Collections.Generic.List[object]]::new()
 $twinFindings = [Collections.Generic.List[object]]::new()
 $relationshipFindings = [Collections.Generic.List[object]]::new()
+$spectraFindings = [Collections.Generic.List[object]]::new()
 $blueprintState = Get-GoalRepositoryState -Project $blueprintProject -Repository $blueprintRoot -Findings $blueprintFindings -CodePrefix 'GOAL-BP'
 $twinState = Get-GoalRepositoryState -Project $twinProject -Repository $twinRoot -Findings $twinFindings -CodePrefix 'GOAL-TW'
+$verificationSourceConfig = $MonitorConfig.verificationSources.bcprojectos
+$verificationSourceRoot = Get-UniversaarlConfiguredPath -Project $verificationSourceConfig
+$verificationInput = [pscustomobject][ordered]@{ id = 'bcprojectos'; technicalProjectName = 'BCProjectOS'; productName = 'Spectra'; productId = 'spectra'; sourceCommit = $null; branch = '(nicht verfuegbar)'; remoteUrl = $null; fingerprintBefore = $null; fingerprintAfter = $null; targetUnchanged = $false; status = 'failed' }
+$verificationFingerprint = $null
+try {
+    $verificationInput.sourceCommit = Get-HeadCommit -Repository $verificationSourceRoot
+    $verificationFingerprint = Get-UniversaarlRepositoryFingerprint -Repository $verificationSourceRoot
+    $verificationInput.fingerprintBefore = $verificationFingerprint
+    $verificationInput.branch = $verificationFingerprint.branch
+    $verificationInput.remoteUrl = Get-UniversaarlRawFetchUrl -Repository $verificationSourceRoot -Remote ([string]$verificationSourceConfig.remote)
+    if ([string]$verificationInput.remoteUrl -cne [string]$verificationSourceConfig.canonicalRemoteUrl) { throw 'Rohe Remote-URL stimmt nicht mit der Positivliste ueberein.' }
+    $verificationInput.status = 'observed'
+}
+catch { $spectraFindings.Add((New-GoalFinding high 'GOAL-SPECTRA-SOURCE' "Die technische Spectra-Evidence-Quelle BCProjectOS kann nicht sicher gelesen werden: $($_.Exception.Message)" 'BCProjectOS-Commit und Remote' 'Evidence-Quelle mit kanonischem Remote und stabiler Commit-SHA bereitstellen.')) }
 
 $blueprintOpenSpec = ''
 $blueprintArchitecture = ''
@@ -165,6 +180,9 @@ $blueprintEnvironmentPage = ''
 $blueprintReadme = ''
 $walkthroughBuilder = ''
 $walkthroughTests = ''
+$blueprintConsumerBinding = ''
+$spectraBindingArtifactPresent = $false
+$spectraBindingIdentityValid = $false
 if ($blueprintState.head) {
     $blueprintOpenSpec = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'openspec/config.yaml' -Findings $blueprintFindings -Code 'GOAL-BP-ARTIFACT'
     $blueprintArchitecture = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'architecture/enterprise-blueprint.yaml' -Findings $blueprintFindings -Code 'GOAL-BP-ARTIFACT'
@@ -173,6 +191,25 @@ if ($blueprintState.head) {
     $blueprintReadme = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'README.md' -Findings $blueprintFindings -Code 'GOAL-BP-ARTIFACT'
     $walkthroughBuilder = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'scripts/build-walkthrough.mjs' -Findings $blueprintFindings -Code 'GOAL-BP-ARTIFACT'
     $walkthroughTests = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'tests/artifacts/walkthrough.test.mjs' -Findings $blueprintFindings -Code 'GOAL-BP-ARTIFACT'
+    $blueprintConsumerBinding = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'governance/consumer-bindings.yaml' -Findings $spectraFindings -Code 'GOAL-SPECTRA-BINDING' -MaximumBytes 262144
+}
+
+if (-not [string]::IsNullOrWhiteSpace($blueprintConsumerBinding)) {
+    $spectraBindingArtifactPresent = $true
+    $spectraSection = [regex]::Match($blueprintConsumerBinding, '(?ms)^spectraReleaseBinding:\s*\r?\n(?<body>(?:^[ \t]+.*(?:\r?\n|$))+)')
+    if (-not $spectraSection.Success -or [string]$spectraSection.Groups['body'].Value -notmatch '(?m)^  productId:\s*spectra\s*$' -or
+        [string]$spectraSection.Groups['body'].Value -notmatch '(?m)^  technicalRepositoryName:\s*BCProjectOS\s*$' -or
+        [string]$spectraSection.Groups['body'].Value -notmatch '(?m)^  repositoryUrl:\s*https://github\.com/sivla/BCProjectOS\.git\s*$') {
+        $spectraFindings.Add((New-GoalFinding high 'GOAL-SPECTRA-IDENTITY' 'Die Kundeninstanz bindet nicht eindeutig das Produkt Spectra aus dem technischen Repository BCProjectOS.' 'governance/consumer-bindings.yaml' 'Produkt-ID spectra und die kanonische BCProjectOS-Repository-URL exakt binden.'))
+    }
+    elseif ([string]$spectraSection.Groups['body'].Value -match '(?m)^  bindingStatus:\s*PENDING_BCPROJECTOS_RELEASE\s*$') {
+        $spectraBindingIdentityValid = $true
+        $spectraFindings.Add((New-GoalFinding high 'GOAL-SPECTRA-PENDING' 'Der Spectra-Release ist weiterhin ausstehend; Kundenbindung und Snapshot duerfen nicht freigegeben werden.' 'governance/consumer-bindings.yaml' 'Echten installierbaren Spectra-Release separat mit Tag, Commit, Manifest und Digest nachweisen.'))
+    }
+    else {
+        $spectraBindingIdentityValid = $true
+        $spectraFindings.Add((New-GoalFinding high 'GOAL-SPECTRA-UNVERIFIED' 'Eine nicht ausstehende Spectra-Bindung ist noch nicht durch den vollstaendigen Kontrollzentrum-Releasevalidator nachgewiesen.' 'governance/consumer-bindings.yaml; BCProjectOS-Releaseevidence' 'Bound-Zustand erst nach vollstaendiger commitgebundener Releasevalidierung akzeptieren.'))
+    }
 }
 
 foreach ($requiredShape in @(
@@ -264,12 +301,20 @@ if ($twinState.dirty -eq $true) { $twinFindings.Add((New-GoalFinding low 'GOAL-T
 if ($blueprintState.head -and $twinState.head) {
     $legacyExportEntry = Get-UniversaarlBlobEntry -Repository $blueprintRoot -Commit $blueprintState.head -Path 'exports/project-artifacts/v0.1/index.yaml'
     $projectDataEntry = Get-UniversaarlBlobEntry -Repository $blueprintRoot -Commit $blueprintState.head -Path 'exports/project-data/v1/index.yaml'
+    $snapshotManifestEntry = Get-UniversaarlBlobEntry -Repository $blueprintRoot -Commit $blueprintState.head -Path 'exports/project-data/v1/snapshot-manifest.json'
+    $snapshotManifestPresent = $null -ne $snapshotManifestEntry
     $twinConsumesLegacy = $twinAdapter -match 'project-artifacts/v0\.1' -or $twinAdapter -match "safeRoots\s*=\s*\[[^\]]*'exports'"
-    $twinConsumesProjectData = $twinRegistry -match 'exports/project-data/v1/index\.yaml' -and $twinAdapter -match 'projectDataContract' -and $twinAdapter -match 'expectedProjectId'
+    $twinConsumesProjectData = $twinRegistry -match 'exports/project-data/v1/snapshot-manifest\.json' -and $twinRegistry -match 'exports/project-data/v1/index\.yaml' -and $twinAdapter -match 'snapshotManifestSchema' -and $twinAdapter -match 'producerCommitSha' -and $twinAdapter -match 'payloadBundleDigest'
     if ($null -ne $legacyExportEntry -and -not $twinConsumesLegacy) { $relationshipFindings.Add((New-GoalFinding medium 'GOAL-X-001' 'Der Twin liest den bisherigen Blueprint-Verbrauchervertrag noch nicht.' 'exports/project-artifacts/v0.1/index.yaml; Twin-Adapter' 'Verbraucheranpassung abschliessen oder die Luecke im Zwischenstand ausdruecklich ausweisen.')) }
     if ($null -ne $projectDataEntry -and -not $twinConsumesProjectData) { $relationshipFindings.Add((New-GoalFinding medium 'GOAL-X-002' 'Der Twin liest den projektbezogenen Blueprint-Datenvertrag noch nicht vollstaendig.' 'exports/project-data/v1/index.yaml; Twin-Registry; Twin-Adapter' 'Projektbezogene Indexbindung vor der endgueltigen Freigabe abschliessen.')) }
+    if (-not $snapshotManifestPresent) { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-SNAPSHOT' 'Der commitgebundene validierte Spectra-Snapshot-Metadatencommit B fehlt; der Twin darf den Blueprint-Datenstand nicht als freigegeben lesen.' 'exports/project-data/v1/snapshot-manifest.json im Blueprint-HEAD' 'Erst nach echtem installierbarem Spectra-Release den zweistufigen A/B-Snapshot erzeugen und separat pruefen.')) }
+    else { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-SNAPSHOT-UNVERIFIED' 'Das Snapshotmanifest ist vorhanden, aber A/B-Elternschaft, exakter Diff, Schema, Index und Digests sind im Kontrollzentrum noch nicht vollstaendig commitgebunden validiert.' 'Snapshotmanifest, Produzentencommit A und Metadatencommit B' 'Vollvalidator implementieren; bis dahin keine Snapshot- oder Publisherfreigabe.')) }
 }
-else { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-STATE' 'Das Zusammenspiel kann ohne beide vollstaendigen Eingabe-SHAs nicht bewertet werden.' 'Blueprint- und Twin-HEAD' 'Beide Commitzustaende sicher lesbar machen.')) }
+else {
+    $snapshotManifestPresent = $false
+    $twinConsumesProjectData = $false
+    $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-STATE' 'Das Zusammenspiel kann ohne beide vollstaendigen Eingabe-SHAs nicht bewertet werden.' 'Blueprint- und Twin-HEAD' 'Beide Commitzustaende sicher lesbar machen.'))
+}
 
 foreach ($pair in @(@{ state = $blueprintState; root = $blueprintRoot; findings = $blueprintFindings; code = 'GOAL-BP-CHANGED' }, @{ state = $twinState; root = $twinRoot; findings = $twinFindings; code = 'GOAL-TW-CHANGED' })) {
     if ($pair.state.fingerprint) {
@@ -280,18 +325,45 @@ foreach ($pair in @(@{ state = $blueprintState; root = $blueprintRoot; findings 
         catch { $pair.findings.Add((New-GoalFinding high $pair.code 'Abschliessender Git-Fingerprint ist unbekannt.' 'Git-Fingerprint' 'Zielpruefung erneut auf einem stabilen Commit ausfuehren.')) }
     }
 }
+if ($null -ne $verificationFingerprint) {
+    try {
+        $verificationAfter = Get-UniversaarlRepositoryFingerprint -Repository $verificationSourceRoot
+        $verificationInput.fingerprintAfter = $verificationAfter
+        $verificationInput.targetUnchanged = Test-UniversaarlFingerprintEqual -Expected $verificationFingerprint -Actual $verificationAfter
+        if (-not $verificationInput.targetUnchanged) {
+            $verificationInput.status = 'failed'
+            $spectraFindings.Add((New-GoalFinding high 'GOAL-SPECTRA-CHANGED' 'HEAD-, Status- oder Index-Fingerprint der BCProjectOS-Evidence-Quelle hat sich waehrend der Zielpruefung veraendert.' 'BCProjectOS-Fingerprints vor und nach der Zielpruefung' 'Zielpruefung mit stabiler Evidence-Quelle wiederholen.'))
+        }
+    }
+    catch {
+        $verificationInput.status = 'failed'
+        $spectraFindings.Add((New-GoalFinding high 'GOAL-SPECTRA-CHANGED' 'Der abschliessende Fingerprint der BCProjectOS-Evidence-Quelle ist unbekannt.' 'BCProjectOS-Git-Fingerprint' 'Zielpruefung mit stabiler Evidence-Quelle wiederholen.'))
+    }
+}
 
 $blueprintCoverage = if ($blueprintState.head -match '^[0-9a-f]{40}$') { 100 } else { 0 }
 $twinCoverage = if ($twinState.head -match '^[0-9a-f]{40}$') { 100 } else { 0 }
-$relationshipCoverage = if ($blueprintCoverage -eq 100 -and $twinCoverage -eq 100) { 100 } else { 0 }
+$spectraCoverage = 0
+if ($blueprintCoverage -eq 100) { $spectraCoverage += 20 }
+if ($verificationInput.sourceCommit -is [string] -and $verificationInput.sourceCommit -match '^[0-9a-f]{40}$') { $spectraCoverage += 20 }
+if ($spectraBindingArtifactPresent) { $spectraCoverage += 20 }
+if ($spectraBindingIdentityValid) { $spectraCoverage += 20 }
+# Die letzten 20 Prozent erfordern den noch nicht implementierten Vollvalidator.
+$relationshipCoverage = 0
+if ($blueprintCoverage -eq 100) { $relationshipCoverage += 20 }
+if ($twinCoverage -eq 100) { $relationshipCoverage += 20 }
+if ($snapshotManifestPresent) { $relationshipCoverage += 20 }
+if ($twinConsumesProjectData) { $relationshipCoverage += 20 }
+# Die letzten 20 Prozent erfordern A/B-, Schema-, Index- und Digestvalidierung.
 $blueprintResult = [pscustomobject]@{ id = 'blueprint'; objective = [string]$GoalConfig.projects.blueprint.objective; currentGoal = [string]$GoalConfig.projects.blueprint.currentGoal; status = Get-GoalStatus @($blueprintFindings); evidenceCoverage = $blueprintCoverage; state = $blueprintState; findings = @($blueprintFindings) }
 $twinResult = [pscustomobject]@{ id = 'project-twin'; objective = [string]$GoalConfig.projects.'project-twin'.objective; currentGoal = [string]$GoalConfig.projects.'project-twin'.currentGoal; status = Get-GoalStatus @($twinFindings); evidenceCoverage = $twinCoverage; state = $twinState; findings = @($twinFindings) }
-$relationshipResult = [pscustomobject]@{ id = 'twin-reads-blueprint'; objective = [string]$GoalConfig.relationships.'twin-reads-blueprint'.objective; status = Get-GoalStatus @($relationshipFindings); evidenceCoverage = $relationshipCoverage; providerCommit = $blueprintState.head; consumerCommit = $twinState.head; findings = @($relationshipFindings) }
-$allFindings = @($blueprintFindings) + @($twinFindings) + @($relationshipFindings)
+$spectraRelationshipResult = [pscustomobject]@{ id = 'blueprint-binds-spectra'; contractType = 'versioned-product-release'; objective = [string]$GoalConfig.relationships.'blueprint-binds-spectra'.objective; status = Get-GoalStatus @($spectraFindings); fullValidationPassed = $false; evidenceCoverage = $spectraCoverage; productName = 'Spectra'; productId = 'spectra'; technicalProjectName = 'BCProjectOS'; sourceCommit = $verificationInput.sourceCommit; consumerCommit = $blueprintState.head; findings = @($spectraFindings) }
+$relationshipResult = [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'validated-snapshot'; objective = [string]$GoalConfig.relationships.'twin-reads-blueprint'.objective; status = Get-GoalStatus @($relationshipFindings); fullValidationPassed = $false; evidenceCoverage = $relationshipCoverage; providerCommit = $blueprintState.head; consumerCommit = $twinState.head; findings = @($relationshipFindings) }
+$allFindings = @($blueprintFindings) + @($twinFindings) + @($spectraFindings) + @($relationshipFindings)
 $overall = Get-GoalStatus $allFindings
 $inputShas = [ordered]@{ blueprint = $blueprintState.head; 'project-twin' = $twinState.head }
-$overallCoverage = [int][Math]::Floor(($blueprintCoverage + $twinCoverage + $relationshipCoverage) / 3)
-$report = [pscustomobject]@{ schemaVersion = 2; kind = 'goal'; runId = $RunId; completed = $true; generatedAt = (Get-Date).ToUniversalTime().ToString('o'); overallStatus = $overall; evidenceCoverage = $overallCoverage; inputShas = [pscustomobject]$inputShas; projects = @($blueprintResult, $twinResult); relationships = @($relationshipResult); safety = [pscustomobject]@{ commitBoundTextReads = $true; realEnvironmentFilesRead = $false; gitOptionalLocksDisabled = $true } }
+$overallCoverage = [int][Math]::Floor(($blueprintCoverage + $twinCoverage + $spectraCoverage + $relationshipCoverage) / 4)
+$report = [pscustomobject]@{ schemaVersion = 2; kind = 'goal'; runId = $RunId; completed = $true; generatedAt = (Get-Date).ToUniversalTime().ToString('o'); overallStatus = $overall; evidenceCoverage = $overallCoverage; inputShas = [pscustomobject]$inputShas; verificationInputs = [pscustomobject]@{ bcprojectos = $verificationInput }; projects = @($blueprintResult, $twinResult); relationships = @($spectraRelationshipResult, $relationshipResult); safety = [pscustomobject]@{ commitBoundTextReads = $true; realEnvironmentFilesRead = $false; gitOptionalLocksDisabled = $true } }
 
 $severityText = @{ high = 'hoch'; medium = 'mittel'; low = 'niedrig'; info = 'Hinweis' }
 $markdown = [Collections.Generic.List[string]]::new()
@@ -315,6 +387,16 @@ foreach ($project in $report.projects) {
     if ($project.findings.Count -eq 0) { $markdown.Add('- Keine strategische Abweichung erkannt.') }
     foreach ($finding in $project.findings) { $markdown.Add("- **$($severityText[[string]$finding.severity]) / ``$($finding.code)``:** $($finding.message) Nachweis: ``$($finding.evidence)`` Naechstes Ziel: $($finding.nextGoal)") }
 }
+$markdown.Add('')
+$markdown.Add('## Spectra-Bindungsziel')
+$markdown.Add('')
+$markdown.Add("- Zielstatus: **$($spectraRelationshipResult.status)**")
+$markdown.Add("- Nachweisabdeckung: **$($spectraRelationshipResult.evidenceCoverage) %**")
+$spectraSourceCommitText = if ($spectraRelationshipResult.sourceCommit -match '^[0-9a-f]{40}$') { $spectraRelationshipResult.sourceCommit } else { 'unbekannt' }
+$spectraConsumerCommitText = if ($spectraRelationshipResult.consumerCommit -match '^[0-9a-f]{40}$') { $spectraRelationshipResult.consumerCommit } else { 'unbekannt' }
+$markdown.Add("- BCProjectOS-Evidence-Commit: ``$spectraSourceCommitText``")
+$markdown.Add("- Blueprint-Commit: ``$spectraConsumerCommitText``")
+foreach ($finding in $spectraFindings) { $markdown.Add("- **$($severityText[[string]$finding.severity]) / ``$($finding.code)``:** $($finding.message)") }
 $markdown.Add('')
 $markdown.Add('## Zusammenspiel')
 $markdown.Add('')

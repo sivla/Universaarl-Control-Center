@@ -12,10 +12,10 @@
       ]
     },
     "project-twin": {
-      "objective": "Beliebige freigegebene Projektquellen ueber eine generische Mehrprojekt-Oberflaeche sicher und ausschliesslich lesend darstellen, ohne eigene fachliche Projektdaten oder Fachfunktionen zu besitzen.",
-      "currentGoal": "Die responsive, generische Mehrprojekt-Huelle samt sicherer Quellbindung abschliessen und alle fachlichen Ansichten ausschliesslich aus normalisierten Artefakten der jeweils konfigurierten Projektquelle speisen; nicht unterstuetzte Inhalte bleiben sichtbar leer.",
-      "requiredBaseCommit": "e79833b2de727e8265ddf897d9d707e648920a6d",
-      "currentChange": "establish-responsive-multi-project-shell-foundation",
+      "objective": "Beliebige freigegebene, versionierte Projektsnapshots ueber eine generische Mehrprojekt-Oberflaeche sicher und ausschliesslich lesend darstellen, ohne eigene fachliche Projektdaten oder Fachfunktionen zu besitzen.",
+      "currentGoal": "Den rein lesenden Mehrprojekt-Twin ausschliesslich an validierte A/B-Snapshotvertraege binden: Ohne extern gebundenen Metadatencommit, gueltiges Manifest, Schema, Index und Payload-Digest bleibt jede fachliche Ansicht sichtbar deutsch blockiert; ein generischer Git-Tree-Fallback ist unzulaessig.",
+      "requiredBaseCommit": "f7d45dd45b2726aa64602fd74183c41586865f8f",
+      "currentChange": "establish-read-only-project-twin-mvp",
       "antiGoals": [
         "Rueckschreiben oder eigene fachliche Wahrheit",
         "Erfundene Termine, Zustaende, Meilensteine oder kaufmaennische Werte",
@@ -25,8 +25,11 @@
     }
   },
   "relationships": {
+    "blueprint-binds-spectra": {
+      "objective": "BC Basic bindet ausschliesslich einen unveraenderlichen, vollstaendig nachgewiesenen Spectra-Release aus dem technischen Repository BCProjectOS; solange Tag, Commit und Digest fehlen oder widersprechen, bleibt PENDING_BCPROJECTOS_RELEASE blockierend."
+    },
     "twin-reads-blueprint": {
-      "objective": "Jeder im Twin angezeigte fachliche Wert stammt nachvollziehbar aus einem Blueprint-Artefakt; fehlende oder noch nicht unterstuetzte Quelldaten bleiben sichtbar leer und werden niemals erfunden."
+      "objective": "Jeder im Twin angezeigte fachliche Wert stammt nachvollziehbar aus einem validierten, commitgebundenen Blueprint-Snapshot; fehlende, nicht validierte oder noch nicht unterstuetzte Quelldaten bleiben sichtbar leer und werden niemals erfunden."
     }
   }
 }

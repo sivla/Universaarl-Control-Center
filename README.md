@@ -2,6 +2,22 @@
 
 Dieses Repository hat genau einen Zweck: den Zustand des Universaarl BC Blueprint V2 und des Universaarl Project Twin unabhaengig zu beobachten, getrennt zu bewerten, Probleme in ihrem Zusammenspiel sichtbar zu machen und bereits vorhandene freigegebene Versionsstaende kontrolliert zu veroeffentlichen. Es enthaelt keine Funktionen des Blueprint oder des Twin und bearbeitet oder erstellt dort niemals Zielcode-Versionen.
 
+## Vertragskette
+
+Der fachliche Datenfluss ist `Spectra (technisches Repository BCProjectOS) -> versionierter Produktvertrag -> BC Basic -> validierter Snapshot -> Project Twin`. Das Kontrollzentrum steht ausserhalb dieser Kette. Es installiert keinen Produktvertrag und erzeugt keine Kunden- oder Snapshotwahrheit, sondern prueft die vorhandenen Nachweise commitgebunden.
+
+- Spectra: `product_id: spectra`; technisches Repository BCProjectOS unter `https://github.com/sivla/BCProjectOS.git`; Release-Tags `spectra-v<SemVer>`
+- BC Basic: `https://github.com/sivla/FiBu.git`, Zweig `codex/universaarl-projekt`
+- Project Twin: `https://github.com/sivla/FiBu.git`, Zweig `codex/universaarl-projekt-twin`
+
+Die bekannte BCProjectOS-Repository-URL ist noch kein Spectra-Release. Bis annotierter `spectra-v<SemVer>`-Tag, Tag-Commit, finales Manifest, gueltiger Manifest-Source-Commit und passender SHA-256-Payload-Digest gemeinsam nachgewiesen sind, bleibt die Bindung `PENDING_BCPROJECTOS_RELEASE`; ein Snapshot ist dann nicht veroeffentlichungsreif. Ein reiner `CONTRACT_REFERENCE_ONLY`-Release darf zwar als Produktvertrag geprueft werden, autorisiert aber keine Kundeninstallation und keinen Snapshot. Dafuer ist ein finaler `INSTALLABLE_BLUEPRINT`-Release erforderlich. Ein irrtuemlich im Kontrollzentrum angelegter Consumer-/Installationspfad wurde deshalb entfernt. Die konkrete Consumer-Bindung gehoert ausschliesslich in BC Basic.
+
+Die dauerhafte Rollenpruefung kann separat ausgefuehrt werden:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\Test-ControlCenterRoleBoundary.ps1
+```
+
 ## Überwachte Projekte
 
 | ID | Aufgabe | Standardpfad |

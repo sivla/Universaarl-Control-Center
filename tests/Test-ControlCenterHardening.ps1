@@ -108,17 +108,35 @@ try {
     Assert-True -Condition (Test-UniversaarlBoundReportExitCode -ExitCode 1) -Message 'Vollstaendig erzeugter global roter Bericht wurde vor der projektspezifischen Auswertung abgelehnt.'
     Assert-True -Condition (-not (Test-UniversaarlBoundReportExitCode -ExitCode 2)) -Message 'Unerwarteter Berichtsrueckgabecode wurde akzeptiert.'
     $scopedProject = [pscustomobject]@{ status = 'GELB'; validation = 'passed'; germanValidation = 'passed'; targetUnchanged = $true }
-    $scopedTechnicalRelationship = [pscustomobject]@{ status = 'passed' }
+    $scopedTechnicalRelationships = @(
+        [pscustomobject]@{ id = 'blueprint-binds-spectra'; status = 'passed'; fullValidationPassed = $true },
+        [pscustomobject]@{ id = 'twin-reads-blueprint'; status = 'passed'; fullValidationPassed = $true }
+    )
     $scopedProjectGoal = [pscustomobject]@{ status = 'GRUEN' }
-    $scopedGoalRelationship = [pscustomobject]@{ status = 'GELB' }
-    Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationship $scopedTechnicalRelationship -ProjectGoalResult $scopedProjectGoal -GoalRelationship $scopedGoalRelationship).Count -eq 0) -Message 'Gelbe dokumentierte Folgearbeit blockierte ein technisch bestandenes ausgewaehltes Projekt.'
-    $scopedTechnicalRelationship.status = 'warning'
-    Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationship $scopedTechnicalRelationship -ProjectGoalResult $scopedProjectGoal -GoalRelationship $scopedGoalRelationship).Count -eq 0) -Message 'Eine sichtbare technische Vertragswarnung blockierte den Zwischenstand.'
-    $scopedProject.status = 'ROT'
-    Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationship $scopedTechnicalRelationship -ProjectGoalResult $scopedProjectGoal -GoalRelationship $scopedGoalRelationship).Count -gt 0) -Message 'Roter Status des ausgewaehlten Projekts wurde akzeptiert.'
-    $scopedProject.status = 'GRUEN'
-    $scopedTechnicalRelationship.status = 'failed'
-    Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationship $scopedTechnicalRelationship -ProjectGoalResult $scopedProjectGoal -GoalRelationship $scopedGoalRelationship).Count -gt 0) -Message 'Fehlgeschlagener technischer Zusammenspielnachweis wurde akzeptiert.'
+    $scopedGoalRelationships = @(
+        [pscustomobject]@{ id = 'blueprint-binds-spectra'; status = 'GELB'; fullValidationPassed = $true },
+        [pscustomobject]@{ id = 'twin-reads-blueprint'; status = 'GELB'; fullValidationPassed = $true }
+    )
+    Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationships $scopedTechnicalRelationships -ProjectGoalResult $scopedProjectGoal -GoalRelationships $scopedGoalRelationships).Count -gt 0) -Message 'Noch nicht implementierter Vollvalidator blockierte die Veroeffentlichung nicht.'
+    $oldFullValidatorAvailability = $script:UniversaarlFullContractValidatorAvailable
+    $script:UniversaarlFullContractValidatorAvailable = $true
+    try {
+        Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationships $scopedTechnicalRelationships -ProjectGoalResult $scopedProjectGoal -GoalRelationships $scopedGoalRelationships).Count -eq 0) -Message 'Vollstaendig validierte Beziehungen mit gelber dokumentierter Folgearbeit wurden abgelehnt.'
+        $scopedTechnicalRelationships[1].status = 'warning'
+        Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationships $scopedTechnicalRelationships -ProjectGoalResult $scopedProjectGoal -GoalRelationships $scopedGoalRelationships).Count -gt 0) -Message 'Eine technische Vertragswarnung wurde als publishbar akzeptiert.'
+        $scopedTechnicalRelationships[1].status = 'passed'
+        $scopedProject.status = 'ROT'
+        Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationships $scopedTechnicalRelationships -ProjectGoalResult $scopedProjectGoal -GoalRelationships $scopedGoalRelationships).Count -gt 0) -Message 'Roter Status des ausgewaehlten Projekts wurde akzeptiert.'
+        $scopedProject.status = 'GRUEN'
+        $scopedTechnicalRelationships[0].status = 'failed'
+        Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationships $scopedTechnicalRelationships -ProjectGoalResult $scopedProjectGoal -GoalRelationships $scopedGoalRelationships).Count -gt 0) -Message 'Fehlgeschlagener technischer Spectra-Nachweis wurde akzeptiert.'
+        $scopedTechnicalRelationships[0].status = 'passed'
+        Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationships @($scopedTechnicalRelationships[0]) -ProjectGoalResult $scopedProjectGoal -GoalRelationships $scopedGoalRelationships).Count -gt 0) -Message 'Fehlende technische Snapshot-Beziehung wurde akzeptiert.'
+        $scopedTechnicalRelationships[0].fullValidationPassed = $false
+        Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationships $scopedTechnicalRelationships -ProjectGoalResult $scopedProjectGoal -GoalRelationships $scopedGoalRelationships).Count -gt 0) -Message 'Fehlender typstrenger Vollvalidatornachweis wurde akzeptiert.'
+        $scopedTechnicalRelationships[0].fullValidationPassed = $true
+    }
+    finally { $script:UniversaarlFullContractValidatorAvailable = $oldFullValidatorAvailability }
 
     Assert-True -Condition (Test-UniversaarlProhibitedRuntimePath -Path $canonicalMediaPath) -Message 'Produktmedien-Endung wurde ohne Positivliste global freigegeben.'
     Assert-True -Condition (Test-UniversaarlProhibitedRuntimePath -Path 'test-results/videos/run.webm' -AllowVersionedProductMedia) -Message 'Browser-/Testvideo konnte die Laufzeitpfadsperre mit einer Medienfreigabe umgehen.'
@@ -347,6 +365,50 @@ try {
     Assert-Throws -Action { Read-UniversaarlBoundReport -Path $reportPath -RunId 'neuer-lauf' -Kind audit -TrustedRoot $TestRoot } -Message 'Alter Laufbericht wurde akzeptiert.'
     Assert-Throws -Action { Read-UniversaarlBoundReport -Path $reportPath -RunId 'alter-lauf' -Kind audit -TrustedRoot $TestRoot } -Message 'Laufbericht ohne beide exakt benannten Eingabe-SHAs wurde akzeptiert.'
 
+    $reportSha = '0123456789abcdef0123456789abcdef01234567'
+    $reportHash = 'a' * 64
+    $reportFingerprint = [pscustomobject]@{ head = $reportSha; branch = 'main'; dirty = $false; statusHash = $reportHash; indexHash = $reportHash; fingerprint = $reportHash }
+    $validReport = [pscustomobject]@{
+        schemaVersion = 2; kind = 'audit'; runId = 'vertrag-lauf'; completed = $true
+        overallStatus = 'ROT'
+        inputShas = [pscustomobject]@{ blueprint = $reportSha; 'project-twin' = $reportSha }
+        verificationInputs = [pscustomobject]@{ bcprojectos = [pscustomobject]@{ technicalProjectName = 'BCProjectOS'; productName = 'Spectra'; productId = 'spectra'; remoteUrl = 'https://github.com/sivla/BCProjectOS.git'; sourceCommit = $reportSha; fingerprintAfter = $reportFingerprint; targetUnchanged = $true; status = 'observed' } }
+        projects = @(
+            [pscustomobject]@{ id = 'blueprint'; status = 'ROT'; commit = $reportSha; validation = 'failed'; germanValidation = 'not-run'; targetUnchanged = $true; fingerprintAfter = $reportFingerprint },
+            [pscustomobject]@{ id = 'project-twin'; status = 'ROT'; commit = $reportSha; validation = 'failed'; germanValidation = 'not-run'; targetUnchanged = $true; fingerprintAfter = $reportFingerprint }
+        )
+        relationships = @(
+            [pscustomobject]@{ id = 'blueprint-binds-spectra'; contractType = 'versioned-product-release'; productName = 'Spectra'; productId = 'spectra'; technicalProjectName = 'BCProjectOS'; sourceCommit = $reportSha; consumerCommit = $reportSha; status = 'failed'; fullValidationPassed = $false },
+            [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'validated-snapshot'; providerCommit = $reportSha; consumerCommit = $reportSha; status = 'failed'; fullValidationPassed = $false }
+        )
+    }
+    [IO.File]::WriteAllText($reportPath, ($validReport | ConvertTo-Json -Depth 12), [Text.UTF8Encoding]::new($false))
+    $null = Read-UniversaarlBoundReport -Path $reportPath -RunId 'vertrag-lauf' -Kind audit -TrustedRoot $TestRoot
+
+    foreach ($coercionCase in @(
+        @{ message = 'Zeichenketten-Schemaversion wurde akzeptiert.'; mutate = { param($value) $value.schemaVersion = '2' } },
+        @{ message = 'Zeichenketten-Completed-Markierung wurde akzeptiert.'; mutate = { param($value) $value.completed = 'true' } },
+        @{ message = 'Array statt exakt typisierter Eingabe-SHA wurde akzeptiert.'; mutate = { param($value) $value.inputShas.blueprint = @($reportSha) } },
+        @{ message = 'BCProjectOS targetUnchanged false wurde vom gebundenen Reader akzeptiert.'; mutate = { param($value) $value.verificationInputs.bcprojectos.targetUnchanged = $false } },
+        @{ message = 'Array statt exakt typisierter Spectra-Bindungs-SHA wurde akzeptiert.'; mutate = { param($value) $value.relationships[0].sourceCommit = @($reportSha) } },
+        @{ message = 'Technisch abweichender Projektname wurde als BCProjectOS-Bindung akzeptiert.'; mutate = { param($value) $value.relationships[0].technicalProjectName = 'Spectra' } },
+        @{ message = 'Bestandenbehauptung ohne implementierten Vollvalidator wurde akzeptiert.'; mutate = { param($value) $value.relationships[0].status = 'passed'; $value.relationships[0].fullValidationPassed = $true } }
+    )) {
+        $candidate = (($validReport | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+        & $coercionCase.mutate $candidate
+        [IO.File]::WriteAllText($reportPath, ($candidate | ConvertTo-Json -Depth 12), [Text.UTF8Encoding]::new($false))
+        Assert-Throws -Action { Read-UniversaarlBoundReport -Path $reportPath -RunId 'vertrag-lauf' -Kind audit -TrustedRoot $TestRoot } -Message $coercionCase.message
+    }
+
+    $missingRelationshipReport = (($validReport | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $missingRelationshipReport.relationships = @($missingRelationshipReport.relationships[0])
+    [IO.File]::WriteAllText($reportPath, ($missingRelationshipReport | ConvertTo-Json -Depth 12), [Text.UTF8Encoding]::new($false))
+    Assert-Throws -Action { Read-UniversaarlBoundReport -Path $reportPath -RunId 'vertrag-lauf' -Kind audit -TrustedRoot $TestRoot } -Message 'Laufbericht ohne Snapshot-Lesebeziehung wurde akzeptiert.'
+    $duplicateRelationshipReport = (($validReport | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $duplicateRelationshipReport.relationships = @($duplicateRelationshipReport.relationships[0], $duplicateRelationshipReport.relationships[0])
+    [IO.File]::WriteAllText($reportPath, ($duplicateRelationshipReport | ConvertTo-Json -Depth 12), [Text.UTF8Encoding]::new($false))
+    Assert-Throws -Action { Read-UniversaarlBoundReport -Path $reportPath -RunId 'vertrag-lauf' -Kind audit -TrustedRoot $TestRoot } -Message 'Laufbericht mit doppelter Spectra-Beziehung wurde akzeptiert.'
+
     $pushSha = '0123456789abcdef0123456789abcdef01234567'
     Assert-True -Condition ((Get-UniversaarlExactPushRefSpec -Commit $pushSha -Branch 'codex/test') -eq "$pushSha`:refs/heads/codex/test") -Message 'Push-Refspec ist nicht an die volle SHA gebunden.'
     Assert-Throws -Action { Get-UniversaarlExactPushRefSpec -Commit '0123456' -Branch 'codex/test' } -Message 'Abgekuerzte Push-SHA wurde akzeptiert.'
@@ -498,18 +560,114 @@ try {
 
     $goalBlueprint = New-FixtureRepository -Name 'goal-blueprint' -Files @{ 'README.md' = '# Unvollstaendig'; 'REVIEW.md' = '' }
     $goalTwin = New-FixtureRepository -Name 'goal-twin' -Files @{ 'README.md' = '# Unvollstaendig'; 'REVIEW.md' = '' }
+    $null = Invoke-FixtureGit -Repository $goalBlueprint.path -Arguments @('remote', 'add', 'origin', 'https://github.com/sivla/BCProjectOS.git')
     $goalConfigPath = Join-Path $TestRoot 'monitor.fixture.json'
     $goalDefinitionPath = Join-Path $TestRoot 'goals.fixture.json'
     $goalReports = Join-Path $ControlWorkRoot 'goal-reports'
     $fixtureConfig = [pscustomobject]@{ schemaVersion = 1; reportDirectory = 'unused'; validationTimeoutSeconds = 30; projects = @(
-        [pscustomobject]@{ id = 'blueprint'; name = 'Blueprint-Fixture'; pathAlias = '<FIXTURE_BP>'; defaultPath = $goalBlueprint.path; pathEnvironmentVariable = 'UNIVERSAARL_FIXTURE_BP_PATH'; reviewFile = 'REVIEW.md'; requiredNpmScript = 'test'; validationArguments = @('test'); germanCheck = [pscustomobject]@{ npmScript = 'test:german'; resultSchemaVersion = 1 }; allowedVersionedMedia = $blueprintMediaAllowlist; maxActiveChanges = 1; publish = [pscustomobject]@{ expectedPushUrl = $goalBlueprint.path; branch = 'main' } },
-        [pscustomobject]@{ id = 'project-twin'; name = 'Twin-Fixture'; pathAlias = '<FIXTURE_TW>'; defaultPath = $goalTwin.path; pathEnvironmentVariable = 'UNIVERSAARL_FIXTURE_TW_PATH'; reviewFile = 'REVIEW.md'; requiredNpmScript = 'check'; validationArguments = @('run', 'check'); germanCheck = [pscustomobject]@{ npmScript = 'test:german'; resultSchemaVersion = 1 }; allowedVersionedMedia = @(); maxActiveChanges = 1; publish = [pscustomobject]@{ expectedPushUrl = $goalTwin.path; branch = 'main' } }
-    ); relationships = @([pscustomobject]@{ id = 'twin-reads-blueprint'; consumerProjectId = 'project-twin'; providerProjectId = 'blueprint'; environmentVariable = 'UABC_SOURCE_REPO'; contractMarker = 'UABC_SOURCE_REPO' }) }
+        [pscustomobject]@{ id = 'blueprint'; name = 'Blueprint-Fixture'; pathAlias = '<FIXTURE_BP>'; defaultPath = $goalBlueprint.path; pathEnvironmentVariable = 'UNIVERSAARL_FIXTURE_BP_PATH'; reviewFile = 'REVIEW.md'; requiredNpmScript = 'test'; validationArguments = @('test'); germanCheck = [pscustomobject]@{ npmScript = 'test:german'; resultSchemaVersion = 1 }; allowedVersionedMedia = $blueprintMediaAllowlist; maxActiveChanges = 1; publish = [pscustomobject]@{ enabled = $true; remote = 'origin'; expectedPushUrl = $goalBlueprint.path; branch = 'main' } },
+        [pscustomobject]@{ id = 'project-twin'; name = 'Twin-Fixture'; pathAlias = '<FIXTURE_TW>'; defaultPath = $goalTwin.path; pathEnvironmentVariable = 'UNIVERSAARL_FIXTURE_TW_PATH'; reviewFile = 'REVIEW.md'; requiredNpmScript = 'check'; validationArguments = @('run', 'check'); germanCheck = [pscustomobject]@{ npmScript = 'test:german'; resultSchemaVersion = 1 }; allowedVersionedMedia = @(); maxActiveChanges = 1; publish = [pscustomobject]@{ enabled = $true; remote = 'origin'; expectedPushUrl = $goalTwin.path; branch = 'main' } }
+    ); verificationSources = [pscustomobject]@{
+        bcprojectos = [pscustomobject]@{ verificationOnly = $true; technicalProjectName = 'BCProjectOS'; expectedProduct = [pscustomobject]@{ name = 'Spectra'; productId = 'spectra' }; pathAlias = '<BCPROJECTOS_ROOT>'; defaultPath = $goalBlueprint.path; pathEnvironmentVariable = 'UNIVERSAARL_BCPROJECTOS_PATH'; remote = 'origin'; canonicalRemoteUrl = 'https://github.com/sivla/BCProjectOS.git' }
+    }; relationships = @(
+        [pscustomobject]@{ id = 'blueprint-binds-spectra'; consumerProjectId = 'blueprint'; providerVerificationSourceId = 'bcprojectos'; contractType = 'versioned-product-release'; productId = 'spectra'; contractMarker = 'PENDING_BCPROJECTOS_RELEASE' },
+        [pscustomobject]@{ id = 'twin-reads-blueprint'; consumerProjectId = 'project-twin'; providerProjectId = 'blueprint'; contractType = 'validated-snapshot'; environmentVariable = 'UABC_SOURCE_REPO'; contractMarker = 'UABC_SOURCE_REPO' }
+    ) }
     $fixtureGoals = [pscustomobject]@{ schemaVersion = 1; projects = [pscustomobject]@{
         blueprint = [pscustomobject]@{ objective = 'Fixture'; currentGoal = 'Fixture' }
         'project-twin' = [pscustomobject]@{ objective = 'Fixture'; currentGoal = 'Fixture'; requiredBaseCommit = '0000000000000000000000000000000000000000'; currentChange = 'establish-responsive-multi-project-shell-foundation' }
-    }; relationships = [pscustomobject]@{ 'twin-reads-blueprint' = [pscustomobject]@{ objective = 'Fixture' } } }
+    }; relationships = [pscustomobject]@{
+        'blueprint-binds-spectra' = [pscustomobject]@{ objective = 'Fixture' }
+        'twin-reads-blueprint' = [pscustomobject]@{ objective = 'Fixture' }
+    } }
     Assert-UniversaarlMonitorConfiguration -Configuration $fixtureConfig
+    Assert-UniversaarlGoalConfiguration -Configuration $fixtureGoals
+    $verificationFingerprint = Get-UniversaarlRepositoryFingerprint -Repository $goalBlueprint.path
+    $verificationReport = [pscustomobject]@{ verificationInputs = [pscustomobject]@{ bcprojectos = [pscustomobject]@{ sourceCommit = $goalBlueprint.sha; targetUnchanged = $true; fingerprintAfter = $verificationFingerprint } } }
+    $oldVerificationOverride = [Environment]::GetEnvironmentVariable('UNIVERSAARL_BCPROJECTOS_PATH')
+    try {
+        [Environment]::SetEnvironmentVariable('UNIVERSAARL_BCPROJECTOS_PATH', $goalBlueprint.path)
+        $boundVerification = Assert-UniversaarlBoundVerificationSourceState -AuditReport $verificationReport -GoalReport $verificationReport -Configuration $fixtureConfig
+        Assert-True -Condition ($boundVerification.commit -ceq $goalBlueprint.sha -and $boundVerification.remoteUrl -ceq 'https://github.com/sivla/BCProjectOS.git') -Message 'BCProjectOS-Evidence-Quelle wurde nicht exakt erneut an Commit und Remote gebunden.'
+        $wrongVerificationCommit = (($verificationReport | ConvertTo-Json -Depth 8) | ConvertFrom-Json)
+        $wrongVerificationCommit.verificationInputs.bcprojectos.sourceCommit = '0' * 40
+        Assert-Throws -Action { Assert-UniversaarlBoundVerificationSourceState -AuditReport $wrongVerificationCommit -GoalReport $wrongVerificationCommit -Configuration $fixtureConfig } -Message 'Abweichender BCProjectOS-HEAD wurde bei der Publisher-Neubindung akzeptiert.'
+        $wrongVerificationFingerprint = (($verificationReport | ConvertTo-Json -Depth 8) | ConvertFrom-Json)
+        $wrongVerificationFingerprint.verificationInputs.bcprojectos.fingerprintAfter.fingerprint = 'b' * 64
+        Assert-Throws -Action { Assert-UniversaarlBoundVerificationSourceState -AuditReport $wrongVerificationFingerprint -GoalReport $wrongVerificationFingerprint -Configuration $fixtureConfig } -Message 'Abweichender BCProjectOS-Fingerprint wurde bei der Publisher-Neubindung akzeptiert.'
+        $null = Invoke-FixtureGit -Repository $goalBlueprint.path -Arguments @('remote', 'set-url', '--push', 'origin', 'https://github.com/sivla/BCProjectOS.git')
+        $null = Invoke-FixtureGit -Repository $goalBlueprint.path -Arguments @('remote', 'set-url', 'origin', 'https://github.com/sivla/FiBu.git')
+        Assert-Throws -Action { Assert-UniversaarlBoundVerificationSourceState -AuditReport $verificationReport -GoalReport $verificationReport -Configuration $fixtureConfig } -Message 'Fremde BCProjectOS-Fetch-URL wurde trotz kanonischer Push-URL bei der Publisher-Neubindung akzeptiert.'
+        $null = Invoke-FixtureGit -Repository $goalBlueprint.path -Arguments @('remote', 'set-url', 'origin', 'https://github.com/sivla/BCProjectOS.git')
+        $null = Invoke-FixtureGit -Repository $goalBlueprint.path -Arguments @('config', '--add', 'remote.origin.url', 'https://github.com/sivla/BCProjectOS.git')
+        Assert-Throws -Action { Assert-UniversaarlBoundVerificationSourceState -AuditReport $verificationReport -GoalReport $verificationReport -Configuration $fixtureConfig } -Message 'Mehrdeutige BCProjectOS-Fetch-URLs wurden bei der Publisher-Neubindung akzeptiert.'
+    }
+    finally {
+        $null = & git -C $goalBlueprint.path config --unset-all remote.origin.pushurl 2>$null
+        $null = & git -C $goalBlueprint.path config --unset-all remote.origin.url 2>$null
+        $null = Invoke-FixtureGit -Repository $goalBlueprint.path -Arguments @('remote', 'set-url', 'origin', 'https://github.com/sivla/BCProjectOS.git')
+        [Environment]::SetEnvironmentVariable('UNIVERSAARL_BCPROJECTOS_PATH', $oldVerificationOverride)
+    }
+    $wrongProductNameConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $wrongProductNameConfig.verificationSources.bcprojectos.expectedProduct.name = 'BCProjectOS'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongProductNameConfig } -Message 'Falscher erwarteter Produktname wurde fuer die Spectra-Pruefquelle akzeptiert.'
+    $wrongProductIdConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $wrongProductIdConfig.verificationSources.bcprojectos.expectedProduct.productId = 'bcprojectos'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongProductIdConfig } -Message 'Falsche Spectra-Produkt-ID wurde fuer die Pruefquelle akzeptiert.'
+    $wrongTechnicalProjectConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $wrongTechnicalProjectConfig.verificationSources.bcprojectos.technicalProjectName = 'Spectra'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongTechnicalProjectConfig } -Message 'Falscher technischer Projektname wurde fuer die Spectra-Pruefquelle akzeptiert.'
+    $wrongSourceIdConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $wrongSourceIdConfig.verificationSources = [pscustomobject]@{ spectra = $wrongSourceIdConfig.verificationSources.bcprojectos }
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongSourceIdConfig } -Message 'Falsche Kennung der BCProjectOS-Verifikationsquelle wurde akzeptiert.'
+    $wrongRemoteNameConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $wrongRemoteNameConfig.verificationSources.bcprojectos.remote = 'upstream'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongRemoteNameConfig } -Message 'Falscher Remote-Name wurde fuer die BCProjectOS-Verifikationsquelle akzeptiert.'
+    $coercedRemoteNameConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $coercedRemoteNameConfig.verificationSources.bcprojectos.remote = @('origin')
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $coercedRemoteNameConfig } -Message 'Array statt exakt typisiertem BCProjectOS-Remote-Namen wurde akzeptiert.'
+    $wrongRemoteUrlConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $wrongRemoteUrlConfig.verificationSources.bcprojectos.canonicalRemoteUrl = 'https://github.com/sivla/FiBu.git'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongRemoteUrlConfig } -Message 'Falsche kanonische Remote-URL wurde fuer die BCProjectOS-Verifikationsquelle akzeptiert.'
+    $coercedRemoteUrlConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $coercedRemoteUrlConfig.verificationSources.bcprojectos.canonicalRemoteUrl = @('https://github.com/sivla/BCProjectOS.git')
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $coercedRemoteUrlConfig } -Message 'Array statt exakt typisierter kanonischer BCProjectOS-Remote-URL wurde akzeptiert.'
+    $writableVerificationSourceConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $writableVerificationSourceConfig.verificationSources.bcprojectos.verificationOnly = $false
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $writableVerificationSourceConfig } -Message 'BCProjectOS wurde mit verificationOnly false als Verifikationsquelle akzeptiert.'
+    $coercedVerificationSourceConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $coercedVerificationSourceConfig.verificationSources.bcprojectos.verificationOnly = 'true'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $coercedVerificationSourceConfig } -Message 'Zeichenkette true wurde als typstrenge verificationOnly-Markierung akzeptiert.'
+    $coercedPublisherConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $coercedPublisherConfig.projects[0].publish.enabled = 'true'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $coercedPublisherConfig } -Message 'Zeichenkette true wurde als Publisherfreigabe akzeptiert.'
+    $coercedTimeoutConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $coercedTimeoutConfig.validationTimeoutSeconds = '30'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $coercedTimeoutConfig } -Message 'Zeichenketten-Zeitlimit wurde als Ganzzahl akzeptiert.'
+    $publisherVerificationSourceConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $publisherVerificationSourceConfig.verificationSources.bcprojectos | Add-Member -NotePropertyName publish -NotePropertyValue ([pscustomobject]@{ enabled = $true })
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $publisherVerificationSourceConfig } -Message 'BCProjectOS-Verifikationsquelle durfte ein Publish-Feld besitzen.'
+    $missingRelationshipConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $missingRelationshipConfig.relationships = @($missingRelationshipConfig.relationships | Where-Object { [string]$_.id -cne 'blueprint-binds-spectra' })
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $missingRelationshipConfig } -Message 'Fehlende Spectra-Beziehung wurde akzeptiert.'
+    $duplicateRelationshipConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $duplicateRelationshipConfig.relationships = @($duplicateRelationshipConfig.relationships) + $duplicateRelationshipConfig.relationships[0]
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $duplicateRelationshipConfig } -Message 'Doppelte Spectra-Beziehung wurde akzeptiert.'
+    $wrongSpectraRelationshipProductConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $wrongSpectraRelationshipProductConfig.relationships[0].productId = 'bcprojectos'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongSpectraRelationshipProductConfig } -Message 'Falsche Produkt-ID in der Spectra-Bindungsbeziehung wurde akzeptiert.'
+    $wrongSpectraContractConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $wrongSpectraContractConfig.relationships[0].contractMarker = 'BOUND'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongSpectraContractConfig } -Message 'Erfundener Spectra-Vertragsmarker wurde akzeptiert.'
+    $wrongSnapshotContractConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $wrongSnapshotContractConfig.relationships[1].contractType = 'working-tree'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongSnapshotContractConfig } -Message 'Twin-Beziehung ohne validated-snapshot-Vertrag wurde akzeptiert.'
+    $missingGoalRelationshipConfig = (($fixtureGoals | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $missingGoalRelationshipConfig.relationships.PSObject.Properties.Remove('blueprint-binds-spectra')
+    Assert-Throws -Action { Assert-UniversaarlGoalConfiguration -Configuration $missingGoalRelationshipConfig } -Message 'Fehlendes Spectra-Ziel im Zusammenspiel wurde akzeptiert.'
+    $extraGoalRelationshipConfig = (($fixtureGoals | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
+    $extraGoalRelationshipConfig.relationships | Add-Member -NotePropertyName 'blueprint-binds-spectra-copy' -NotePropertyValue ([pscustomobject]@{ objective = 'Fixture' })
+    Assert-Throws -Action { Assert-UniversaarlGoalConfiguration -Configuration $extraGoalRelationshipConfig } -Message 'Zusaetzliches beziehungsweise dupliziertes Zusammenspielziel wurde akzeptiert.'
     $wrongProjectMediaConfig = (($fixtureConfig | ConvertTo-Json -Depth 8) | ConvertFrom-Json)
     $wrongProjectMediaConfig.projects[1].allowedVersionedMedia = @([pscustomobject]@{ path = $canonicalMediaPath; maxBytes = 1048576; mode = '100644' })
     Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongProjectMediaConfig } -Message 'Twin-Konfiguration durfte die Blueprint-Produktmedienausnahme uebernehmen.'

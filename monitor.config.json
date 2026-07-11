@@ -55,11 +55,35 @@
       }
     }
   ],
+  "verificationSources": {
+    "bcprojectos": {
+      "verificationOnly": true,
+      "technicalProjectName": "BCProjectOS",
+      "expectedProduct": {
+        "name": "Spectra",
+        "productId": "spectra"
+      },
+      "pathAlias": "<BCPROJECTOS_ROOT>",
+      "defaultPath": "C:\\Users\\kkali\\Documents\\BC Project OS",
+      "pathEnvironmentVariable": "UNIVERSAARL_BCPROJECTOS_PATH",
+      "remote": "origin",
+      "canonicalRemoteUrl": "https://github.com/sivla/BCProjectOS.git"
+    }
+  },
   "relationships": [
+    {
+      "id": "blueprint-binds-spectra",
+      "consumerProjectId": "blueprint",
+      "providerVerificationSourceId": "bcprojectos",
+      "contractType": "versioned-product-release",
+      "productId": "spectra",
+      "contractMarker": "PENDING_BCPROJECTOS_RELEASE"
+    },
     {
       "id": "twin-reads-blueprint",
       "consumerProjectId": "project-twin",
       "providerProjectId": "blueprint",
+      "contractType": "validated-snapshot",
       "environmentVariable": "UABC_SOURCE_REPO",
       "contractMarker": "UABC_SOURCE_REPO"
     }

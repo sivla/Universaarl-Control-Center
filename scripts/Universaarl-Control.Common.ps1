@@ -3,6 +3,10 @@ Set-StrictMode -Version Latest
 $script:UniversaarlTextBlobLimit = 1048576
 $script:UniversaarlReportLimit = 8388608
 $script:UniversaarlLogCharacterLimit = 131072
+# Wird erst zusammen mit einem commitgebundenen Spectra-Release- und
+# Snapshot-A/B-/Schema-/Index-/Digest-Validator auf $true gesetzt. Bis dahin
+# kann kein Berichtswert eine Veroeffentlichung freischalten.
+$script:UniversaarlFullContractValidatorAvailable = $false
 if ($null -eq (Get-Variable -Scope Script -Name UniversaarlDirectoryLockRegistry -ErrorAction SilentlyContinue)) {
     $script:UniversaarlDirectoryLockRegistry = @{}
 }
@@ -129,6 +133,16 @@ function Get-UniversaarlRawPushUrl {
     [string]$values[0]
 }
 
+function Get-UniversaarlRawFetchUrl {
+    param([Parameter(Mandatory)][string]$Repository, [Parameter(Mandatory)][string]$Remote)
+    if ($Remote -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') { throw 'Der konfigurierte Remote-Name ist ungueltig.' }
+    $urls = Invoke-UniversaarlGitRead -Repository $Repository -Arguments @('config', '--local', '--get-all', "remote.$Remote.url") -PreserveWhitespace
+    if ($urls.exitCode -ne 0) { throw 'Rohe Fetch-URL fehlt in der lokalen Git-Konfiguration.' }
+    $values = @($urls.output -split "`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($values.Count -ne 1 -or $values[0] -match '[\x00-\x1f]') { throw 'Remote besitzt keine eindeutige sichere rohe Fetch-URL.' }
+    [string]$values[0]
+}
+
 function Assert-UniversaarlExpectedPushRemote {
     param(
         [Parameter(Mandatory)][string]$Repository,
@@ -143,22 +157,41 @@ function Assert-UniversaarlExpectedPushRemote {
 
 function Assert-UniversaarlMonitorConfiguration {
     param([Parameter(Mandatory)]$Configuration)
-    if ($Configuration.schemaVersion -ne 1) { throw 'Die Kontrollzentrum-Konfiguration besitzt eine unbekannte Schemaversion.' }
+
+    $assertExactPropertyNames = {
+        param(
+            [Parameter(Mandatory)]$Value,
+            [Parameter(Mandatory)][string[]]$Expected,
+            [Parameter(Mandatory)][string]$Context
+        )
+        $actual = @($Value.PSObject.Properties | ForEach-Object { [string]$_.Name })
+        if ($actual.Count -ne $Expected.Count) { throw "$Context besitzt nicht exakt die erlaubten Felder." }
+        foreach ($name in $Expected) {
+            if ($actual -cnotcontains $name) { throw "$Context besitzt nicht exakt die erlaubten Felder." }
+        }
+    }
+
+    if ($Configuration.schemaVersion -isnot [int] -or $Configuration.schemaVersion -ne 1) { throw 'Die Kontrollzentrum-Konfiguration besitzt keine exakt typisierte bekannte Schemaversion.' }
+    if ($Configuration.projects -isnot [array]) { throw 'Die operativen Zielprojekte muessen als Liste konfiguriert sein.' }
     $projects = @($Configuration.projects)
-    $ids = @($projects | ForEach-Object { [string]$_.id })
+    $ids = @($projects | ForEach-Object {
+        if ($_.id -isnot [string]) { throw 'Projektkennungen muessen exakt als Zeichenketten vorliegen.' }
+        [string]$_.id
+    })
     if ($projects.Count -ne 2 -or @($ids | Sort-Object -Unique).Count -ne 2 -or $ids -cnotcontains 'blueprint' -or $ids -cnotcontains 'project-twin') {
         throw 'Die Konfiguration muss genau Blueprint und Project Twin enthalten.'
     }
     if ([string]::IsNullOrWhiteSpace([string]$Configuration.reportDirectory) -or [IO.Path]::IsPathRooted([string]$Configuration.reportDirectory) -or [string]$Configuration.reportDirectory -match '(^|[\\/])\.\.([\\/]|$)') {
         throw 'Das Berichtverzeichnis muss ein sicherer relativer Kontrollzentrum-Pfad sein.'
     }
-    if ([int]$Configuration.validationTimeoutSeconds -lt 1 -or [int]$Configuration.validationTimeoutSeconds -gt 3600) { throw 'Das konfigurierte Pruefzeitlimit ist ungueltig.' }
+    if ($Configuration.validationTimeoutSeconds -isnot [int] -or $Configuration.validationTimeoutSeconds -lt 1 -or $Configuration.validationTimeoutSeconds -gt 3600) { throw 'Das konfigurierte Pruefzeitlimit ist ungueltig oder nicht exakt als Ganzzahl typisiert.' }
     foreach ($project in $projects) {
         if ([string]$project.pathEnvironmentVariable -notmatch '^UNIVERSAARL_[A-Z0-9_]+_PATH$') { throw "Ungueltige Pfad-Umgebungsvariable fuer '$($project.id)'." }
         if (-not [IO.Path]::IsPathRooted([string]$project.defaultPath)) { throw "Standardpfad fuer '$($project.id)' muss absolut sein." }
         $null = Assert-SafeRepositoryRelativePath -Path ([string]$project.reviewFile)
         if ([string]::IsNullOrWhiteSpace([string]$project.requiredNpmScript) -or @($project.validationArguments).Count -eq 0) { throw "Technische Pruefung fuer '$($project.id)' ist unvollstaendig konfiguriert." }
-        if ($null -eq $project.germanCheck -or [string]::IsNullOrWhiteSpace([string]$project.germanCheck.npmScript) -or [int]$project.germanCheck.resultSchemaVersion -ne 1) { throw "Deutsch-Pruefung fuer '$($project.id)' ist unvollstaendig konfiguriert." }
+        if ($null -eq $project.germanCheck -or $project.germanCheck.npmScript -isnot [string] -or [string]::IsNullOrWhiteSpace($project.germanCheck.npmScript) -or
+            $project.germanCheck.resultSchemaVersion -isnot [int] -or $project.germanCheck.resultSchemaVersion -ne 1) { throw "Deutsch-Pruefung fuer '$($project.id)' ist unvollstaendig oder falsch typisiert konfiguriert." }
         $mediaProperty = @($project.PSObject.Properties | Where-Object { $_.Name -ceq 'allowedVersionedMedia' })
         if ($mediaProperty.Count -ne 1) { throw "Projektbezogene Positivliste versionierter Medien fuer '$($project.id)' fehlt oder ist nicht exakt benannt." }
         $allowedMedia = @($mediaProperty[0].Value)
@@ -173,29 +206,127 @@ function Assert-UniversaarlMonitorConfiguration {
             }
         }
         elseif ($allowedMedia.Count -ne 0) { throw 'Project Twin darf keine versionierten Medienartefakte positivlisten.' }
-        if ([int]$project.maxActiveChanges -lt 0 -or [int]$project.maxActiveChanges -gt 10) { throw "Grenze aktiver Aenderungen fuer '$($project.id)' ist ungueltig." }
+        if ($project.maxActiveChanges -isnot [int] -or $project.maxActiveChanges -lt 0 -or $project.maxActiveChanges -gt 10) { throw "Grenze aktiver Aenderungen fuer '$($project.id)' ist ungueltig oder nicht exakt als Ganzzahl typisiert." }
+        if ($project.publish -isnot [pscustomobject] -or $project.publish.enabled -isnot [bool] -or
+            $project.publish.remote -isnot [string] -or $project.publish.branch -isnot [string] -or $project.publish.expectedPushUrl -isnot [string]) {
+            throw "Publisher-Konfiguration fuer '$($project.id)' ist unvollstaendig oder falsch typisiert."
+        }
     }
+
+    $verificationSourcesProperty = @($Configuration.PSObject.Properties | Where-Object { $_.Name -ceq 'verificationSources' })
+    if ($verificationSourcesProperty.Count -ne 1 -or $null -eq $verificationSourcesProperty[0].Value -or $verificationSourcesProperty[0].Value -isnot [pscustomobject]) {
+        throw 'Die Konfiguration muss verificationSources als exakt benanntes Objekt enthalten.'
+    }
+    $verificationSources = $verificationSourcesProperty[0].Value
+    $verificationSourceProperties = @($verificationSources.PSObject.Properties)
+    if ($verificationSourceProperties.Count -ne 1 -or $verificationSourceProperties[0].Name -cne 'bcprojectos') {
+        throw 'Die Konfiguration muss genau BCProjectOS als externe Verifikationsquelle enthalten.'
+    }
+    $bcProjectOs = $verificationSourceProperties[0].Value
+    & $assertExactPropertyNames $bcProjectOs @(
+        'verificationOnly',
+        'technicalProjectName',
+        'expectedProduct',
+        'pathAlias',
+        'defaultPath',
+        'pathEnvironmentVariable',
+        'remote',
+        'canonicalRemoteUrl'
+    ) 'BCProjectOS-Verifikationsquelle'
+    if ($bcProjectOs.verificationOnly -isnot [bool] -or -not $bcProjectOs.verificationOnly) {
+        throw 'BCProjectOS muss typstreng als reine Verifikationsquelle markiert sein.'
+    }
+    if ($bcProjectOs.technicalProjectName -isnot [string] -or [string]$bcProjectOs.technicalProjectName -cne 'BCProjectOS') {
+        throw 'Der technische Projektname der Spectra-Quelle muss exakt BCProjectOS lauten.'
+    }
+    if ($bcProjectOs.expectedProduct -isnot [pscustomobject]) { throw 'Die erwartete Spectra-Produktidentitaet fehlt oder ist ungueltig typisiert.' }
+    & $assertExactPropertyNames $bcProjectOs.expectedProduct @('name', 'productId') 'Spectra-Produktidentitaet'
+    if ($bcProjectOs.expectedProduct.name -isnot [string] -or [string]$bcProjectOs.expectedProduct.name -cne 'Spectra' -or
+        $bcProjectOs.expectedProduct.productId -isnot [string] -or [string]$bcProjectOs.expectedProduct.productId -cne 'spectra') {
+        throw 'Die erwartete Produktidentitaet muss exakt Spectra mit productId spectra sein.'
+    }
+    if ($bcProjectOs.pathAlias -isnot [string] -or [string]$bcProjectOs.pathAlias -cne '<BCPROJECTOS_ROOT>' -or
+        $bcProjectOs.defaultPath -isnot [string] -or -not [IO.Path]::IsPathRooted([string]$bcProjectOs.defaultPath) -or
+        $bcProjectOs.pathEnvironmentVariable -isnot [string] -or [string]$bcProjectOs.pathEnvironmentVariable -cne 'UNIVERSAARL_BCPROJECTOS_PATH') {
+        throw 'Pfadalias, Standardpfad oder Pfad-Umgebungsvariable der BCProjectOS-Verifikationsquelle sind ungueltig.'
+    }
+    if ($bcProjectOs.remote -isnot [string] -or [string]$bcProjectOs.remote -cne 'origin' -or
+        $bcProjectOs.canonicalRemoteUrl -isnot [string] -or [string]$bcProjectOs.canonicalRemoteUrl -cne 'https://github.com/sivla/BCProjectOS.git') {
+        throw 'Remote-Identitaet der BCProjectOS-Verifikationsquelle stimmt nicht exakt mit der Positivliste ueberein.'
+    }
+
+    if ($Configuration.relationships -isnot [array]) { throw 'Die Vertragsbeziehungen muessen als Liste konfiguriert sein.' }
     $relationships = @($Configuration.relationships)
-    if ($relationships.Count -ne 1 -or [string]$relationships[0].id -ne 'twin-reads-blueprint' -or [string]$relationships[0].consumerProjectId -ne 'project-twin' -or [string]$relationships[0].providerProjectId -ne 'blueprint') {
-        throw 'Die Konfiguration muss genau den Vertrag Twin liest Blueprint enthalten.'
+    $relationshipIds = @($relationships | ForEach-Object {
+        if ($_.id -isnot [string]) { throw 'Vertragsbeziehungskennungen muessen exakt als Zeichenketten vorliegen.' }
+        [string]$_.id
+    })
+    if ($relationships.Count -ne 2 -or @($relationshipIds | Sort-Object -Unique).Count -ne 2 -or
+        $relationshipIds -cnotcontains 'blueprint-binds-spectra' -or $relationshipIds -cnotcontains 'twin-reads-blueprint') {
+        throw 'Die Konfiguration muss genau die Vertraege Blueprint bindet Spectra und Twin liest Blueprint enthalten.'
+    }
+    $spectraRelationship = @($relationships | Where-Object { [string]$_.id -ceq 'blueprint-binds-spectra' })[0]
+    & $assertExactPropertyNames $spectraRelationship @(
+        'id',
+        'consumerProjectId',
+        'providerVerificationSourceId',
+        'contractType',
+        'productId',
+        'contractMarker'
+    ) 'Beziehung Blueprint bindet Spectra'
+    if ($spectraRelationship.consumerProjectId -isnot [string] -or [string]$spectraRelationship.consumerProjectId -cne 'blueprint' -or
+        $spectraRelationship.providerVerificationSourceId -isnot [string] -or [string]$spectraRelationship.providerVerificationSourceId -cne 'bcprojectos' -or
+        $spectraRelationship.contractType -isnot [string] -or [string]$spectraRelationship.contractType -cne 'versioned-product-release' -or
+        $spectraRelationship.productId -isnot [string] -or [string]$spectraRelationship.productId -cne 'spectra' -or
+        $spectraRelationship.contractMarker -isnot [string] -or [string]$spectraRelationship.contractMarker -cne 'PENDING_BCPROJECTOS_RELEASE') {
+        throw 'Die Beziehung Blueprint bindet Spectra ist unvollstaendig oder widerspruechlich.'
+    }
+    $snapshotRelationship = @($relationships | Where-Object { [string]$_.id -ceq 'twin-reads-blueprint' })[0]
+    & $assertExactPropertyNames $snapshotRelationship @(
+        'id',
+        'consumerProjectId',
+        'providerProjectId',
+        'contractType',
+        'environmentVariable',
+        'contractMarker'
+    ) 'Beziehung Twin liest Blueprint'
+    if ($snapshotRelationship.consumerProjectId -isnot [string] -or [string]$snapshotRelationship.consumerProjectId -cne 'project-twin' -or
+        $snapshotRelationship.providerProjectId -isnot [string] -or [string]$snapshotRelationship.providerProjectId -cne 'blueprint' -or
+        $snapshotRelationship.contractType -isnot [string] -or [string]$snapshotRelationship.contractType -cne 'validated-snapshot' -or
+        $snapshotRelationship.environmentVariable -isnot [string] -or [string]$snapshotRelationship.environmentVariable -cne 'UABC_SOURCE_REPO' -or
+        $snapshotRelationship.contractMarker -isnot [string] -or [string]$snapshotRelationship.contractMarker -cne 'UABC_SOURCE_REPO') {
+        throw 'Die Beziehung Twin liest Blueprint ist unvollstaendig oder widerspruechlich.'
     }
 }
 
 function Assert-UniversaarlGoalConfiguration {
     param([Parameter(Mandatory)]$Configuration)
-    if ($Configuration.schemaVersion -ne 1) { throw 'Die Zielkonfiguration besitzt eine unbekannte Schemaversion.' }
+    if ($Configuration.schemaVersion -isnot [int] -or $Configuration.schemaVersion -ne 1) { throw 'Die Zielkonfiguration besitzt keine exakt typisierte bekannte Schemaversion.' }
+    if ($Configuration.projects -isnot [pscustomobject]) { throw 'Die Projektziele muessen als exakt benanntes Objekt vorliegen.' }
     foreach ($id in @('blueprint', 'project-twin')) {
         $property = $Configuration.projects.PSObject.Properties[$id]
-        if ($null -eq $property -or [string]::IsNullOrWhiteSpace([string]$property.Value.objective) -or [string]::IsNullOrWhiteSpace([string]$property.Value.currentGoal)) {
+        if ($null -eq $property -or $property.Value.objective -isnot [string] -or [string]::IsNullOrWhiteSpace([string]$property.Value.objective) -or
+            $property.Value.currentGoal -isnot [string] -or [string]::IsNullOrWhiteSpace([string]$property.Value.currentGoal)) {
             throw "Projektziel fuer '$id' fehlt oder ist unvollstaendig."
         }
     }
     if (@($Configuration.projects.PSObject.Properties).Count -ne 2) { throw 'Die Zielkonfiguration darf nur Blueprint und Project Twin enthalten.' }
+    if ($Configuration.projects.'project-twin'.requiredBaseCommit -isnot [string]) { throw 'Die erforderliche Twin-Basis muss exakt als volle Commit-SHA vorliegen.' }
     Assert-FullCommitSha -Commit ([string]$Configuration.projects.'project-twin'.requiredBaseCommit)
-    if ([string]$Configuration.projects.'project-twin'.currentChange -notmatch '^[a-z0-9][a-z0-9-]+$') { throw 'Die aktuelle Twin-Aenderung ist in der Zielkonfiguration ungueltig.' }
-    $relationship = $Configuration.relationships.PSObject.Properties['twin-reads-blueprint']
-    if ($null -eq $relationship -or @($Configuration.relationships.PSObject.Properties).Count -ne 1 -or [string]::IsNullOrWhiteSpace([string]$relationship.Value.objective)) {
-        throw 'Das Zusammenspielziel Twin liest Blueprint fehlt oder ist unvollstaendig.'
+    if ($Configuration.projects.'project-twin'.currentChange -isnot [string] -or [string]$Configuration.projects.'project-twin'.currentChange -notmatch '^[a-z0-9][a-z0-9-]+$') { throw 'Die aktuelle Twin-Aenderung ist in der Zielkonfiguration ungueltig.' }
+    if ($Configuration.relationships -isnot [pscustomobject]) { throw 'Die Zusammenspielziele muessen als exakt benanntes Objekt vorliegen.' }
+    $relationshipProperties = @($Configuration.relationships.PSObject.Properties)
+    $relationshipNames = @($relationshipProperties | ForEach-Object { [string]$_.Name })
+    if ($relationshipProperties.Count -ne 2 -or $relationshipNames -cnotcontains 'blueprint-binds-spectra' -or $relationshipNames -cnotcontains 'twin-reads-blueprint') {
+        throw 'Die Zielkonfiguration muss genau die Zusammenspielziele Blueprint bindet Spectra und Twin liest Blueprint enthalten.'
+    }
+    foreach ($id in @('blueprint-binds-spectra', 'twin-reads-blueprint')) {
+        $relationship = $Configuration.relationships.PSObject.Properties[$id]
+        $relationshipFields = @($relationship.Value.PSObject.Properties | ForEach-Object { [string]$_.Name })
+        if ($relationshipFields.Count -ne 1 -or $relationshipFields[0] -cne 'objective' -or
+            $relationship.Value.objective -isnot [string] -or [string]::IsNullOrWhiteSpace([string]$relationship.Value.objective)) {
+            throw "Das Zusammenspielziel '$id' fehlt oder ist unvollstaendig."
+        }
     }
 }
 
@@ -929,19 +1060,75 @@ function Test-UniversaarlBoundReportExitCode {
 function Get-UniversaarlScopedPublishGateBlockers {
     param(
         [Parameter(Mandatory)]$ProjectResult,
-        [Parameter(Mandatory)]$TechnicalRelationship,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$TechnicalRelationships,
         [Parameter(Mandatory)]$ProjectGoalResult,
-        [Parameter(Mandatory)]$GoalRelationship
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$GoalRelationships
     )
     $blockers = [Collections.Generic.List[string]]::new()
-    if ([string]$ProjectResult.status -notin @('GRUEN', 'GELB')) { $blockers.Add("Projektstatus ist $($ProjectResult.status), nicht GRUEN oder GELB.") }
-    if ([string]$ProjectResult.validation -ne 'passed') { $blockers.Add('Die technische Pruefung ist nicht bestanden.') }
-    if ([string]$ProjectResult.germanValidation -ne 'passed') { $blockers.Add('Der projektspezifische maschinenlesbare Deutsch-Nachweis ist nicht bestanden.') }
-    if ($ProjectResult.targetUnchanged -ne $true) { $blockers.Add('Unveraendertheitsnachweis des Zielprojekts fehlt.') }
-    if ([string]$TechnicalRelationship.status -notin @('passed', 'warning')) { $blockers.Add('Die commitgebundene Twin-Blueprint-Vertragspruefung ist fehlgeschlagen oder unbekannt.') }
-    if ([string]$ProjectGoalResult.status -notin @('GRUEN', 'GELB')) { $blockers.Add('Die strategische Projektziel-Pruefstufe ist rot oder unbekannt.') }
-    if ([string]$GoalRelationship.status -notin @('GRUEN', 'GELB')) { $blockers.Add('Die strategische Zusammenspiel-Pruefstufe ist rot oder unbekannt.') }
+    if ($script:UniversaarlFullContractValidatorAvailable -ne $true) { $blockers.Add('Der vollstaendige commitgebundene Spectra- und Snapshotvalidator ist noch nicht implementiert.') }
+    if ($ProjectResult.status -isnot [string] -or $ProjectResult.status -notin @('GRUEN', 'GELB')) { $blockers.Add("Projektstatus ist $($ProjectResult.status), nicht exakt typisiert GRUEN oder GELB.") }
+    if ($ProjectResult.validation -isnot [string] -or $ProjectResult.validation -cne 'passed') { $blockers.Add('Die technische Pruefung ist nicht exakt typisiert bestanden.') }
+    if ($ProjectResult.germanValidation -isnot [string] -or $ProjectResult.germanValidation -cne 'passed') { $blockers.Add('Der projektspezifische maschinenlesbare Deutsch-Nachweis ist nicht exakt typisiert bestanden.') }
+    if ($ProjectResult.targetUnchanged -isnot [bool] -or -not $ProjectResult.targetUnchanged) { $blockers.Add('Der typstrenge Unveraendertheitsnachweis des Zielprojekts fehlt.') }
+    $requiredRelationshipIds = @('blueprint-binds-spectra', 'twin-reads-blueprint')
+    $technical = @($TechnicalRelationships)
+    $technicalIds = @($technical | ForEach-Object { [string]$_.id })
+    if ($technical.Count -ne 2 -or @($technicalIds | Sort-Object -Unique).Count -ne 2 -or @($requiredRelationshipIds | Where-Object { $technicalIds -cnotcontains $_ }).Count -ne 0) {
+        $blockers.Add('Der technische Laufbericht enthaelt nicht exakt beide erforderlichen Vertragsbeziehungen.')
+    }
+    else {
+        foreach ($relationship in $technical) {
+            if ($relationship.status -isnot [string] -or $relationship.status -cne 'passed') { $blockers.Add("Die technische Vertragsbeziehung '$($relationship.id)' ist nicht exakt bestanden.") }
+            $validationProperty = $relationship.PSObject.Properties['fullValidationPassed']
+            if ($null -eq $validationProperty -or $validationProperty.Value -isnot [bool] -or -not $validationProperty.Value) { $blockers.Add("Die technische Vertragsbeziehung '$($relationship.id)' besitzt keinen vollstaendigen typstrengen Validatornachweis.") }
+        }
+    }
+    if ($ProjectGoalResult.status -isnot [string] -or $ProjectGoalResult.status -notin @('GRUEN', 'GELB')) { $blockers.Add('Die strategische Projektziel-Pruefstufe ist rot, unbekannt oder falsch typisiert.') }
+    $goals = @($GoalRelationships)
+    $goalIds = @($goals | ForEach-Object { [string]$_.id })
+    if ($goals.Count -ne 2 -or @($goalIds | Sort-Object -Unique).Count -ne 2 -or @($requiredRelationshipIds | Where-Object { $goalIds -cnotcontains $_ }).Count -ne 0) {
+        $blockers.Add('Der strategische Laufbericht enthaelt nicht exakt beide erforderlichen Vertragsbeziehungen.')
+    }
+    else {
+        foreach ($relationship in $goals) {
+            if ($relationship.status -isnot [string] -or $relationship.status -notin @('GRUEN', 'GELB')) { $blockers.Add("Die strategische Vertragsbeziehung '$($relationship.id)' ist rot, unbekannt oder falsch typisiert.") }
+            $validationProperty = $relationship.PSObject.Properties['fullValidationPassed']
+            if ($null -eq $validationProperty -or $validationProperty.Value -isnot [bool] -or -not $validationProperty.Value) { $blockers.Add("Die strategische Vertragsbeziehung '$($relationship.id)' besitzt keinen vollstaendigen typstrengen Validatornachweis.") }
+        }
+    }
     @($blockers)
+}
+
+function Assert-UniversaarlBoundVerificationSourceState {
+    param(
+        [Parameter(Mandatory)]$AuditReport,
+        [Parameter(Mandatory)]$GoalReport,
+        [Parameter(Mandatory)]$Configuration
+    )
+    $sourceConfig = $Configuration.verificationSources.bcprojectos
+    $auditInput = $AuditReport.verificationInputs.bcprojectos
+    $goalInput = $GoalReport.verificationInputs.bcprojectos
+    if ($auditInput.targetUnchanged -isnot [bool] -or -not $auditInput.targetUnchanged -or
+        $goalInput.targetUnchanged -isnot [bool] -or -not $goalInput.targetUnchanged) {
+        throw 'BCProjectOS besitzt in Audit oder Zielpruefung keinen typstrengen Unveraendertheitsnachweis.'
+    }
+    if ($auditInput.sourceCommit -isnot [string] -or $goalInput.sourceCommit -isnot [string]) { throw 'BCProjectOS-Evidence-Commit ist nicht exakt als Zeichenkette typisiert.' }
+    Assert-FullCommitSha -Commit $auditInput.sourceCommit
+    Assert-FullCommitSha -Commit $goalInput.sourceCommit
+    if ($auditInput.sourceCommit -cne $goalInput.sourceCommit) { throw 'Audit und Zielpruefung sind nicht an denselben BCProjectOS-Evidence-Commit gebunden.' }
+
+    $sourcePath = Get-UniversaarlConfiguredPath -Project $sourceConfig
+    $current = Get-UniversaarlRepositoryFingerprint -Repository $sourcePath
+    if ($current.head -cne $auditInput.sourceCommit) { throw 'BCProjectOS-HEAD hat sich seit den gebundenen Berichten veraendert.' }
+    if (-not (Test-UniversaarlFingerprintEqual -Expected $auditInput.fingerprintAfter -Actual $current) -or
+        -not (Test-UniversaarlFingerprintEqual -Expected $goalInput.fingerprintAfter -Actual $current)) {
+        throw 'BCProjectOS-HEAD-, Zweig-, Status- oder Index-Fingerprint stimmt nicht mehr mit Audit und Zielpruefung ueberein.'
+    }
+    $remoteUrl = Get-UniversaarlRawFetchUrl -Repository $sourcePath -Remote $sourceConfig.remote
+    if ($remoteUrl -cne $sourceConfig.canonicalRemoteUrl -or $remoteUrl -cne 'https://github.com/sivla/BCProjectOS.git') {
+        throw 'BCProjectOS-Remote stimmt vor der Veroeffentlichungsentscheidung nicht exakt mit der Spectra-Positivliste ueberein.'
+    }
+    [pscustomobject]@{ path = $sourcePath; commit = $auditInput.sourceCommit; remoteUrl = $remoteUrl; fingerprint = $current }
 }
 
 function Get-UniversaarlSecretFindings {
@@ -1256,12 +1443,160 @@ function Read-UniversaarlBoundReport {
     if ([string]::IsNullOrWhiteSpace($TrustedRoot)) { throw 'Eine vertrauenswuerdige Berichtswurzel ist erforderlich.' }
     $text = Read-UniversaarlRegularUtf8File -Root $TrustedRoot -Path $Path -MaximumBytes $script:UniversaarlReportLimit
     $report = $text | ConvertFrom-Json
-    if ([int]$report.schemaVersion -ne 2 -or [string]$report.runId -ne $RunId -or $report.completed -ne $true -or [string]$report.kind -ne $Kind) {
+
+    $getRequiredProperty = {
+        param(
+            [Parameter(Mandatory)]$Value,
+            [Parameter(Mandatory)][string]$Name,
+            [Parameter(Mandatory)][type]$Type,
+            [Parameter(Mandatory)][string]$Context
+        )
+        if ($Value -isnot [pscustomobject]) { throw "$Context ist kein JSON-Objekt." }
+        $property = $Value.PSObject.Properties[$Name]
+        if ($null -eq $property -or -not $Type.IsInstanceOfType($property.Value)) { throw "$Context besitzt das Feld '$Name' nicht exakt typisiert." }
+        $property.Value
+    }
+    $assertExactProperties = {
+        param(
+            [Parameter(Mandatory)]$Value,
+            [Parameter(Mandatory)][string[]]$Expected,
+            [Parameter(Mandatory)][string]$Context
+        )
+        if ($Value -isnot [pscustomobject]) { throw "$Context ist kein JSON-Objekt." }
+        $actual = @($Value.PSObject.Properties | ForEach-Object { [string]$_.Name })
+        if ($actual.Count -ne $Expected.Count -or @($Expected | Where-Object { $actual -cnotcontains $_ }).Count -ne 0) { throw "$Context besitzt nicht exakt die erlaubten Felder." }
+    }
+    $assertFingerprint = {
+        param(
+            [Parameter(Mandatory)]$Value,
+            [Parameter(Mandatory)][string]$ExpectedHead,
+            [Parameter(Mandatory)][string]$Context
+        )
+        & $assertExactProperties $Value @('head', 'branch', 'dirty', 'statusHash', 'indexHash', 'fingerprint') $Context
+        $head = & $getRequiredProperty $Value 'head' ([string]) $Context
+        $null = & $getRequiredProperty $Value 'branch' ([string]) $Context
+        $null = & $getRequiredProperty $Value 'dirty' ([bool]) $Context
+        $statusHash = & $getRequiredProperty $Value 'statusHash' ([string]) $Context
+        $indexHash = & $getRequiredProperty $Value 'indexHash' ([string]) $Context
+        $fingerprint = & $getRequiredProperty $Value 'fingerprint' ([string]) $Context
+        if ($head -cne $ExpectedHead -or $statusHash -notmatch '^[0-9a-f]{64}$' -or $indexHash -notmatch '^[0-9a-f]{64}$' -or $fingerprint -notmatch '^[0-9a-f]{64}$') {
+            throw "$Context ist nicht exakt an Commit und SHA-256-Fingerprints gebunden."
+        }
+    }
+
+    if ($report -isnot [pscustomobject] -or
+        $report.schemaVersion -isnot [int] -or $report.schemaVersion -ne 2 -or
+        $report.runId -isnot [string] -or $report.runId -cne $RunId -or
+        $report.completed -isnot [bool] -or -not $report.completed -or
+        $report.kind -isnot [string] -or $report.kind -cne $Kind) {
         throw 'Laufbericht ist veraltet, unvollstaendig oder gehoert zu einem anderen Lauf.'
     }
+    if ($report.overallStatus -isnot [string] -or
+        ($Kind -ceq 'audit' -and $report.overallStatus -notin @('GRUEN', 'GELB', 'ROT', 'GRAU')) -or
+        ($Kind -ceq 'goal' -and $report.overallStatus -notin @('GRUEN', 'GELB', 'ROT'))) {
+        throw 'Laufbericht besitzt keinen exakt typisierten bekannten Gesamtstatus.'
+    }
+
+    if ($report.inputShas -isnot [pscustomobject]) { throw 'Laufbericht enthaelt kein exakt typisiertes Eingabe-SHA-Objekt.' }
     $inputShaProperties = @($report.inputShas.PSObject.Properties)
     $inputShaNames = @($inputShaProperties.Name)
     if ($inputShaProperties.Count -ne 2 -or $inputShaNames -cnotcontains 'blueprint' -or $inputShaNames -cnotcontains 'project-twin') { throw 'Laufbericht enthaelt nicht exakt beide projektbezogenen Eingabe-SHAs.' }
-    foreach ($property in $inputShaProperties) { Assert-FullCommitSha -Commit ([string]$property.Value) }
+    foreach ($property in $inputShaProperties) {
+        if ($property.Value -isnot [string]) { throw "Eingabe-SHA '$($property.Name)' ist nicht exakt als Zeichenkette typisiert." }
+        Assert-FullCommitSha -Commit $property.Value
+    }
+
+    if ($report.verificationInputs -isnot [pscustomobject]) { throw 'Laufbericht enthaelt keine getrennte technische Verifikationsquelle.' }
+    $verificationProperties = @($report.verificationInputs.PSObject.Properties)
+    if ($verificationProperties.Count -ne 1 -or $verificationProperties[0].Name -cne 'bcprojectos') { throw 'Laufbericht muss genau BCProjectOS als technische Verifikationsquelle enthalten.' }
+    $bcProjectOs = $verificationProperties[0].Value
+    if ($bcProjectOs -isnot [pscustomobject] -or
+        $bcProjectOs.technicalProjectName -isnot [string] -or $bcProjectOs.technicalProjectName -cne 'BCProjectOS' -or
+        $bcProjectOs.productName -isnot [string] -or $bcProjectOs.productName -cne 'Spectra' -or
+        $bcProjectOs.productId -isnot [string] -or $bcProjectOs.productId -cne 'spectra' -or
+        $bcProjectOs.sourceCommit -isnot [string] -or
+        $bcProjectOs.remoteUrl -isnot [string] -or $bcProjectOs.remoteUrl -cne 'https://github.com/sivla/BCProjectOS.git' -or
+        $bcProjectOs.targetUnchanged -isnot [bool] -or -not $bcProjectOs.targetUnchanged -or
+        $bcProjectOs.status -isnot [string] -or $bcProjectOs.status -cne 'observed') {
+        throw 'Technische Spectra-Evidence-Quelle im Laufbericht ist unvollstaendig, falsch typisiert oder widerspruechlich.'
+    }
+    Assert-FullCommitSha -Commit $bcProjectOs.sourceCommit
+    $verificationFingerprintProperty = $bcProjectOs.PSObject.Properties['fingerprintAfter']
+    if ($null -eq $verificationFingerprintProperty) { throw 'Abschliessender BCProjectOS-Fingerprint fehlt im Laufbericht.' }
+    & $assertFingerprint $verificationFingerprintProperty.Value $bcProjectOs.sourceCommit 'BCProjectOS-Fingerprint'
+
+    if ($report.projects -isnot [array]) { throw 'Laufbericht muss die zwei operativen Projekte als Liste enthalten.' }
+    $projects = @($report.projects)
+    $projectIds = @($projects | ForEach-Object {
+        if ($_ -isnot [pscustomobject] -or $_.id -isnot [string]) { throw 'Projektkennung im Laufbericht ist nicht exakt typisiert.' }
+        $_.id
+    })
+    if ($projects.Count -ne 2 -or @($projectIds | Sort-Object -Unique).Count -ne 2 -or $projectIds -cnotcontains 'blueprint' -or $projectIds -cnotcontains 'project-twin') {
+        throw 'Laufbericht enthaelt nicht exakt Blueprint und Project Twin.'
+    }
+    foreach ($project in $projects) {
+        $expectedCommit = $report.inputShas.PSObject.Properties[$project.id].Value
+        if ($project.status -isnot [string]) { throw "Projektstatus fuer '$($project.id)' ist nicht exakt typisiert." }
+        if ($Kind -ceq 'audit') {
+            if ($project.commit -isnot [string] -or $project.commit -cne $expectedCommit -or
+                $project.validation -isnot [string] -or $project.validation -notin @('passed', 'failed', 'not-run') -or
+                $project.germanValidation -isnot [string] -or $project.germanValidation -notin @('passed', 'failed', 'not-run') -or
+                $project.targetUnchanged -isnot [bool] -or -not $project.targetUnchanged -or
+                $project.status -notin @('GRUEN', 'GELB', 'ROT', 'GRAU')) {
+                throw "Technischer Projektbericht fuer '$($project.id)' ist falsch typisiert, nicht commitgebunden oder nicht unveraendert."
+            }
+            $projectFingerprintProperty = $project.PSObject.Properties['fingerprintAfter']
+            if ($null -eq $projectFingerprintProperty) { throw "Abschliessender Fingerprint fuer '$($project.id)' fehlt." }
+            & $assertFingerprint $projectFingerprintProperty.Value $expectedCommit "Projektfingerprint '$($project.id)'"
+        }
+        else {
+            if ($project.status -notin @('GRUEN', 'GELB', 'ROT') -or $project.state -isnot [pscustomobject] -or
+                $project.state.head -isnot [string] -or $project.state.head -cne $expectedCommit) {
+                throw "Strategischer Projektbericht fuer '$($project.id)' ist falsch typisiert oder nicht commitgebunden."
+            }
+        }
+    }
+
+    if ($report.relationships -isnot [array]) { throw 'Laufbericht muss die Vertragsbeziehungen als Liste enthalten.' }
+    $relationships = @($report.relationships)
+    $relationshipIds = @($relationships | ForEach-Object { if ($_ -isnot [pscustomobject] -or $_.id -isnot [string]) { throw 'Vertragsbeziehungskennung im Laufbericht ist ungueltig typisiert.' }; $_.id })
+    if ($relationships.Count -ne 2 -or @($relationshipIds | Sort-Object -Unique).Count -ne 2 -or
+        $relationshipIds -cnotcontains 'blueprint-binds-spectra' -or $relationshipIds -cnotcontains 'twin-reads-blueprint') {
+        throw 'Laufbericht enthaelt nicht exakt die Spectra-Bindungs- und Snapshot-Lesebeziehung.'
+    }
+    $spectraRelationship = @($relationships | Where-Object { [string]$_.id -ceq 'blueprint-binds-spectra' })[0]
+    $snapshotRelationship = @($relationships | Where-Object { [string]$_.id -ceq 'twin-reads-blueprint' })[0]
+    if ($spectraRelationship.contractType -isnot [string] -or [string]$spectraRelationship.contractType -cne 'versioned-product-release' -or
+        $spectraRelationship.productName -isnot [string] -or [string]$spectraRelationship.productName -cne 'Spectra' -or
+        $spectraRelationship.productId -isnot [string] -or [string]$spectraRelationship.productId -cne 'spectra' -or
+        $spectraRelationship.technicalProjectName -isnot [string] -or [string]$spectraRelationship.technicalProjectName -cne 'BCProjectOS' -or
+        $spectraRelationship.sourceCommit -isnot [string] -or $spectraRelationship.sourceCommit -cne $bcProjectOs.sourceCommit -or
+        $spectraRelationship.consumerCommit -isnot [string] -or $spectraRelationship.consumerCommit -cne $report.inputShas.blueprint -or
+        $spectraRelationship.fullValidationPassed -isnot [bool]) {
+        throw 'Spectra-Bindungsbeziehung ist nicht an Produkt-, Evidence- und Blueprint-Commit gebunden.'
+    }
+    if ($snapshotRelationship.contractType -isnot [string] -or [string]$snapshotRelationship.contractType -cne 'validated-snapshot' -or
+        $snapshotRelationship.providerCommit -isnot [string] -or $snapshotRelationship.providerCommit -cne $report.inputShas.blueprint -or
+        $snapshotRelationship.consumerCommit -isnot [string] -or $snapshotRelationship.consumerCommit -cne $report.inputShas.'project-twin' -or
+        $snapshotRelationship.fullValidationPassed -isnot [bool]) {
+        throw 'Snapshot-Lesebeziehung ist nicht an Blueprint- und Twin-Commit gebunden.'
+    }
+    $allowedRelationshipStatuses = if ($Kind -ceq 'audit') { @('passed', 'failed', 'warning', 'not-run') } else { @('GRUEN', 'GELB', 'ROT') }
+    foreach ($relationship in $relationships) {
+        if ($relationship.status -isnot [string] -or [string]$relationship.status -notin $allowedRelationshipStatuses) { throw 'Vertragsbeziehungsstatus im Laufbericht ist unbekannt oder falsch typisiert.' }
+        if ($Kind -ceq 'audit' -and $relationship.status -ceq 'passed' -and
+            (-not $relationship.fullValidationPassed -or $script:UniversaarlFullContractValidatorAvailable -ne $true)) {
+            throw 'Technische Vertragsbeziehung behauptet ohne implementierten Vollvalidator einen bestandenen Zustand.'
+        }
+        if ($Kind -ceq 'goal' -and $relationship.status -ceq 'GRUEN' -and -not $relationship.fullValidationPassed) {
+            throw 'Strategische Vertragsbeziehung behauptet ohne Vollvalidator einen gruenen Zustand.'
+        }
+    }
+    if ($Kind -ceq 'goal') {
+        if ($report.evidenceCoverage -isnot [int] -or $report.evidenceCoverage -lt 0 -or $report.evidenceCoverage -gt 100) { throw 'Zielbericht besitzt keine exakt typisierte ehrliche Nachweisabdeckung.' }
+        foreach ($relationship in $relationships) {
+            if ($relationship.evidenceCoverage -isnot [int] -or $relationship.evidenceCoverage -lt 0 -or $relationship.evidenceCoverage -gt 100) { throw 'Vertragsbeziehung besitzt keine exakt typisierte Nachweisabdeckung.' }
+        }
+    }
     $report
 }

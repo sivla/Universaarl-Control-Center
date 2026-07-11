@@ -103,7 +103,7 @@ function Assert-BoundProjectStates {
         $current = Get-UniversaarlRepositoryFingerprint -Repository $path
         $projectResult = Get-ProjectResult -Report $AuditReport -Id $id
         if ($null -eq $projectResult -or $null -eq $projectResult.fingerprintAfter) { throw "Abschliessender Fingerprint fuer '$id' fehlt." }
-        if ($projectResult.targetUnchanged -ne $true) { throw "Der Audit hat fuer '$id' keinen unveraenderten Zielzustand nachgewiesen." }
+        if ($projectResult.targetUnchanged -isnot [bool] -or -not $projectResult.targetUnchanged) { throw "Der Audit hat fuer '$id' keinen typstrengen unveraenderten Zielzustand nachgewiesen." }
         if ($current.head -ne $expectedSha -or -not (Test-UniversaarlFingerprintEqual -Expected $projectResult.fingerprintAfter -Actual $current)) { throw "Repositoryzustand von '$id' hat sich seit dem Audit veraendert." }
         if ($id -eq $SelectedProject) {
             if ($current.branch -ne [string]$entry.publish.branch) { throw "Aktueller Zweig von '$id' stimmt nicht mit dem freigegebenen Zielzweig ueberein." }
@@ -155,26 +155,45 @@ if ($null -ne $AuditReport -and $null -ne $GoalReport) {
         }
         catch { Add-Blocker $_.Exception.Message }
     }
+    if ($AuditReport.verificationInputs.bcprojectos.sourceCommit -cne $GoalReport.verificationInputs.bcprojectos.sourceCommit) {
+        Add-Blocker 'Audit und Zielpruefung verwendeten unterschiedliche BCProjectOS-Evidence-Commits fuer Spectra.'
+    }
     $ProjectResult = Get-ProjectResult -Report $AuditReport -Id $Project
     $ProjectGoalResult = Get-ProjectResult -Report $GoalReport -Id $Project
-    $TechnicalRelationship = @($AuditReport.relationships | Where-Object id -eq 'twin-reads-blueprint')[0]
-    $GoalRelationship = @($GoalReport.relationships | Where-Object id -eq 'twin-reads-blueprint')[0]
+    $TechnicalRelationships = @($AuditReport.relationships)
+    $GoalRelationships = @($GoalReport.relationships)
+    $SpectraTechnicalRelationship = @($TechnicalRelationships | Where-Object id -eq 'blueprint-binds-spectra')[0]
+    $SnapshotTechnicalRelationship = @($TechnicalRelationships | Where-Object id -eq 'twin-reads-blueprint')[0]
+    $SpectraGoalRelationship = @($GoalRelationships | Where-Object id -eq 'blueprint-binds-spectra')[0]
+    $SnapshotGoalRelationship = @($GoalRelationships | Where-Object id -eq 'twin-reads-blueprint')[0]
     if ($null -eq $ProjectResult) { Add-Blocker 'Projekt fehlt im technischen Laufbericht.' }
-    if ($null -eq $TechnicalRelationship) { Add-Blocker 'Technischer Zusammenspielnachweis fehlt im Laufbericht.' }
+    if ($null -eq $SpectraTechnicalRelationship -or $null -eq $SnapshotTechnicalRelationship) { Add-Blocker 'Technischer Spectra- oder Snapshot-Vertragsnachweis fehlt im Laufbericht.' }
     if ($null -eq $ProjectGoalResult) { Add-Blocker 'Projekt fehlt im strategischen Laufbericht.' }
-    if ($null -eq $GoalRelationship) { Add-Blocker 'Strategischer Zusammenspielnachweis fehlt im Laufbericht.' }
-    if ($null -ne $ProjectResult -and $null -ne $TechnicalRelationship -and $null -ne $ProjectGoalResult -and $null -ne $GoalRelationship) {
-        foreach ($message in @(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $ProjectResult -TechnicalRelationship $TechnicalRelationship -ProjectGoalResult $ProjectGoalResult -GoalRelationship $GoalRelationship)) { Add-Blocker $message }
+    if ($null -eq $SpectraGoalRelationship -or $null -eq $SnapshotGoalRelationship) { Add-Blocker 'Strategischer Spectra- oder Snapshot-Vertragsnachweis fehlt im Laufbericht.' }
+    if ($null -ne $ProjectResult -and $null -ne $ProjectGoalResult) {
+        foreach ($message in @(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $ProjectResult -TechnicalRelationships $TechnicalRelationships -ProjectGoalResult $ProjectGoalResult -GoalRelationships $GoalRelationships)) { Add-Blocker $message }
     }
-    if ($null -ne $TechnicalRelationship) {
-        if ([string]$TechnicalRelationship.providerCommit -ne (Get-InputSha $AuditReport 'blueprint') -or [string]$TechnicalRelationship.consumerCommit -ne (Get-InputSha $AuditReport 'project-twin')) { Add-Blocker 'Der technische Vertragsnachweis ist nicht an beide Eingabe-SHAs gebunden.' }
+    if ($null -ne $SpectraTechnicalRelationship) {
+        if ($SpectraTechnicalRelationship.sourceCommit -cne $AuditReport.verificationInputs.bcprojectos.sourceCommit -or $SpectraTechnicalRelationship.consumerCommit -cne (Get-InputSha $AuditReport 'blueprint')) { Add-Blocker 'Der technische Spectra-Vertragsnachweis ist nicht an Evidence- und Blueprint-Commit gebunden.' }
     }
-    if ($null -ne $GoalRelationship) {
-        if ([string]$GoalRelationship.providerCommit -ne (Get-InputSha $GoalReport 'blueprint') -or [string]$GoalRelationship.consumerCommit -ne (Get-InputSha $GoalReport 'project-twin')) { Add-Blocker 'Der strategische Zusammenspielnachweis ist nicht an beide Eingabe-SHAs gebunden.' }
+    if ($null -ne $SnapshotTechnicalRelationship) {
+        if ($SnapshotTechnicalRelationship.providerCommit -cne (Get-InputSha $AuditReport 'blueprint') -or $SnapshotTechnicalRelationship.consumerCommit -cne (Get-InputSha $AuditReport 'project-twin')) { Add-Blocker 'Der technische Snapshot-Vertragsnachweis ist nicht an beide Eingabe-SHAs gebunden.' }
+    }
+    if ($null -ne $SpectraGoalRelationship) {
+        if ($SpectraGoalRelationship.sourceCommit -cne $GoalReport.verificationInputs.bcprojectos.sourceCommit -or $SpectraGoalRelationship.consumerCommit -cne (Get-InputSha $GoalReport 'blueprint')) { Add-Blocker 'Der strategische Spectra-Vertragsnachweis ist nicht an Evidence- und Blueprint-Commit gebunden.' }
+    }
+    if ($null -ne $SnapshotGoalRelationship) {
+        if ($SnapshotGoalRelationship.providerCommit -cne (Get-InputSha $GoalReport 'blueprint') -or $SnapshotGoalRelationship.consumerCommit -cne (Get-InputSha $GoalReport 'project-twin')) { Add-Blocker 'Der strategische Snapshot-Vertragsnachweis ist nicht an beide Eingabe-SHAs gebunden.' }
     }
 }
 
-if ($null -eq $ProjectConfig.publish -or $ProjectConfig.publish.enabled -ne $true) { Add-Blocker 'Die Veroeffentlichung ist fuer dieses Projekt nicht aktiviert.' }
+if ($null -eq $ProjectConfig.publish -or $ProjectConfig.publish.enabled -isnot [bool] -or -not $ProjectConfig.publish.enabled) { Add-Blocker 'Die Veroeffentlichung ist fuer dieses Projekt nicht typstreng aktiviert.' }
+
+$verificationState = $null
+if ($null -ne $AuditReport -and $null -ne $GoalReport) {
+    try { $verificationState = Assert-UniversaarlBoundVerificationSourceState -AuditReport $AuditReport -GoalReport $GoalReport -Configuration $Config }
+    catch { Add-Blocker $_.Exception.Message }
+}
 
 $states = $null
 if ($Blockers.Count -eq 0) {
@@ -220,6 +239,7 @@ if (-not $Execute) {
 
 try {
     $states = Assert-BoundProjectStates -AuditReport $AuditReport -Configuration $Config -SelectedProject $Project
+    $verificationState = Assert-UniversaarlBoundVerificationSourceState -AuditReport $AuditReport -GoalReport $GoalReport -Configuration $Config
     $selectedState = $states[$Project]
     $expectedUrl = Test-ConfiguredRemote -Repository $selectedState.path -Entry $selectedState.config
     if ([string]$selectedState.commit -ne $commit) { throw 'Die ausgewaehlte Commit-SHA hat sich vor dem Push veraendert.' }
@@ -252,6 +272,8 @@ try {
     if ($credentialConfig.exitCode -ne 0) { throw 'Git Credential Manager konnte nicht in der bereinigten Push-Kopie aktiviert werden.' }
     Assert-UniversaarlCleanPushRepositoryConfiguration -Repository $pushRepository -GitHome $gitHome -ExpectedHooksPath $hooksPath -TrustedSandboxRoot $pushRoot -RequireCredentialManager
     if (@(Get-ChildItem -LiteralPath $hooksPath -Force -ErrorAction Stop).Count -ne 0) { throw 'Kontrollierter Publisher-Hookpfad wurde vor der Uebertragung veraendert.' }
+    $null = Assert-UniversaarlBoundVerificationSourceState -AuditReport $AuditReport -GoalReport $GoalReport -Configuration $Config
+    $null = Assert-BoundProjectStates -AuditReport $AuditReport -Configuration $Config -SelectedProject $Project
     $push = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -UseExplicitRepositoryPaths -Arguments @('push', '--porcelain', $expectedUrl, $refSpec)
     if ($push.exitCode -ne 0) { throw "Die Git-Uebertragung ist mit Rueckgabecode $($push.exitCode) fehlgeschlagen." }
     $null = Assert-BoundProjectStates -AuditReport $AuditReport -Configuration $Config -SelectedProject $Project

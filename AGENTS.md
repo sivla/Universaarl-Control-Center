@@ -1,11 +1,34 @@
 # Auftrag dieses Repositories
 
-Dieses Repository ist ausschliesslich das **Universaarl Kontrollzentrum**. Es beobachtet, prueft und bewertet genau diese zwei externen Projekte und veroeffentlicht deren bereits vorhandene, freigegebene Versionsstaende:
+Dieses Repository ist ausschliesslich das **Universaarl Kontrollzentrum**. Es beobachtet, prueft und bewertet genau diese zwei operativen Zielprojekte und veroeffentlicht deren bereits vorhandene, freigegebene Versionsstaende:
 
 1. `blueprint` – `C:\Users\kkali\Documents\Universaarl Projekt BC Basic`
 2. `project-twin` – `C:\Users\kkali\Documents\Universaarl-Project-Twin`
 
-Die Pfade dürfen über die in `monitor.config.json` genannten Umgebungsvariablen ersetzt werden. Andere externe Projekte gehören nicht zum Auftrag.
+Die Pfade dürfen über die in `monitor.config.json` genannten Umgebungsvariablen ersetzt werden. Das technische Repository BCProjectOS darf zusaetzlich ausschliesslich als read-only Release-Evidence-Quelle fuer die Spectra-Bindungspruefung verwendet werden; es ist niemals operatives Zielprojekt oder Publisherziel. Andere externe Projekte gehören nicht zum Auftrag.
+
+## Universaarl-Gesamtarchitektur
+
+Der fachliche Datenfluss ist verbindlich: `Spectra` aus dem technischen Repository `BCProjectOS` -> versionierter Produktvertrag -> `Universaarl Projekt BC Basic` -> validierter Snapshot -> `Universaarl Project Twin`. Das Universaarl Kontrollzentrum steht ausserhalb dieser Datenkette und prueft Versionsbindung, Integritaet, Projektzustand, Snapshot-Vertrag und Veroeffentlichungsreife.
+
+1. **Spectra** ist der wiederverwendbare, kundenunabhaengige Produktvertrag. Sein technisches Projekt und Repository bleiben **BCProjectOS** unter `C:\Users\kkali\Documents\BC Project OS` mit dem kanonischen Remote `https://github.com/sivla/BCProjectOS.git`; `product_id` lautet verbindlich `spectra`, und Release-Tags folgen `spectra-v<SemVer>`. Die Repository-Identitaet allein ist kein Release-Nachweis. Spectra definiert generische Schemas, IDs, Relationen, Statusmodelle, Ticketstrukturen, Generatoren, Validatoren und allgemeines Business-Central-Wissen, aber niemals ungefiltertes Kundenwissen, Kundendaten, Kunden-Evidence oder konkrete Universaarl-Projektentscheidungen.
+2. **Universaarl Projekt BC Basic** unter `C:\Users\kkali\Documents\Universaarl Projekt BC Basic` ist die fachliche Kundeninstanz und alleinige Source of Truth fuer Unternehmenswissen, Prozesse, Anforderungen, Arbeitspakete, Meetings, Tests, UAT, Evidence, Abweichungen und Umsetzung.
+3. **Universaarl Project Twin** unter `C:\Users\kkali\Documents\Universaarl-Project-Twin` ist eine ausschliesslich lesende Visualisierung eines validierten, versionierten Snapshots aus der Kundeninstanz. Er ist niemals Source of Truth, schreibt niemals zurueck, liest keine ungeprueften Arbeitsstaende und besitzt keine direkte fachliche Abhaengigkeit von BCProjectOS.
+4. **Universaarl Kontrollzentrum** in diesem Repository ist die unabhaengige Pruef- und Veroeffentlichungsinstanz. Es ist keine Kundeninstanz, enthaelt keine fachliche Kundenwahrheit und installiert BCProjectOS nicht in einem Zielprojekt.
+
+Die aktuelle Remote-Zuordnung von Kundeninstanz und Project Twin verwendet `https://github.com/sivla/FiBu.git` mit den getrennten Zweigen `codex/universaarl-projekt` und `codex/universaarl-projekt-twin`. Diese Zuordnung ist eine technische Repository-/Zweigidentitaet und ersetzt weder Produktrelease-, Snapshot- noch Freigabenachweise.
+
+Eine Spectra-Version darf nur durch einen echten unveraenderlichen `spectra-v<SemVer>`-Release-Tag samt Commit und Digest aus BCProjectOS gebunden werden. Solange dieser Nachweis fehlt, lautet der bestehende technische Status ehrlich `PENDING_BCPROJECTOS_RELEASE`; weder Version noch Release duerfen erfunden oder aus einem beliebigen Arbeitsstand abgeleitet werden. Bestehende fachliche IDs der Kundeninstanz werden nur aufgrund einer ausdruecklichen Migrationsentscheidung geaendert. Wiederverwendbare Erkenntnisse gelangen ausschliesslich anonymisiert, fachlich geprueft und zunaechst als nicht uebernommene `blueprint-candidates` zurueck zu BCProjectOS.
+
+Absolute lokale Pfade sind nur zur Erkennung des aktuell geoeffneten Arbeitsordners zulaessig und niemals eine dauerhafte fachliche oder technische Laufzeitbindung. Dauerhafte Kopplungen verwenden versionierte Kennungen, Release-Nachweise, relative Projektbeziehungen, Pfad-Aliase oder ausdrueckliche Umgebungsvariablen. Die oben und im bestehenden Auftrag genannten Pfade beschreiben deshalb ausschliesslich die aktuelle lokale Arbeitsraumzuordnung und erweitern den regulaeren Kontrollumfang nicht.
+
+## Rollenspezifisch: Universaarl Kontrollzentrum
+
+- Dieses Projekt prueft die Universaarl-Kundeninstanz, deren Spectra-Versionsbindung aus BCProjectOS, den daraus erzeugten Snapshot-Vertrag und den Project Twin, ohne Bestandteil der fachlichen Datenkette zu werden.
+- Der regulaere operative Zielumfang bleibt auf `blueprint` und `project-twin` begrenzt. BCProjectOS wird nicht installiert, kopiert, automatisch uebernommen oder aus diesem Repository heraus bearbeitet; eine vorhandene Bindung wird lediglich gegen Release-Tag, Commit und Digest geprueft.
+- Fehlt ein echter Spectra-Release-Nachweis aus BCProjectOS, meldet das Kontrollzentrum `PENDING_BCPROJECTOS_RELEASE` und darf daraus weder Gruen noch Veroeffentlichungsreife ableiten.
+- Das Kontrollzentrum erzeugt keine Kundenwahrheit, keine Snapshot-Fachdaten und keine Zielprojekt-Commits. Es bewertet vorhandene Versionsstaende und veroeffentlicht ausschliesslich ueber die bereits definierten Pruef- und Sicherheitsstufen.
+- Befunde zu wiederverwendbaren Erkenntnissen duerfen nur anonymisierte, noch nicht uebernommene `blueprint-candidates` empfehlen; eine Rueckuebernahme in BCProjectOS bleibt ein eigener fachlicher Release-Prozess.
 
 ## Unverhandelbare Grenzen
 
@@ -48,6 +71,13 @@ Eine Uebertragung ist nur ueber `scripts/Publish-UniversaarlCommit.ps1` und nur 
 Erzwungene Uebertragung, `--force-with-lease`, `--no-verify`, Git-Marken, Freigaben, Zusammenfuehrungsanfragen, Aenderungen entfernter Repositories und jede Abweichung vom kontrolliert leeren Publisher-Hookpfad sind im normalen Arbeitsablauf verboten. Unversionierte Hooks der Zielarbeitskopien werden aus Sicherheitsgruenden niemals in die frische Push-Kopie uebernommen oder ausgefuehrt; dieser Ausschluss ist kein Umgehen der Publisher-Hookpolicy.
 
 ## Arbeitsweise
+
+### Pragmatische Abschlussregel
+
+- Fuer koordinierte Arbeit gilt standardmaessig der kleinste fachlich zusammenhaengende und sichere Umfang.
+- Nach der Umsetzung folgt hoechstens eine gezielte unabhaengige Review-Runde. Danach blockieren nur konkrete, reproduzierbare Vertrags-, Sicherheits- oder Veroeffentlichungsfehler; Komfort-, Stil- und zusaetzliche Haertungswuensche werden als getrennte Folgeauftraege notiert.
+- Zuerst laufen die direkt betroffenen Tests, danach genau ein angemessener Gesamtcheck. Ein reines Werkzeug-Timeout wird mit passendem Zeitlimit wiederholt und nicht als neue Analyse- oder Refactoringrunde behandelt.
+- Sobald der vereinbarte Umfang und seine verbindlichen Gates gruen sind, wird der lokale Stand unmittelbar als ein kohaerenter Commit uebergeben. Weitere Optimierung erfolgt nur nach einem eigenen Auftrag.
 
 Jede Bewertung unterscheidet:
 

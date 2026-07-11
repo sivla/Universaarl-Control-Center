@@ -397,10 +397,11 @@ function Open-UniversaarlLockedDirectoryChain {
             if ($null -eq $handle -or $handle.IsInvalid) {
                 $errorCode = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
                 if ($null -ne $handle) { $handle.Dispose() }
-                $currentDirectory = [IO.Path]::GetFullPath([Environment]::CurrentDirectory).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
-                $protectedByCurrentDirectory = $errorCode -eq 32 -and ($currentDirectory -eq $pathComparable -or $currentDirectory.StartsWith($pathComparable + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase))
-                if ($protectedByCurrentDirectory) {
-                    # Der Windows-CWD-Handle verweigert DELETE und bleibt fuer die Laufzeit dieser synchronen Sperre bestehen.
+                if ($errorCode -eq 32) {
+                    # Ein bestehender Verzeichnishandle verweigert DELETE. Der
+                    # nachfolgende gepruefte Fallbackhandle wird ebenfalls ohne
+                    # FILE_SHARE_DELETE geoeffnet und haelt den Schutz danach
+                    # selbst aufrecht, auch wenn der fremde Handle schliesst.
                     $deleteProtected = $true
                 }
                 elseif ($errorCode -eq 5 -and -not $deleteProtectionStarted) {

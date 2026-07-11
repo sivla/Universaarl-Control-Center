@@ -219,6 +219,7 @@ $twinMvpTasks = ''
 $twinCurrentTasks = ''
 $twinAdapter = ''
 $twinMain = ''
+$twinRegistry = ''
 if ($twinState.head) {
     $requiredBase = [string]$GoalConfig.projects.'project-twin'.requiredBaseCommit
     try {
@@ -235,10 +236,10 @@ if ($twinState.head) {
     else {
         $mvpPath = [string]$mvpCandidates[0].path
         $twinMvpTasks = Read-RequiredGoalText -Repository $twinRoot -Commit $twinState.head -Path $mvpPath -Findings $twinFindings -Code 'GOAL-TW-003'
-        if ($mvpPath -notmatch '^openspec/changes/archive/') { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-003' 'Der MVP-Freigabenachweis liegt nicht in einer archivierten Aenderung.' $mvpPath 'MVP erst nach ausdruecklicher Freigabe regulaer archivieren.')) }
+        if ($mvpPath -notmatch '^openspec/changes/archive/') { $twinFindings.Add((New-GoalFinding medium 'GOAL-TW-003' 'Der MVP-Freigabenachweis liegt fuer den Zwischenstand noch nicht in einer archivierten Aenderung.' $mvpPath 'MVP erst nach ausdruecklicher Freigabe regulaer archivieren.')) }
         $approvalState = Get-UniversaarlApprovalTaskState -Text $twinMvpTasks
         if ($approvalState -eq 'invalid') { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-003' 'Die exakt affirmative menschliche Freigabeaufgabe fehlt oder ist nicht eindeutig.' $mvpPath 'Genau eine vollstaendig verankerte Aufgabe `Human approval and archive` oder `Menschliche Freigabe und Archivierung` fuehren.')) }
-        elseif ($approvalState -eq 'open') { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-003' 'Die ausdrueckliche menschliche Freigabe ist weiterhin offen.' $mvpPath 'Keine Freigabe erfinden; ausdrueckliche menschliche Freigabe einholen.')) }
+        elseif ($approvalState -eq 'open') { $twinFindings.Add((New-GoalFinding medium 'GOAL-TW-003' 'Die ausdrueckliche menschliche Freigabe ist fuer den Zwischenstand weiterhin offen.' $mvpPath 'Keine Freigabe erfinden; vor der endgueltigen Freigabe ausdrueckliche menschliche Zustimmung einholen.')) }
     }
 
     $currentChange = [string]$GoalConfig.projects.'project-twin'.currentChange
@@ -248,21 +249,25 @@ if ($twinState.head) {
         $twinCurrentTasks = Read-RequiredGoalText -Repository $twinRoot -Commit $twinState.head -Path $currentTaskPath -Findings $twinFindings -Code 'GOAL-TW-006'
         if (-not [string]::IsNullOrWhiteSpace($twinCurrentTasks) -and $twinCurrentTasks -notmatch '(?m)^\s*-\s*\[[ xX]\]\s+') { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-006' 'Die aktuelle Aenderung besitzt keine strukturell erkennbare Aufgabenliste.' $currentTaskPath 'Aufgaben als eindeutige OpenSpec-Checkboxen dokumentieren.')) }
         $openTasks = [regex]::Matches($twinCurrentTasks, '(?m)^\s*-\s*\[\s\]\s+').Count
-        if ($openTasks -gt 0) { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-006' "$openTasks Aufgabe(n) der Mehrprojekt-Aenderung sind noch offen." $currentTaskPath 'Aenderung erst nach Datenvertrag, Tests und Browserpruefung uebergeben.')) }
+        if ($openTasks -gt 0) { $twinFindings.Add((New-GoalFinding medium 'GOAL-TW-006' "$openTasks Aufgabe(n) der Mehrprojekt-Aenderung sind im Zwischenstand noch offen." $currentTaskPath 'Offene Aufgaben vor der endgueltigen Freigabe abschliessen.')) }
     }
     $twinAdapter = Read-RequiredGoalText -Repository $twinRoot -Commit $twinState.head -Path 'src/server/adapter.ts' -Findings $twinFindings -Code 'GOAL-TW-ARTIFACT'
     $twinMain = Read-RequiredGoalText -Repository $twinRoot -Commit $twinState.head -Path 'src/main.tsx' -Findings $twinFindings -Code 'GOAL-TW-ARTIFACT'
+    $twinRegistry = Read-RequiredGoalText -Repository $twinRoot -Commit $twinState.head -Path 'src/projects/registry.ts' -Findings $twinFindings -Code 'GOAL-TW-ARTIFACT'
 }
 
-if ($twinState.activeChanges.Count -gt 1) { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-002' "$($twinState.activeChanges.Count) aktive Twin-Aenderungen verletzen die klare Zielreihenfolge." 'commitgebundener OpenSpec-Baum' 'MVP-Freigabe abschliessen, bevor die Mehrprojekt-Aenderung freigegeben wird.')) }
+if ($twinState.activeChanges.Count -gt 1) { $twinFindings.Add((New-GoalFinding medium 'GOAL-TW-002' "$($twinState.activeChanges.Count) aktive Twin-Aenderungen sind fuer den Zwischenstand noch nicht in die endgueltige Zielreihenfolge ueberfuehrt." 'commitgebundener OpenSpec-Baum' 'MVP-Freigabe vor der endgueltigen Mehrprojekt-Freigabe abschliessen.')) }
 if ($twinMain -match '10\. Juli' -or $twinMain -match 'i\s*%\s*[34]') { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-004' 'Die Oberflaeche enthaelt fest eingetragene oder indexbasiert erzeugte Zeitplandaten.' 'src/main.tsx' 'Nur belegte Quelltermine darstellen, sonst einen ehrlichen Leerzustand zeigen.')) }
 if ($twinAdapter -match "imagePath\.includes\('/run-1/'\)" -and $twinAdapter -match 'UABC-VER-ENV-RUN2-001') { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-005' 'Nachweiskennungen werden aus einem Verzeichnispfad geraten.' 'src/server/adapter.ts' 'Nachweise ausschliesslich registerbasiert verknuepfen.')) }
 if ($twinState.dirty -eq $true) { $twinFindings.Add((New-GoalFinding low 'GOAL-TW-007' 'Der aktuelle Twin-Arbeitsbaum ist lokal unsauber.' 'git status --porcelain' 'Lokalen und veroeffentlichten Stand getrennt ausweisen.')) }
 
 if ($blueprintState.head -and $twinState.head) {
-    $exportEntry = Get-UniversaarlBlobEntry -Repository $blueprintRoot -Commit $blueprintState.head -Path 'exports/project-artifacts/v0.1/index.yaml'
-    $twinConsumes = $twinAdapter -match 'project-artifacts/v0\.1' -or $twinAdapter -match "safeRoots\s*=\s*\[[^\]]*'exports'"
-    if ($null -ne $exportEntry -and -not $twinConsumes) { $relationshipFindings.Add((New-GoalFinding medium 'GOAL-X-001' 'Das Blueprint veroeffentlicht einen Verbrauchervertrag, den der Twin noch nicht liest.' 'exports/project-artifacts/v0.1/index.yaml; Twin-Adapter' 'Eigene Verbraucheranpassung planen oder die Luecke ausdruecklich akzeptieren.')) }
+    $legacyExportEntry = Get-UniversaarlBlobEntry -Repository $blueprintRoot -Commit $blueprintState.head -Path 'exports/project-artifacts/v0.1/index.yaml'
+    $projectDataEntry = Get-UniversaarlBlobEntry -Repository $blueprintRoot -Commit $blueprintState.head -Path 'exports/project-data/v1/index.yaml'
+    $twinConsumesLegacy = $twinAdapter -match 'project-artifacts/v0\.1' -or $twinAdapter -match "safeRoots\s*=\s*\[[^\]]*'exports'"
+    $twinConsumesProjectData = $twinRegistry -match 'exports/project-data/v1/index\.yaml' -and $twinAdapter -match 'projectDataContract' -and $twinAdapter -match 'expectedProjectId'
+    if ($null -ne $legacyExportEntry -and -not $twinConsumesLegacy) { $relationshipFindings.Add((New-GoalFinding medium 'GOAL-X-001' 'Der Twin liest den bisherigen Blueprint-Verbrauchervertrag noch nicht.' 'exports/project-artifacts/v0.1/index.yaml; Twin-Adapter' 'Verbraucheranpassung abschliessen oder die Luecke im Zwischenstand ausdruecklich ausweisen.')) }
+    if ($null -ne $projectDataEntry -and -not $twinConsumesProjectData) { $relationshipFindings.Add((New-GoalFinding medium 'GOAL-X-002' 'Der Twin liest den projektbezogenen Blueprint-Datenvertrag noch nicht vollstaendig.' 'exports/project-data/v1/index.yaml; Twin-Registry; Twin-Adapter' 'Projektbezogene Indexbindung vor der endgueltigen Freigabe abschliessen.')) }
 }
 else { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-STATE' 'Das Zusammenspiel kann ohne beide vollstaendigen Eingabe-SHAs nicht bewertet werden.' 'Blueprint- und Twin-HEAD' 'Beide Commitzustaende sicher lesbar machen.')) }
 

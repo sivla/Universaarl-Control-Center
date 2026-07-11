@@ -119,7 +119,7 @@ function Get-UniversaarlRawPushUrl {
     if ($Remote -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') { throw 'Der konfigurierte Remote-Name ist ungueltig.' }
     $pushUrls = Invoke-UniversaarlGitRead -Repository $Repository -Arguments @('config', '--local', '--get-all', "remote.$Remote.pushurl") -PreserveWhitespace
     if ($pushUrls.exitCode -gt 1) { throw 'Rohe Push-URL kann nicht sicher aus der lokalen Git-Konfiguration gelesen werden.' }
-    $values = if ($pushUrls.exitCode -eq 0) { @($pushUrls.output -split "`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) } else { @() }
+    $values = @(if ($pushUrls.exitCode -eq 0) { $pushUrls.output -split "`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } })
     if ($values.Count -eq 0) {
         $urls = Invoke-UniversaarlGitRead -Repository $Repository -Arguments @('config', '--local', '--get-all', "remote.$Remote.url") -PreserveWhitespace
         if ($urls.exitCode -ne 0) { throw 'Rohe Remote-URL fehlt in der lokalen Git-Konfiguration.' }
@@ -785,16 +785,11 @@ function Assert-UniversaarlCleanPushRepositoryConfiguration {
     $names = @($listed.output -split "`n" | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ })
     $forbidden = @($names | Where-Object { $_ -match '^(?:url\.|include\.|includeif\.|remote\.)' -or $_ -match '\.(?:insteadof|pushinsteadof)$' })
     if ($forbidden.Count -gt 0) { throw "Push-Kopie enthaelt verbotene Git-Konfiguration: $($forbidden -join ', ')" }
-    $allowed = @('core.repositoryformatversion', 'core.filemode', 'core.bare', 'core.logallrefupdates', 'core.symlinks', 'core.ignorecase', 'core.hookspath', 'extensions.worktreeconfig')
+    $allowed = @('core.repositoryformatversion', 'core.filemode', 'core.bare', 'core.logallrefupdates', 'core.symlinks', 'core.ignorecase', 'core.hookspath')
     if ($RequireCredentialManager) { $allowed += 'credential.helper' }
     $unexpected = @($names | Where-Object { $allowed -notcontains $_ })
     if ($unexpected.Count -gt 0) { throw "Push-Kopie enthaelt nicht positivgelistete Git-Konfiguration: $($unexpected -join ', ')" }
     foreach ($group in @($names | Group-Object)) { if ($group.Count -ne 1) { throw "Git-Konfigurationsschluessel ist nicht eindeutig: $($group.Name)" } }
-    $worktreeListed = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('config', '--worktree', '--name-only', '--list')
-    if ($worktreeListed.exitCode -ne 0) { throw 'Worktree-Git-Konfiguration der Push-Kopie kann nicht vollstaendig gelesen werden.' }
-    $worktreeNames = @($worktreeListed.output -split "`n" | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ })
-    if (@($worktreeNames | Where-Object { $_ -notin @('core.sparsecheckout', 'core.sparsecheckoutcone') }).Count -ne 0 -or @($worktreeNames | Sort-Object -Unique).Count -ne 2) { throw 'Worktree-Git-Konfiguration der Push-Kopie ist nicht exakt positivgelistet.' }
-
     $trustedRoot = [IO.Path]::GetFullPath($TrustedSandboxRoot).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
     $expectedHooks = [IO.Path]::GetFullPath($ExpectedHooksPath).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
     if (-not $expectedHooks.StartsWith($trustedRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Git-Hook-Pfad liegt nicht innerhalb der kontrollierten Publisher-Wegwerfkopie.' }
@@ -806,10 +801,7 @@ function Assert-UniversaarlCleanPushRepositoryConfiguration {
     $hooks = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('config', '--local', '--get-all', 'core.hooksPath')
     if ($hooks.exitCode -ne 0 -or @($hooks.output -split "`n" | Where-Object { $_ }).Count -ne 1 -or -not [string]::Equals([IO.Path]::GetFullPath($hooks.output), $expectedHooks, [StringComparison]::OrdinalIgnoreCase)) { throw 'Git-Hook-Pfad der Push-Kopie stimmt nicht exakt mit dem kontrollierten leeren Publisher-Pfad ueberein.' }
     $bare = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('config', '--local', '--get', 'core.bare')
-    $worktreeConfig = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('config', '--local', '--get', 'extensions.worktreeConfig')
-    $sparse = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('config', '--worktree', '--get', 'core.sparseCheckout')
-    $cone = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('config', '--worktree', '--get', 'core.sparseCheckoutCone')
-    if ($bare.exitCode -ne 0 -or $bare.output -ne 'false' -or $worktreeConfig.exitCode -ne 0 -or $worktreeConfig.output -ne 'true' -or $sparse.exitCode -ne 0 -or $sparse.output -ne 'true' -or $cone.exitCode -ne 0 -or $cone.output -ne 'false') { throw 'Kernkonfiguration der Push-Kopie entspricht nicht der exakten nicht-baren Sparse-Commitkopie.' }
+    if ($bare.exitCode -ne 0 -or $bare.output -ne 'false') { throw 'Kernkonfiguration der Push-Kopie entspricht nicht der exakten nicht-baren Commitkopie.' }
     if ($RequireCredentialManager) {
         $credential = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('config', '--local', '--get-all', 'credential.helper')
         if ($credential.exitCode -ne 0 -or $credential.output -ne 'manager') { throw 'Push-Kopie verwendet nicht exakt den freigegebenen Git Credential Manager.' }
@@ -896,18 +888,52 @@ function New-UniversaarlCommitSnapshot {
     if ($config.exitCode -ne 0) { throw 'Git-Hooks konnten in der Wegwerfkopie nicht isoliert werden.' }
     $fetch = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('-c', 'protocol.file.allow=always', 'fetch', '--quiet', '--no-tags', '--depth=1', $SourceRepository, $Commit)
     if ($fetch.exitCode -ne 0) { throw "Commit konnte nicht in die Wegwerfkopie uebernommen werden: $($fetch.output)" }
-    $sparseInit = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('sparse-checkout', 'init', '--no-cone')
-    if ($sparseInit.exitCode -ne 0) { throw 'Sparse-Checkout konnte nicht initialisiert werden.' }
-    $sparsePath = Join-Path $Destination '.git\info\sparse-checkout'
-    [IO.File]::WriteAllText($sparsePath, "/*`n!**/.env*`n", [Text.UTF8Encoding]::new($false))
-    $checkout = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('checkout', '--quiet', '--detach', $Commit, '--')
-    if ($checkout.exitCode -ne 0) { throw "Commit konnte nicht ausgecheckt werden: $($checkout.output)" }
+    # `git checkout` ist auf Windows fuer frisch geholte, grosse Baume gelegentlich
+    # an kurzlebigen Dateisperren gescheitert. HEAD und Arbeitsbaum werden deshalb
+    # ohne Hook-Ausfuehrung direkt an den bereits geprueften Commit gebunden.
+    $detach = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('update-ref', '--no-deref', 'HEAD', $Commit)
+    if ($detach.exitCode -ne 0) { throw "Commit konnte nicht als abgeloester HEAD gebunden werden: $($detach.output)" }
+    $populateAttempts = [Collections.Generic.List[string]]::new()
+    $populate = $null
+    for ($attempt = 0; $attempt -lt 2; $attempt++) {
+        $populate = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('read-tree', '-mu', 'HEAD')
+        $populateAttempts.Add("Versuch $($attempt + 1): $($populate.output)")
+        if ($populate.exitCode -eq 0) { break }
+        if ($attempt -eq 0) { Start-Sleep -Milliseconds 200 }
+    }
+    if ($null -eq $populate -or $populate.exitCode -ne 0) { throw "Arbeitsbaum des gebundenen Commits konnte nicht erzeugt werden: $($populateAttempts -join ' | ')" }
     Remove-Item -LiteralPath (Join-Path $Destination '.git\FETCH_HEAD') -Force -ErrorAction SilentlyContinue
     $remotes = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('remote')
     if ($remotes.exitCode -ne 0 -or -not [string]::IsNullOrWhiteSpace($remotes.output)) { throw 'Die Wegwerfkopie besitzt ein entferntes Git-Ziel.' }
     $head = Invoke-UniversaarlGitRead -Repository $Destination -Arguments @('rev-parse', '--verify', 'HEAD^{commit}')
     if ($head.exitCode -ne 0 -or $head.output -ne $Commit) { throw 'Die Wegwerfkopie ist nicht an die erwartete Commit-SHA gebunden.' }
     $Destination
+}
+
+function Test-UniversaarlBoundReportExitCode {
+    param([Parameter(Mandatory)][int]$ExitCode)
+    # Die Berichte verwenden 1 fuer einen vollstaendig erzeugten, aber global
+    # roten Zustand. Der Publisher bewertet danach nur das gewaehlte Projekt und
+    # dessen Beziehungen. Andere Rueckgabecodes bedeuten einen Laufzeitfehler.
+    $ExitCode -in @(0, 1)
+}
+
+function Get-UniversaarlScopedPublishGateBlockers {
+    param(
+        [Parameter(Mandatory)]$ProjectResult,
+        [Parameter(Mandatory)]$TechnicalRelationship,
+        [Parameter(Mandatory)]$ProjectGoalResult,
+        [Parameter(Mandatory)]$GoalRelationship
+    )
+    $blockers = [Collections.Generic.List[string]]::new()
+    if ([string]$ProjectResult.status -notin @('GRUEN', 'GELB')) { $blockers.Add("Projektstatus ist $($ProjectResult.status), nicht GRUEN oder GELB.") }
+    if ([string]$ProjectResult.validation -ne 'passed') { $blockers.Add('Die technische Pruefung ist nicht bestanden.') }
+    if ([string]$ProjectResult.germanValidation -ne 'passed') { $blockers.Add('Der projektspezifische maschinenlesbare Deutsch-Nachweis ist nicht bestanden.') }
+    if ($ProjectResult.targetUnchanged -ne $true) { $blockers.Add('Unveraendertheitsnachweis des Zielprojekts fehlt.') }
+    if ([string]$TechnicalRelationship.status -notin @('passed', 'warning')) { $blockers.Add('Die commitgebundene Twin-Blueprint-Vertragspruefung ist fehlgeschlagen oder unbekannt.') }
+    if ([string]$ProjectGoalResult.status -notin @('GRUEN', 'GELB')) { $blockers.Add('Die strategische Projektziel-Pruefstufe ist rot oder unbekannt.') }
+    if ([string]$GoalRelationship.status -notin @('GRUEN', 'GELB')) { $blockers.Add('Die strategische Zusammenspiel-Pruefstufe ist rot oder unbekannt.') }
+    @($blockers)
 }
 
 function Get-UniversaarlSecretFindings {

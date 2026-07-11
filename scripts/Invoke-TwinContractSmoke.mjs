@@ -51,24 +51,31 @@ const server = await createServer({
 
 try {
   const adapter = await server.ssrLoadModule('/src/server/adapter.ts');
-  const state = await adapter.createTwinState(blueprintRoot);
-  const summary = {
-    source: {
-      branch: state.source.branch,
-      commit: state.source.commit,
-      dirty: state.source.dirty,
-      pathLabel: state.source.pathLabel,
+  const universaarlState = await adapter.createTwinState('universaarl', blueprintRoot);
+  const bcBasicState = await adapter.createTwinState('bc-basic', blueprintRoot, {
+    projectDataContract: {
+      path: 'exports/project-data/v1/index.yaml',
+      expectedProjectId: 'UABC-BC-BASIC-001',
     },
-    stats: state.stats,
-    warningCount: state.warnings.length,
-    warnings: state.warnings,
-    gapCount: state.gaps.length,
+  });
+  const summary = {
+    sources: {
+      universaarl: { commit: universaarlState.source.commit, dirty: universaarlState.source.dirty },
+      bcBasic: { commit: bcBasicState.source.commit, dirty: bcBasicState.source.dirty },
+    },
+    stats: { universaarl: universaarlState.stats, bcBasic: bcBasicState.stats },
+    warningCount: universaarlState.warnings.length + bcBasicState.warnings.length,
+    warnings: [...universaarlState.warnings, ...bcBasicState.warnings],
+    gapCount: universaarlState.gaps.length + bcBasicState.gaps.length,
   };
 
   console.log(JSON.stringify(summary));
 
-  if (state.source.commit !== expectedBlueprintCommit || state.source.dirty
-    || state.stats.capabilities < 1 || state.stats.changes < 1 || state.stats.documents < 1) {
+  if (universaarlState.source.commit !== expectedBlueprintCommit || universaarlState.source.dirty
+    || universaarlState.stats.capabilities < 1 || universaarlState.stats.changes < 1 || universaarlState.stats.documents < 1
+    || bcBasicState.source.commit !== expectedBlueprintCommit || bcBasicState.source.dirty
+    || bcBasicState.source.projectId !== 'bc-basic' || bcBasicState.stats.jira !== 21
+    || bcBasicState.stats.evidence !== 8 || bcBasicState.evidenceItems.length !== 0) {
     process.exitCode = 3;
   }
 } finally {

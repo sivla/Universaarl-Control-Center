@@ -278,7 +278,10 @@ $SandboxRoot = $null
 
 if ($RunValidations) {
     $tempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar)
-    $SandboxRoot = Join-Path $tempBase "universaarl-audit-$RunId-$([Guid]::NewGuid().ToString('N'))"
+    # Der Laufbezug bleibt in den Berichten. Der physische Windows-Temp-Pfad
+    # bleibt bewusst kurz, damit tiefe, commitgebundene Testfixtures nicht an
+    # der klassischen Pfadlaengengrenze scheitern.
+    $SandboxRoot = Join-Path $tempBase "uabc-a-$([Guid]::NewGuid().ToString('N'))"
     New-Item -ItemType Directory -Path $SandboxRoot -Force | Out-Null
     try {
         $runner = Initialize-UniversaarlProcessRunner -ControlRoot $MonitorRoot -SandboxRoot $SandboxRoot
@@ -353,7 +356,7 @@ if ($RunValidations) {
     }
     finally {
         $resolved = if ($SandboxRoot) { [IO.Path]::GetFullPath($SandboxRoot) } else { $null }
-        if ($resolved -and $resolved.StartsWith($tempBase + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -and (Split-Path -Leaf $resolved).StartsWith('universaarl-audit-') -and (Test-Path -LiteralPath $resolved)) {
+        if ($resolved -and $resolved.StartsWith($tempBase + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -and (Split-Path -Leaf $resolved).StartsWith('uabc-a-') -and (Test-Path -LiteralPath $resolved)) {
             $sandboxItem = Get-Item -LiteralPath $resolved -Force -ErrorAction SilentlyContinue
             if ($null -ne $sandboxItem -and (($sandboxItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)) { Remove-Item -LiteralPath $resolved -Force -ErrorAction SilentlyContinue }
             else { Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction SilentlyContinue }

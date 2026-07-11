@@ -117,7 +117,7 @@ Write-Host "Pruefe Veroeffentlichungsbedingungen fuer '$Project' im Lauf '$RunId
 $auditOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $AuditPath -RunValidations -RunId $RunId 2>&1)
 $auditExitCode = $LASTEXITCODE
 $auditOutput | ForEach-Object { Write-Host $_ }
-if ($auditExitCode -ne 0) { Add-Blocker "Der aktuelle technische Lauf ist mit Rueckgabecode $auditExitCode fehlgeschlagen." }
+if (-not (Test-UniversaarlBoundReportExitCode -ExitCode $auditExitCode)) { Add-Blocker "Der aktuelle technische Lauf ist mit unerwartetem Rueckgabecode $auditExitCode fehlgeschlagen." }
 if (-not (Test-Path -LiteralPath $AuditReportPath -PathType Leaf)) { Add-Blocker "Der aktuelle technische Lauf erzeugte keinen gebundenen Bericht; Rueckgabecode $auditExitCode." }
 
 $AuditReport = $null
@@ -129,7 +129,7 @@ if ($Blockers.Count -eq 0) {
 $goalOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $GoalPath -RunId $RunId 2>&1)
 $goalExitCode = $LASTEXITCODE
 $goalOutput | ForEach-Object { Write-Host $_ }
-if ($goalExitCode -ne 0) { Add-Blocker "Der aktuelle Zielpruefungslauf ist mit Rueckgabecode $goalExitCode fehlgeschlagen." }
+if (-not (Test-UniversaarlBoundReportExitCode -ExitCode $goalExitCode)) { Add-Blocker "Der aktuelle Zielpruefungslauf ist mit unerwartetem Rueckgabecode $goalExitCode fehlgeschlagen." }
 if (-not (Test-Path -LiteralPath $GoalReportPath -PathType Leaf)) { Add-Blocker "Der aktuelle Zielpruefungslauf erzeugte keinen gebundenen Bericht; Rueckgabecode $goalExitCode." }
 
 $GoalReport = $null
@@ -157,15 +157,12 @@ if ($null -ne $AuditReport -and $null -ne $GoalReport) {
     $TechnicalRelationship = @($AuditReport.relationships | Where-Object id -eq 'twin-reads-blueprint')[0]
     $GoalRelationship = @($GoalReport.relationships | Where-Object id -eq 'twin-reads-blueprint')[0]
     if ($null -eq $ProjectResult) { Add-Blocker 'Projekt fehlt im technischen Laufbericht.' }
-    else {
-        if ([string]$ProjectResult.status -ne 'GRUEN') { Add-Blocker "Projektstatus ist $($ProjectResult.status), nicht GRUEN." }
-        if ([string]$ProjectResult.validation -ne 'passed') { Add-Blocker 'Die technische Pruefung ist nicht bestanden.' }
-        if ([string]$ProjectResult.germanValidation -ne 'passed') { Add-Blocker 'Der projektspezifische maschinenlesbare Deutsch-Nachweis ist nicht bestanden.' }
-        if ($ProjectResult.targetUnchanged -ne $true) { Add-Blocker 'Unveraendertheitsnachweis des Zielprojekts fehlt.' }
+    if ($null -eq $TechnicalRelationship) { Add-Blocker 'Technischer Zusammenspielnachweis fehlt im Laufbericht.' }
+    if ($null -eq $ProjectGoalResult) { Add-Blocker 'Projekt fehlt im strategischen Laufbericht.' }
+    if ($null -eq $GoalRelationship) { Add-Blocker 'Strategischer Zusammenspielnachweis fehlt im Laufbericht.' }
+    if ($null -ne $ProjectResult -and $null -ne $TechnicalRelationship -and $null -ne $ProjectGoalResult -and $null -ne $GoalRelationship) {
+        foreach ($message in @(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $ProjectResult -TechnicalRelationship $TechnicalRelationship -ProjectGoalResult $ProjectGoalResult -GoalRelationship $GoalRelationship)) { Add-Blocker $message }
     }
-    if ($null -eq $TechnicalRelationship -or [string]$TechnicalRelationship.status -ne 'passed') { Add-Blocker 'Die commitgebundene Twin-Blueprint-Vertragspruefung ist nicht bestanden.' }
-    if ($null -eq $ProjectGoalResult -or [string]$ProjectGoalResult.status -notin @('GRUEN', 'GELB')) { Add-Blocker 'Die strategische Projektziel-Pruefstufe ist rot oder unbekannt.' }
-    if ($null -eq $GoalRelationship -or [string]$GoalRelationship.status -notin @('GRUEN', 'GELB')) { Add-Blocker 'Die strategische Zusammenspiel-Pruefstufe ist rot oder unbekannt.' }
     if ($null -ne $TechnicalRelationship) {
         if ([string]$TechnicalRelationship.providerCommit -ne (Get-InputSha $AuditReport 'blueprint') -or [string]$TechnicalRelationship.consumerCommit -ne (Get-InputSha $AuditReport 'project-twin')) { Add-Blocker 'Der technische Vertragsnachweis ist nicht an beide Eingabe-SHAs gebunden.' }
     }

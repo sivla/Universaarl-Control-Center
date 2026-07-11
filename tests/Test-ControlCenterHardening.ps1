@@ -88,12 +88,30 @@ try {
     New-UniversaarlCommitSnapshot -SourceRepository $snapshotFixture.path -Commit $snapshotFixture.sha -Destination $snapshot -SandboxRoot $snapshotSandbox -AllowedVersionedMedia $blueprintMediaAllowlist | Out-Null
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $snapshot 'ignored.marker'))) -Message 'Ignorierte Datei gelangte in die Commit-Kopie.'
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $snapshot 'untracked.marker'))) -Message 'Unversionierte Datei gelangte in die Commit-Kopie.'
-    Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $snapshot '.env.example'))) -Message 'Die Umgebungsvorlage wurde als Laufzeitdatei ausgecheckt.'
+    Assert-True -Condition ((Get-Content -Raw -LiteralPath (Join-Path $snapshot '.env.example')).Trim() -eq 'TOKEN=<TOKEN>') -Message 'Die gepruefte Root-Umgebungsvorlage fehlt in der Dokumentationskopie oder wurde veraendert.'
     Assert-True -Condition (Test-Path -LiteralPath (Join-Path $snapshot $canonicalMediaPath) -PathType Leaf) -Message 'Exakt positivgelisteter regulaerer Blueprint-Produktblob fehlte in der Commit-Kopie.'
     Assert-True -Condition ((Invoke-FixtureGit -Repository $snapshot -Arguments @('rev-parse', 'HEAD')) -eq $snapshotFixture.sha) -Message 'Commit-Kopie besitzt nicht die exakte SHA.'
     Assert-True -Condition ([string]::IsNullOrWhiteSpace((Invoke-FixtureGit -Repository $snapshot -Arguments @('remote')))) -Message 'Commit-Kopie besitzt ein Remote.'
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $snapshot '.git\FETCH_HEAD'))) -Message 'Commit-Kopie verraet die Quelladresse ueber FETCH_HEAD.'
+    $snapshotHeadFile = [IO.File]::ReadAllText((Join-Path $snapshot '.git\HEAD'), [Text.Encoding]::ASCII).Trim()
+    Assert-True -Condition ($snapshotHeadFile -eq $snapshotFixture.sha) -Message 'Commit-Kopie besitzt keinen direkt an die exakte SHA gebundenen abgeloesten HEAD.'
     Assert-Throws -Action { Assert-UniversaarlCommitRuntimeSafe -Repository $snapshotFixture.path -Commit $snapshotFixture.sha -AllowedVersionedMedia $blueprintMediaAllowlist -MaximumBytes 5 } -Message 'Gesamtgroessengrenze des Commit-Snapshots wurde nicht erzwungen.'
+
+    Assert-True -Condition (Test-UniversaarlBoundReportExitCode -ExitCode 0) -Message 'Erfolgreicher Berichtsrueckgabecode wurde abgelehnt.'
+    Assert-True -Condition (Test-UniversaarlBoundReportExitCode -ExitCode 1) -Message 'Vollstaendig erzeugter global roter Bericht wurde vor der projektspezifischen Auswertung abgelehnt.'
+    Assert-True -Condition (-not (Test-UniversaarlBoundReportExitCode -ExitCode 2)) -Message 'Unerwarteter Berichtsrueckgabecode wurde akzeptiert.'
+    $scopedProject = [pscustomobject]@{ status = 'GELB'; validation = 'passed'; germanValidation = 'passed'; targetUnchanged = $true }
+    $scopedTechnicalRelationship = [pscustomobject]@{ status = 'passed' }
+    $scopedProjectGoal = [pscustomobject]@{ status = 'GRUEN' }
+    $scopedGoalRelationship = [pscustomobject]@{ status = 'GELB' }
+    Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationship $scopedTechnicalRelationship -ProjectGoalResult $scopedProjectGoal -GoalRelationship $scopedGoalRelationship).Count -eq 0) -Message 'Gelbe dokumentierte Folgearbeit blockierte ein technisch bestandenes ausgewaehltes Projekt.'
+    $scopedTechnicalRelationship.status = 'warning'
+    Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationship $scopedTechnicalRelationship -ProjectGoalResult $scopedProjectGoal -GoalRelationship $scopedGoalRelationship).Count -eq 0) -Message 'Eine sichtbare technische Vertragswarnung blockierte den Zwischenstand.'
+    $scopedProject.status = 'ROT'
+    Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationship $scopedTechnicalRelationship -ProjectGoalResult $scopedProjectGoal -GoalRelationship $scopedGoalRelationship).Count -gt 0) -Message 'Roter Status des ausgewaehlten Projekts wurde akzeptiert.'
+    $scopedProject.status = 'GRUEN'
+    $scopedTechnicalRelationship.status = 'failed'
+    Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationship $scopedTechnicalRelationship -ProjectGoalResult $scopedProjectGoal -GoalRelationship $scopedGoalRelationship).Count -gt 0) -Message 'Fehlgeschlagener technischer Zusammenspielnachweis wurde akzeptiert.'
 
     Assert-True -Condition (Test-UniversaarlProhibitedRuntimePath -Path $canonicalMediaPath) -Message 'Produktmedien-Endung wurde ohne Positivliste global freigegeben.'
     Assert-True -Condition (Test-UniversaarlProhibitedRuntimePath -Path 'test-results/videos/run.webm' -AllowVersionedProductMedia) -Message 'Browser-/Testvideo konnte die Laufzeitpfadsperre mit einer Medienfreigabe umgehen.'

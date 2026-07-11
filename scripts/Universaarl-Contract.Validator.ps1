@@ -79,7 +79,7 @@ function Test-UniversaarlSpectraReleaseBinding {
     Assert-UniversaarlExactProperties $manifest @('schema_version','product_id','release_version','release_kind','manifest_state','release_date','expected_tag','source_commit','consumer_mode','installable_blueprint','blueprint_version','payload','binding_requirements','excluded_from_payload','known_limits') 'Spectra-Releasemanifest'
     if ($manifest.schema_version -ne 1 -or $manifest.product_id -cne 'spectra' -or $manifest.release_version -cne $version -or $manifest.expected_tag -cne $tag -or $manifest.source_commit -cne [string]$Binding.manifestSourceCommit -or $manifest.release_kind -cne 'installable_blueprint' -or $manifest.manifest_state -cne 'final' -or $manifest.consumer_mode -cne 'INSTALLABLE_BLUEPRINT' -or $manifest.installable_blueprint -ne $true -or $manifest.blueprint_version -cne $version) { throw 'Spectra-Releasemanifest ist nicht final installierbar oder widerspruechlich.' }
     if ($Binding.consumerMode -cne 'INSTALLABLE_BLUEPRINT' -or $Binding.installableBlueprint -ne $true -or $Binding.digestAlgorithm -cne 'SHA-256') { throw 'Spectra-Consumerbindung ist nicht installierbar.' }
-    $records = [Collections.Generic.List[string]]::new(); $seen = @{}
+    $records = [Collections.Generic.List[object]]::new(); $seen = @{}
     foreach ($file in @($manifest.payload.files)) {
         $path = Assert-UniversaarlContractPath ([string]$file.path)
         if ($seen.ContainsKey($path)) { throw 'Spectra-Payloadpfad ist doppelt.' }; $seen[$path] = $true
@@ -87,16 +87,57 @@ function Test-UniversaarlSpectraReleaseBinding {
         $bytes = Get-UniversaarlGitBlobBytes -Repository $Repository -Object $entry.object
         $digest = Get-UniversaarlBytesSha256 $bytes
         if ($entry.size -ne [int64]$file.size_bytes -or $digest -cne [string]$file.sha256) { throw "Spectra-Payload '$path' stimmt nicht mit dem Manifest ueberein (Blob: $($entry.size)/$digest; Manifest: $($file.size_bytes)/$($file.sha256))." }
-        $records.Add("$digest  $path")
+        $records.Add([pscustomobject]@{ path=$path; line="$digest  $path" })
         $sourceEntry = Get-UniversaarlBlobEntry -Repository $Repository -Commit ([string]$Binding.manifestSourceCommit) -Path $path -Required
         if ($sourceEntry.object -cne $entry.object -or $sourceEntry.mode -cne $entry.mode) { throw "Spectra-Payload '$path' wurde nach dem Source-Commit veraendert." }
     }
     if ($records.Count -ne [int]$manifest.payload.file_count) { throw 'Spectra-Payloadanzahl ist ungueltig.' }
-    $sorted = [string[]]$records.ToArray(); [Array]::Sort($sorted, [StringComparer]::Ordinal)
-    $checksumBytes = [Text.UTF8Encoding]::new($false).GetBytes(($sorted -join "`n") + "`n")
+    $sorted = @($records); [Array]::Sort($sorted, [Comparison[object]]{ param($left,$right) [StringComparer]::Ordinal.Compare([string]$left.path,[string]$right.path) })
+    $checksumBytes = [Text.UTF8Encoding]::new($false).GetBytes(((@($sorted | ForEach-Object line)) -join "`n") + "`n")
     $bundle = Get-UniversaarlBytesSha256 $checksumBytes
     if ($bundle -cne [string]$manifest.payload.bundle_digest -or $bundle -cne [string]$Binding.payloadBundleDigest) { throw 'Spectra-Payload-Bundledigest stimmt nicht ueberein.' }
     [pscustomobject]@{ status='passed'; fullValidationPassed=$true; tagCommit=$tagCommit; manifestSourceCommit=[string]$Binding.manifestSourceCommit; payloadBundleDigest=$bundle }
+}
+
+function Test-UniversaarlSpectraCandidate {
+    param(
+        [Parameter(Mandatory)][string]$Repository,
+        [Parameter(Mandatory)][string]$Commit,
+        [Parameter(Mandatory)][string]$Version
+    )
+    Assert-FullCommitSha $Commit
+    if ($Version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$') { throw 'Spectra-Candidate-Version ist ungueltig.' }
+    $manifestPath = "release/versions/$Version/release-manifest.json"
+    $manifest = (Read-UniversaarlCommitText -Repository $Repository -Commit $Commit -Path $manifestPath -MaximumBytes 1048576 -Required).content | ConvertFrom-Json
+    Assert-UniversaarlExactProperties $manifest @('schema_version','product_id','release_version','release_kind','manifest_state','release_date','expected_tag','source_commit','consumer_mode','installable_blueprint','blueprint_version','payload','binding_requirements','excluded_from_payload','known_limits') 'Spectra-Candidate-Manifest'
+    if ($manifest.schema_version -ne 1 -or $manifest.product_id -cne 'spectra' -or $manifest.release_version -cne $Version -or
+        $manifest.release_kind -cne 'installable_blueprint' -or $manifest.manifest_state -cne 'candidate' -or
+        $manifest.expected_tag -cne "spectra-v$Version" -or $null -ne $manifest.source_commit -or
+        $manifest.consumer_mode -cne 'INSTALLABLE_BLUEPRINT' -or $manifest.installable_blueprint -ne $true -or
+        $manifest.blueprint_version -cne $Version -or $manifest.payload.digest_algorithm -cne 'SHA-256') {
+        throw 'Spectra-Candidate ist nicht konsistent installierbar oder behauptet bereits eine Releasebindung.'
+    }
+    $records = [Collections.Generic.List[object]]::new()
+    $seen = @{}
+    foreach ($file in @($manifest.payload.files)) {
+        $path = Assert-UniversaarlContractPath ([string]$file.path)
+        if ($seen.ContainsKey($path)) { throw 'Spectra-Candidate-Payloadpfad ist doppelt.' }
+        $seen[$path] = $true
+        $entry = Get-UniversaarlBlobEntry -Repository $Repository -Commit $Commit -Path $path -Required
+        $bytes = Get-UniversaarlGitBlobBytes -Repository $Repository -Object $entry.object
+        $digest = Get-UniversaarlBytesSha256 $bytes
+        if ($entry.size -ne [int64]$file.size_bytes -or $digest -cne [string]$file.sha256) { throw "Spectra-Candidate-Payload '$path' stimmt nicht mit dem Commit ueberein." }
+        $records.Add([pscustomobject]@{ path=$path; line="$digest  $path" })
+    }
+    if ($records.Count -ne [int]$manifest.payload.file_count) { throw 'Spectra-Candidate-Payloadanzahl ist ungueltig.' }
+    $sorted = @($records); [Array]::Sort($sorted, [Comparison[object]]{ param($left,$right) [StringComparer]::Ordinal.Compare([string]$left.path,[string]$right.path) })
+    $checksumsText = ((@($sorted | ForEach-Object line)) -join "`n") + "`n"
+    $bundle = Get-UniversaarlBytesSha256 ([Text.UTF8Encoding]::new($false).GetBytes($checksumsText))
+    if ($bundle -cne [string]$manifest.payload.bundle_digest) { throw 'Spectra-Candidate-Bundledigest stimmt nicht ueberein.' }
+    $checksumsPath = "release/versions/$Version/$($manifest.payload.checksums_file)"
+    $storedChecksums = Read-UniversaarlCommitText -Repository $Repository -Commit $Commit -Path $checksumsPath -MaximumBytes 1048576 -Required
+    if ([string]$storedChecksums.content -cne $checksumsText.TrimEnd("`n")) { throw 'Spectra-Candidate-Checksums stimmen nicht exakt mit den Git-Blobs ueberein.' }
+    [pscustomobject]@{ status='passed'; fullValidationPassed=$true; commit=$Commit; version=$Version; expectedTag="spectra-v$Version"; payloadBundleDigest=$bundle; fileCount=$records.Count }
 }
 
 function Test-UniversaarlSnapshotManifest {

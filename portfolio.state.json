@@ -5,26 +5,26 @@
     {
       "projectId": "spectra",
       "overallGoal": "Kundenunabhaengiges, reproduzierbar veroeffentlichbares, sicher installierbares und kontrolliert aktualisierbares Betriebssystem fuer Business-Central-Projekte.",
-      "largestGap": "Ein eigenstaendiger read-only Validator fuer erzeugte Kundenworkspaces fehlt noch als produktiver Bestandteil.",
-      "lastCommit": "aa89c4395bb2fd3d21c52367eca250ce8d6dd432",
-      "mainBlocker": "Der Validator kann nicht rueckwirkend in den unveraenderlichen Release 0.1.0-alpha.1 aufgenommen werden und benoetigt einen naechsten versionierten Produktlieferblock.",
-      "nextDeliveryBlock": "Den Workspace-Validator als groessten P1/P2-Abstand im naechsten versionierten Spectra-Lieferblock implementieren, ohne den veroeffentlichten Alpha-Release zu veraendern."
+      "largestGap": "Der unreleased Workspace-Validator deckt noch nicht alle spezialisierten Evidence-, External-File-, UAT- und Delivery-Datensaetze vollstaendig mit stabilen Fehlercodes ab.",
+      "lastCommit": "5faf50da0e6bb76fbfa2a48caa261bc912aabc14",
+      "mainBlocker": "Der laufende Validator-Stand ist noch kein vollstaendig gepruefter naechster Spectra-Releasekandidat; der Alpha-Release 0.1.0-alpha.1 bleibt unveraenderlich.",
+      "nextDeliveryBlock": "Spezialisierte Schema-, Referenz-, Hash- und Content-Addressed-Path-Pruefung samt positiven und negativen Fixtures abschliessen und als einen geprueften unreleased Produktcommit liefern."
     },
     {
       "projectId": "blueprint",
       "overallGoal": "Vollstaendige fachliche und operative Source of Truth fuer die erfolgreiche Business-Central-Basic-Einfuehrung bei Universaarl.",
-      "largestGap": "Der nun veroeffentlichte echte Spectra-Release ist noch nicht in BC Basic gebunden und die reale Snapshot-A/B-Produzentenstrecke ist noch nicht erzeugt.",
-      "lastCommit": "e7087cffe2fde0cc22176c1634e4f2163f127caa",
-      "mainBlocker": "Die commitgebundene Spectra-Bindung sowie Payloadcommit A und Manifestcommit B muessen zuerst konsistent erzeugt und geprueft werden.",
-      "nextDeliveryBlock": "Spectra 0.1.0-alpha.1 echt binden und den validierten Snapshot als direkte A/B-Commitfolge erzeugen; reale BC-Ausfuehrung bleibt ohne Kundenevidence blockiert."
+      "largestGap": "Nach der synthetischen P2P-/O2C-Generalprobe fehlen noch die durchgaengige Zahlungs- und Bankabstimmung, Lager-/Inventurprobe, Monatsabschluss, UStVA-Vorschau sowie die nachgelagerten UAT-, Schulungs-, Cutover- und Hypercare-Pakete.",
+      "lastCommit": "1c162c65d52dde06b188595b97511e951e655f50",
+      "mainBlocker": "Das Projekt ist fachlich noch nicht vollstaendig durchgespielt; reale BC-Ausfuehrung bleibt bewusst ausserhalb des aktuellen Repository-Simulationsumfangs.",
+      "nextDeliveryBlock": "Zahlungsein- und -ausgang, Postenausgleich, Bankabstimmung, Lager/Inventur, Monatsabschluss und UStVA-Vorschau mit Kontrollsummen, Defects, Re-Tests und synthetischer UAT-Abnahme durchspielen."
     },
     {
       "projectId": "project-twin",
       "overallGoal": "Robustes, verstaendliches und taeglich nutzbares, strikt nur-lesendes Projektcockpit fuer validierte versionierte Snapshots.",
-      "largestGap": "Fuer den produktiven End-to-End-Betrieb fehlt ein real bereitgestellter und freigegebener Manifest-B-Commit.",
+      "largestGap": "Der Twin muss den vereinfachten Vertrag fuer den neuesten vollstaendig validierten Commit des festgelegten BC-Basic-Branches noch implementieren und sichtbar im Browser beweisen.",
       "lastCommit": "c739b8953948ebada7a47d560577316c6e18693d",
-      "mainBlocker": "Ohne real validierten Manifest-B-Commit darf der Twin keinen produktiven Projektstand anzeigen.",
-      "nextDeliveryBlock": "Den ersten real freigegebenen Manifest-B-Commit commitgebunden integrieren und den positiven sowie die zentralen blockierten Browserwege nachweisen."
+      "mainBlocker": "Adapter, Registry, Tests und Browsernachweis sind noch nicht vollstaendig auf den Branch-Commit-Vertrag umgestellt.",
+      "nextDeliveryBlock": "BC-Basic-Commit 1c162c65d52dde06b188595b97511e951e655f50 commitgebunden integrieren, positive Desktop-/Mobilansicht und zentrale fail-closed-Faelle nachweisen."
     }
   ]
 }

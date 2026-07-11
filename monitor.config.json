@@ -8,7 +8,7 @@
       "id": "blueprint",
       "name": "Universaarl BC Blueprint V2",
       "pathAlias": "<BLUEPRINT_ROOT>",
-      "defaultPath": "C:\\Users\\kkali\\Universaarl-BC-Blueprint-V2",
+      "defaultPath": "C:\\Users\\kkali\\Universaarl-BC-Blueprint-V2-P001",
       "pathEnvironmentVariable": "UNIVERSAARL_BLUEPRINT_PATH",
       "reviewFile": "REVIEW.md",
       "requiredNpmScript": "test",

@@ -9,6 +9,10 @@ Die Pfade dürfen über die in `monitor.config.json` genannten Umgebungsvariable
 
 ## Unverhandelbare Grenzen
 
+- Schreibarbeit am Blueprint erfolgt ausschliesslich in `C:\Users\kkali\Documents\Universaarl Projekt BC Basic` auf `codex/universaarl-projekt`.
+- Schreibarbeit am Project Twin erfolgt ausschliesslich in `C:\Users\kkali\Documents\Universaarl-Project-Twin` auf `codex/universaarl-projekt-twin`.
+- Fuer Universaarl- oder FiBu-Arbeit werden keine zusaetzlichen Arbeits-Worktrees, P001-Ausweichordner, technischen Nebencheckouts oder temporaeren Schreibkopien angelegt. Jedes in Codex eingerichtete Projekt wird nur in seinem eigenen Projektordner bearbeitet.
+- Bereinigte Wegwerfkopien fuer commitgebundene Tests bleiben reine Pruefkopien. Sie sind niemals Arbeitsquelle und werden nicht fuer Datei- oder Commit-Aenderungen verwendet.
 - Die Quelldateien der beiden Zielprojekte sind aus diesem Repository heraus grundsätzlich schreibgeschützt.
 - Das Kontrollzentrum bearbeitet Zielcode niemals und erstellt dort keine Versionsstaende. Seine einzige regulaere Aenderung ausserhalb dieses Repositories ist ein geprueftes, normales `git push` eines bereits vorhandenen Versionsstands.
 - Keine Abhaengigkeiten, Zweige, entfernten Repositories, Nachverfolgungszweige, Git-Marken, Freigaben oder Zusammenfuehrungsanfragen in den Zielprojekten anlegen oder veraendern.

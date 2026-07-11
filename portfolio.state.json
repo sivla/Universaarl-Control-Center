@@ -5,18 +5,18 @@
     {
       "projectId": "spectra",
       "overallGoal": "Kundenunabhaengiges, reproduzierbar veroeffentlichbares, sicher installierbares und kontrolliert aktualisierbares Betriebssystem fuer Business-Central-Projekte.",
-      "largestGap": "Der unreleased Workspace-Validator deckt noch nicht alle spezialisierten Evidence-, External-File-, UAT- und Delivery-Datensaetze vollstaendig mit stabilen Fehlercodes ab.",
-      "lastCommit": "5faf50da0e6bb76fbfa2a48caa261bc912aabc14",
-      "mainBlocker": "Der laufende Validator-Stand ist noch kein vollstaendig gepruefter naechster Spectra-Releasekandidat; der Alpha-Release 0.1.0-alpha.1 bleibt unveraenderlich.",
-      "nextDeliveryBlock": "Spezialisierte Schema-, Referenz-, Hash- und Content-Addressed-Path-Pruefung samt positiven und negativen Fixtures abschliessen und als einen geprueften unreleased Produktcommit liefern."
+      "largestGap": "Der commitgebunden gepruefte 0.1.0-alpha.2-Candidate muss noch unveraendert durch PR, Merge, annotierten Tag und Prerelease-Publikation promotet werden.",
+      "lastCommit": "de76a441428675efbadbcd3d6223b8116c0aabcf",
+      "mainBlocker": "Die externe Release-Promotion samt finalem Manifest, Source-Commit, Tag- und Release-Nachweis ist noch nicht abgeschlossen.",
+      "nextDeliveryBlock": "Spectra 0.1.0-alpha.2 nach erneut gruenen Gates ueber normalen PR-Prozess mergen, annotiert taggen, als Prerelease veroeffentlichen und vollstaendig nachpruefen."
     },
     {
       "projectId": "blueprint",
       "overallGoal": "Vollstaendige fachliche und operative Source of Truth fuer die erfolgreiche Business-Central-Basic-Einfuehrung bei Universaarl.",
-      "largestGap": "Nach der synthetischen P2P-/O2C-Generalprobe fehlen noch die durchgaengige Zahlungs- und Bankabstimmung, Lager-/Inventurprobe, Monatsabschluss, UStVA-Vorschau sowie die nachgelagerten UAT-, Schulungs-, Cutover- und Hypercare-Pakete.",
-      "lastCommit": "1c162c65d52dde06b188595b97511e951e655f50",
-      "mainBlocker": "Das Projekt ist fachlich noch nicht vollstaendig durchgespielt; reale BC-Ausfuehrung bleibt bewusst ausserhalb des aktuellen Repository-Simulationsumfangs.",
-      "nextDeliveryBlock": "Zahlungsein- und -ausgang, Postenausgleich, Bankabstimmung, Lager/Inventur, Monatsabschluss und UStVA-Vorschau mit Kontrollsummen, Defects, Re-Tests und synthetischer UAT-Abnahme durchspielen."
+      "largestGap": "Nach den abgeschlossenen Prozess-, Cash-, Lager-, Monatsabschluss- und UAT-Simulationen fehlen noch Schulung, Cutover-/Go-live-Generalprobe, Hypercare, Wiederanlauf, Abschluss und vollstaendige Uebergabe.",
+      "lastCommit": "1f96df80fbc1ab9c566d3e88f634482d56b7e46d",
+      "mainBlocker": "Das synthetische Projekt ist noch nicht formell bis zur Betriebsuebergabe und zum Abschluss durchgespielt; reale BC-Ausfuehrung bleibt bewusst offen.",
+      "nextDeliveryBlock": "Schulung, Cutover, simulierten Go-live, Hypercare, Wiederanlauf, Abschlussmeeting und Handover als dateibasierte Generalprobe mit Evidence und synthetischer Abnahme durchfuehren."
     },
     {
       "projectId": "project-twin",
@@ -24,7 +24,7 @@
       "largestGap": "Der Twin muss den vereinfachten Vertrag fuer den neuesten vollstaendig validierten Commit des festgelegten BC-Basic-Branches noch implementieren und sichtbar im Browser beweisen.",
       "lastCommit": "c739b8953948ebada7a47d560577316c6e18693d",
       "mainBlocker": "Adapter, Registry, Tests und Browsernachweis sind noch nicht vollstaendig auf den Branch-Commit-Vertrag umgestellt.",
-      "nextDeliveryBlock": "BC-Basic-Commit 1c162c65d52dde06b188595b97511e951e655f50 commitgebunden integrieren, positive Desktop-/Mobilansicht und zentrale fail-closed-Faelle nachweisen."
+      "nextDeliveryBlock": "BC-Basic-Commit 1f96df80fbc1ab9c566d3e88f634482d56b7e46d ueber den Indexvertrag integrieren, positive Desktop-/Mobilansicht und zentrale fail-closed-Faelle nachweisen."
     }
   ]
 }

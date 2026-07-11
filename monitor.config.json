@@ -37,7 +37,7 @@
       "id": "project-twin",
       "name": "Universaarl Project Twin",
       "pathAlias": "<TWIN_ROOT>",
-      "defaultPath": "C:\\Users\\kkali\\Documents\\Universaarl-Project-Twin",
+      "defaultPath": "C:\\Users\\kkali\\Documents\\Universaarl-Project-Twin-Multi-Project-Shell",
       "pathEnvironmentVariable": "UNIVERSAARL_TWIN_PATH",
       "reviewFile": "REVIEW.md",
       "requiredNpmScript": "check",
@@ -51,7 +51,7 @@
       "publish": {
         "enabled": true,
         "remote": "origin",
-        "branch": "codex/read-only-project-twin-mvp",
+        "branch": "codex/responsive-multi-project-shell-foundation",
         "expectedPushUrl": "https://github.com/sivla/FiBu.git",
         "blockReason": null
       }

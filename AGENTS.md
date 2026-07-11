@@ -3,7 +3,7 @@
 Dieses Repository ist ausschliesslich das **Universaarl Kontrollzentrum**. Es beobachtet, prueft und bewertet genau diese zwei externen Projekte und veroeffentlicht deren bereits vorhandene, freigegebene Versionsstaende:
 
 1. `blueprint` – `C:\Users\kkali\Universaarl-BC-Blueprint-V2`
-2. `project-twin` – `C:\Users\kkali\Documents\Universaarl-Project-Twin`
+2. `project-twin` – `C:\Users\kkali\Documents\Universaarl-Project-Twin-Multi-Project-Shell`
 
 Die Pfade dürfen über die in `monitor.config.json` genannten Umgebungsvariablen ersetzt werden. Andere externe Projekte gehören nicht zum Auftrag.
 

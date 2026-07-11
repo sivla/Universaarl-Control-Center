@@ -7,7 +7,7 @@ Dieses Repository hat genau einen Zweck: den Zustand des Universaarl BC Blueprin
 | ID | Aufgabe | Standardpfad |
 |---|---|---|
 | `blueprint` | Fachliche und technische Projektwahrheit | `C:\Users\kkali\Universaarl-BC-Blueprint-V2` |
-| `project-twin` | Ausschliesslich lesende Darstellung des Blueprint | `C:\Users\kkali\Documents\Universaarl-Project-Twin` |
+| `project-twin` | Ausschliesslich lesende Darstellung des Blueprint | `C:\Users\kkali\Documents\Universaarl-Project-Twin-Multi-Project-Shell` |
 
 Die Standardpfade stehen in `monitor.config.json`. Für einen anderen Rechner können sie ohne Dateiänderung mit `UNIVERSAARL_BLUEPRINT_PATH` und `UNIVERSAARL_TWIN_PATH` überschrieben werden.
 
@@ -73,7 +73,7 @@ Die tatsaechliche Uebertragung benoetigt zusaetzlich `-Execute`:
 powershell -ExecutionPolicy Bypass -File .\scripts\Publish-UniversaarlCommit.ps1 -Project blueprint -Execute
 ```
 
-Beide Projekte veroeffentlichen nach `https://github.com/sivla/FiBu.git`, aber ausschliesslich auf ihre getrennt freigegebenen Zweige: Blueprint auf `codex/universaarl-blueprint-v2`, Project Twin auf `codex/read-only-project-twin-mvp`. Ein spaeterer responsiver Arbeitszwischenstand des Twin gehoert nicht zur MVP-Uebertragung.
+Beide Projekte veroeffentlichen nach `https://github.com/sivla/FiBu.git`, aber ausschliesslich auf ihre getrennt freigegebenen Zweige: Blueprint auf `codex/universaarl-blueprint-v2`, Project Twin auf `codex/responsive-multi-project-shell-foundation`. Der quarantänisierte Originalarbeitsbaum des Twin ist weder Prüfquelle noch Veröffentlichungsquelle.
 
 ## Bewertung
 

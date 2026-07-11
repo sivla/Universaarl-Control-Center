@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "name": "Universaarl Kontrollzentrum",
   "reportDirectory": "reports",
-  "validationTimeoutSeconds": 240,
+  "validationTimeoutSeconds": 600,
   "projects": [
     {
       "id": "blueprint",

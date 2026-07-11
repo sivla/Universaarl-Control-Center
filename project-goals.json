@@ -13,6 +13,8 @@
     "project-twin": {
       "objective": "Die externe Blueprint-Wahrheit sicher, nachvollziehbar und ausschliesslich lesend darstellen.",
       "currentGoal": "Auf e79833b2 einen sicheren responsiven Mehrprojekt-Anwendungsrahmen mit projektbezogenen Nur-Lese-Schnittstellen, undurchsichtigen Nachweiskennungen und ehrlichen Nicht-unterstuetzt-Zustaenden abschliessen; historische Wiedergabe, Zeitplanung und Abrechnung bleiben spaetere Aenderungen.",
+      "requiredBaseCommit": "e79833b2de727e8265ddf897d9d707e648920a6d",
+      "currentChange": "establish-responsive-multi-project-shell-foundation",
       "antiGoals": [
         "Rueckschreiben oder eigene fachliche Wahrheit",
         "Erfundene Termine, Zustaende, Meilensteine oder kaufmaennische Werte",

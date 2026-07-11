@@ -19,13 +19,13 @@ Die schnelle Prüfung liest nur Metadaten, Manifeste und Git-Zustand:
 powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-UniversaarlAudit.ps1
 ```
 
-Die vollstaendige Pruefung kopiert beide Projekte ohne Geheimnisse und erzeugte Daten in ein temporaeres Verzeichnis. `npm ci`, Tests und Erstellungslauf laufen ausschliesslich dort:
+Die vollstaendige Pruefung erzeugt fuer beide Projekte aus der jeweils festgehaltenen vollen Commit-SHA eine eigene temporaere Git-Kopie ohne Remote. Arbeitskopie, ignorierte und unversionierte Dateien werden nicht uebernommen. `npm ci`, Tests und Erstellungslauf laufen ausschliesslich dort:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-UniversaarlAudit.ps1 -RunValidations
 ```
 
-Ergebnisse werden lokal als `reports/latest.md`, `reports/latest.json` und unter `reports/runs/` gespeichert. Diese Laufdaten werden nicht eingecheckt.
+Ergebnisse werden unter einer eindeutigen Laufkennung in `reports/runs/` gespeichert; `reports/latest.*` ist nur eine bequeme Ansicht und niemals ein Veroeffentlichungsnachweis. Diese Laufdaten werden nicht eingecheckt.
 
 ## Projektziele pruefen
 
@@ -35,23 +35,31 @@ Technische Gesundheit allein beweist noch keinen Fortschritt zum Projektziel. Di
 powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-UniversaarlGoalReview.ps1
 ```
 
-Der Bericht liegt unter `reports/goals-latest.md` und `reports/goals-latest.json`. Die Pruefung ist gegenueber Blueprint und Twin strikt nur lesend. Sie liest keine `.env*`, Authentifizierungszustaende, Geheimnisse, Ablaufspuren, Videos oder Laufzeitnachweise. Rot markiert einen Zielwiderspruch, Gelb eine offene Ziel- oder Reihenfolgeluecke und Gruen einen belegbar ausgerichteten Stand.
+Der gebundene Bericht liegt unter seiner Laufkennung in `reports/goal-runs/`; `reports/goals-latest.*` ist nur eine Ansicht. Die Pruefung liest Zieltexte als kleine regulaere Blobs aus den festgehaltenen Commits. Sie liest keine realen `.env*`, Authentifizierungszustaende, Geheimnisse, Ablaufspuren, Videos oder Laufzeitnachweise. Rot markiert einen Zielwiderspruch, Gelb eine offene Ziel- oder Reihenfolgeluecke und Gruen einen belegbar ausgerichteten Stand.
 
-Die sichtbaren Kontrolltexte und alle erzeugten Markdown-Berichte muessen deutsch sein. Die Sprachpruefung laesst technische Kennungen, Pfade, Zweignamen und maschinenlesbare JSON-Werte unveraendert:
+Die sichtbaren Kontrolltexte und alle erzeugten Markdown-Berichte muessen deutsch sein. Die Kontrollzentrum-Pruefung ist nur eine ergaenzende Oberflaechenpruefung. Fuer eine Veroeffentlichung muss jedes Zielprojekt zusaetzlich den in `monitor.config.json` benannten npm-Pruefer ausfuehren und einen commitgebundenen JSON-Nachweis mit Projekt-ID, voller SHA, Sprache `de` und bestaetigtem deutschen Eigeninhalt liefern:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\Test-UniversaarlGermanSurface.ps1
 ```
 
+Der projektspezifische npm-Pruefer schreibt genau ein JSON-Objekt auf die Standardausgabe, beispielsweise:
+
+```json
+{"schemaVersion":1,"status":"passed","language":"de","projectId":"project-twin","commit":"<VOLLSTAENDIGE_SHA>","userVisibleOwnContentGerman":true}
+```
+
+Fehlender, unlesbarer, nicht commitgebundener oder anders aufgebauter Nachweis blockiert die Veroeffentlichung.
+
 ## Versionsstand- und Veroeffentlichungsablauf
 
-1. Der jeweilige Projekt-Agent bearbeitet und prüft nur sein Zielprojekt.
-2. Er leert `REVIEW.md`, erstellt dort einen lokalen Versionsstand und prueft danach, dass auch `REVIEW.md` in `HEAD` leer ist.
+1. Der jeweilige Projekt-Agent bearbeitet und prüft nur sein Zielprojekt. Er vermeidet inhaltsarme Mikro- oder Alibi-Commits; eine fachlich zusammenhaengende, reviewbare Aenderung darf bewusst zwei bis drei notwendige Arbeitsschritte umfassen und wird als genau ein kohaerenter Commit uebergeben.
+2. Er leert `REVIEW.md`, erstellt dort einen lokalen Versionsstand und prueft nach jedem neuen Commit erneut, dass `REVIEW.md` sowohl in der Arbeitskopie als auch in `HEAD` leer beziehungsweise reiner Leerraum ist.
 3. Er uebergibt Zweig, vollstaendige Commit-SHA, Pruefergebnis, Nachweis der leeren Pruefdatei und sauberen Git-Zustand.
-4. Das Kontrollzentrum fuehrt eine abgeschottete technische Pruefung und die Twin-Blueprint-Vertragspruefung aus.
+4. Das Kontrollzentrum fuehrt eine commitgebundene technische Pruefung in bereinigten Wegwerfkopien und die Twin-Blueprint-Vertragspruefung aus.
 5. Das Kontrollzentrum blockiert die Veroeffentlichung zusaetzlich bei roter Projektziel- oder Zusammenspielbewertung; gelbe, offen ausgewiesene Folgeziele bleiben sichtbar.
 6. Die jeweilige Projektsuite muss alle nutzerseitig sichtbaren Eigeninhalte als deutsch bestaetigen; technische Kennungen, Pfade und unveraenderliche externe Quellwerte bleiben stabil.
-7. Nur bei gruenen technischen Pruefstufen, bestandener Deutsch-Pruefung und nicht roter Zielausrichtung veroeffentlicht das Kontrollzentrum exakt diesen vorhandenen Versionsstand ohne erzwungenes Ueberschreiben.
+7. Nur bei gruenen technischen Pruefstufen, bestandenem projektspezifischem JSON-Deutsch-Nachweis, bestandener ergaenzender Kontrolltextpruefung und nicht roter Zielausrichtung veroeffentlicht das Kontrollzentrum exakt die gepruefte volle Commit-SHA ohne erzwungenes Ueberschreiben.
 
 Die reine Veroeffentlichungsbereitschaftspruefung veraendert kein entferntes Repository:
 
@@ -71,20 +79,25 @@ Beide Projekte veroeffentlichen nach `https://github.com/sivla/FiBu.git`, aber a
 
 Der Strukturwert von 0 bis 100 bewertet Erreichbarkeit, Git-Ausgangsstand, sauberen Arbeitsbaum, Manifest, Pruefbefehl, Abhaengigkeits-Sperrdatei, festgelegte Abhaengigkeiten und offene OpenSpec-Arbeit. Die technische Pruefung und kritische Sicherheitsbefunde sind zusaetzliche Pruefstufen.
 
-- **Gruen:** mindestens 85 Punkte, technische Pruefung bestanden, mindestens 90 % Nachweisabdeckung und kein hoher oder kritischer Befund.
-- **Gelb:** mindestens 70 Punkte oder ein begrenztes Stabilitäts-/Hygienerisiko.
-- **Rot:** unter 70 Punkte, fehlgeschlagene Pruefung, fehlender Git-Ausgangsstand, Vertragsbruch oder kritischer Befund.
-- **Grau:** weniger als 70 % Nachweisabdeckung; der Zustand ist nicht ausreichend geprueft.
+- **Gruen:** technische und projektspezifische Deutsch-Pruefung bestanden, mindestens 85 Strukturpunkte und kein kritischer, hoher oder mittlerer Befund.
+- **Gelb:** beide Pruefungen bestanden, aber mindestens ein hoher oder mittlerer Befund oder weniger als 85 Strukturpunkte.
+- **Rot:** kritischer Befund, fehlgeschlagene technische oder Deutsch-Pruefung oder kein sicher aufgeloester Commit.
+- **Grau:** technische oder Deutsch-Pruefung wurde nicht ausgefuehrt beziehungsweise ist nicht nachweislich bestanden.
 
 Ein unsauberer Arbeitsbaum ist nicht automatisch ein Softwarefehler, verhindert aber eine belastbare gruene Aussage ueber den veroeffentlichten Stand.
 
 ## Sicherheitsmodell
 
 - Externe Zielpfade stehen auf einer festen Positivliste.
-- NTFS-Verzeichnisverknuepfungen werden beim Kopieren nicht verfolgt.
-- Vertrauliche und erzeugte Verzeichnisse werden aus der abgeschotteten Pruefumgebung ausgeschlossen.
+- Die Wegwerfkopie wird ausschliesslich aus dem exakten Commit erzeugt; Arbeitskopie, ignorierte und unversionierte Dateien werden nie kopiert.
+- Die Vertragspruefung verwendet nochmals frisch erzeugte Commitkopien und eine neue skriptfreie Abhaengigkeitsinstallation; Ergebnisse oder `node_modules` vorheriger Zielpruefungen werden nicht wiederverwendet.
+- Versionierte reale `.env*`, Laufzeitmaterial, Test-/Browser-Videos und Reparse-Punkte werden vor einer Pruefkopie blockiert. Einzige Produktmedien-Ausnahme ist fuer Blueprint der exakte regulaere Commitblob `artifacts/walkthrough/generated/UABC-WT-ENV-001/walkthrough.webm` im Modus `100644` bis 1 MiB; Project Twin besitzt keine Medien-Positivliste.
+- Laufberichte und Protokolle werden nur in komponentenweise gepruefte, reparse-freie Verzeichnisse geschrieben, groessenbegrenzt handlegebunden erzeugt und anschliessend erneut verifiziert.
 - Reale `.env*` bleiben ungelesen; nur die versionierte `HEAD:.env.example` wird als Dokumentationsvertrag auf Platzhalter, Groesse, Mandantenkennungen und absolute Hostpfade geprueft.
-- Pruefprozesse erben keine Benutzergeheimnisse und erhalten ein getrenntes Benutzer- und Zwischenspeicherverzeichnis.
-- Eine Vorher-/Nachher-Inhaltspruefsumme stellt sicher, dass das Kontrollzentrum die relevanten Quelldaten nicht veraendert hat.
+- Pruefprozesse erben keine Benutzergeheimnisse und erhalten ein getrenntes Benutzer- und Zwischenspeicherverzeichnis. Protokolle sind groessenbegrenzt und redigieren bekannte Geheimnisformen.
+- Die Wegwerfkopie ist keine Betriebssystem-Sandbox. Zielprozesse laufen weiterhin mit dem Benutzertoken und koennen technisch Netzwerk und andere fuer diesen Benutzer erreichbare Pfade ansprechen.
+- Volle HEAD-SHA sowie Status- und Index-Fingerprint werden vor und nach jedem Lauf ohne worktreeweiten Inhalts-Hash verglichen.
+- Nach einer echten Uebertragung werden HEAD, Status und Index beider Zielprojekte erneut gegen den gebundenen Lauf geprueft.
 - Das Kontrollzentrum berichtet und empfiehlt; es repariert keines der beiden Projekte automatisch.
 - Die Veroeffentlichungspruefstufe kann weder Versionsstaende erstellen noch erzwungen uebertragen, Git-Marken, Freigaben oder Zusammenfuehrungsanfragen erzeugen.
+- Fuer Remote-Abfragen und die Uebertragung gelten keine geerbten Git-Umgebungsvariablen oder URL-Umschreibungen: Die rohe Ziel-Remote-URL muss exakt passen, und der Push startet aus einer frischen remotelosen Commitkopie mit bereinigter Git-Konfiguration sowie einem neu erzeugten, reparse-freien, nachweislich leeren und ausschliesslich innerhalb der Publisher-Wegwerfkopie liegenden Hookpfad. `--no-verify` und jede Abweichung von dieser Publisher-Hookpolicy sind verboten; unversionierte Zielprojekt-Hooks werden niemals uebernommen oder ausgefuehrt.

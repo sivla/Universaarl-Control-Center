@@ -3,228 +3,205 @@ param(
     [Parameter(Mandatory)]
     [ValidateSet('blueprint', 'project-twin')]
     [string]$Project,
-
     [switch]$Execute
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-
 $MonitorRoot = [IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
+. (Join-Path $PSScriptRoot 'Universaarl-Control.Common.ps1')
 $ConfigPath = Join-Path $MonitorRoot 'monitor.config.json'
-$AuditPath = Join-Path $PSScriptRoot 'Invoke-UniversaarlAudit.ps1'
-$ReportPath = Join-Path $MonitorRoot 'reports\latest.json'
-$GoalReviewPath = Join-Path $PSScriptRoot 'Invoke-UniversaarlGoalReview.ps1'
-$GoalReportPath = Join-Path $MonitorRoot 'reports\goals-latest.json'
-$GermanSurfaceCheckPath = Join-Path $PSScriptRoot 'Test-UniversaarlGermanSurface.ps1'
 $Config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
-$ProjectConfig = @($Config.projects | Where-Object { $_.id -eq $Project })[0]
-
+Assert-UniversaarlMonitorConfiguration -Configuration $Config
+if ([string]$Config.reportDirectory -ne 'reports') { throw 'Die Veroeffentlichung akzeptiert nur das feste Berichtverzeichnis `reports`.' }
+$ProjectConfig = @($Config.projects | Where-Object id -eq $Project)[0]
 if ($null -eq $ProjectConfig) { throw "Unbekanntes Projekt '$Project'." }
-
-function Get-TargetPath {
-    param([Parameter(Mandatory)]$Entry)
-    $override = [Environment]::GetEnvironmentVariable([string]$Entry.pathEnvironmentVariable)
-    $candidate = if ([string]::IsNullOrWhiteSpace($override)) { [string]$Entry.defaultPath } else { $override }
-    if (-not [IO.Path]::IsPathRooted($candidate)) { throw 'Der Zielpfad muss absolut sein.' }
-    [IO.Path]::GetFullPath($candidate).TrimEnd([IO.Path]::DirectorySeparatorChar)
-}
-
-function Invoke-GitCapture {
-    param(
-        [Parameter(Mandatory)][string]$Repository,
-        [Parameter(Mandatory)][string[]]$Arguments
-    )
-    $oldErrorActionPreference = $ErrorActionPreference
-    $oldOptionalLocks = [Environment]::GetEnvironmentVariable('GIT_OPTIONAL_LOCKS')
-    $ErrorActionPreference = 'SilentlyContinue'
-    [Environment]::SetEnvironmentVariable('GIT_OPTIONAL_LOCKS', '0')
-    try {
-        $lines = @(& git -C $Repository @Arguments 2>$null)
-        [pscustomobject]@{ exitCode = $LASTEXITCODE; output = ($lines -join "`n").Trim() }
-    }
-    finally {
-        [Environment]::SetEnvironmentVariable('GIT_OPTIONAL_LOCKS', $oldOptionalLocks)
-        $ErrorActionPreference = $oldErrorActionPreference
-    }
-}
-
-Write-Host "Pruefe Veroeffentlichungsbedingungen fuer '$Project' ..."
-$auditOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $AuditPath -RunValidations 2>&1)
-$auditExitCode = $LASTEXITCODE
-$auditOutput | ForEach-Object { Write-Host $_ }
-
-if (-not (Test-Path -LiteralPath $ReportPath -PathType Leaf)) {
-    throw 'Die technische Gesamtpruefung hat keinen maschinenlesbaren Bericht erzeugt.'
-}
-
-$Report = Get-Content -LiteralPath $ReportPath -Raw | ConvertFrom-Json
-$ProjectResult = @($Report.projects | Where-Object { $_.id -eq $Project })[0]
-$Relationship = @($Report.relationships | Where-Object { $_.id -eq 'twin-reads-blueprint' })[0]
-$TargetPath = Get-TargetPath -Entry $ProjectConfig
+$RunId = New-UniversaarlRunId -Prefix "publish-$Project"
+Assert-UniversaarlRunId -RunId $RunId
+$ReportRoot = Join-Path $MonitorRoot ([string]$Config.reportDirectory)
+$AuditReportPath = Join-Path $ReportRoot "runs\$RunId.json"
+$GoalReportPath = Join-Path $ReportRoot "goal-runs\$RunId.json"
+$AuditPath = Join-Path $PSScriptRoot 'Invoke-UniversaarlAudit.ps1'
+$GoalPath = Join-Path $PSScriptRoot 'Invoke-UniversaarlGoalReview.ps1'
+$ControlGermanPath = Join-Path $PSScriptRoot 'Test-UniversaarlGermanSurface.ps1'
 $Blockers = [Collections.Generic.List[string]]::new()
 
-Write-Host "Pruefe strategische Zielausrichtung fuer '$Project' ..."
-$goalOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $GoalReviewPath 2>&1)
+function Add-Blocker { param([Parameter(Mandatory)][string]$Message) $Blockers.Add($Message) }
+
+function Get-ProjectResult {
+    param([Parameter(Mandatory)]$Report, [Parameter(Mandatory)][string]$Id)
+    @($Report.projects | Where-Object id -eq $Id)[0]
+}
+
+function Get-InputSha {
+    param([Parameter(Mandatory)]$Report, [Parameter(Mandatory)][string]$Id)
+    $property = $Report.inputShas.PSObject.Properties[$Id]
+    if ($null -eq $property) { throw "Eingabe-SHA fuer '$Id' fehlt im Laufbericht." }
+    $sha = [string]$property.Value
+    Assert-FullCommitSha -Commit $sha
+    $sha
+}
+
+function Test-ConfiguredRemote {
+    param([Parameter(Mandatory)][string]$Repository, [Parameter(Mandatory)]$Entry)
+    $remote = [string]$Entry.publish.remote
+    $expected = [string]$Entry.publish.expectedPushUrl
+    Assert-UniversaarlExpectedPushRemote -Repository $Repository -Remote $remote -ExpectedUrl $expected
+}
+
+function New-PublisherTemporaryRoot {
+    $tempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    $root = Join-Path $tempBase ("universaarl-publish-$RunId-{0}" -f [Guid]::NewGuid().ToString('N'))
+    $null = Initialize-UniversaarlSafeDirectory -TrustedRoot $tempBase -Directory $root
+    $root
+}
+
+function Remove-PublisherTemporaryRoot {
+    param([Parameter(Mandatory)][string]$Root)
+    $tempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    $resolved = [IO.Path]::GetFullPath($Root)
+    if (-not $resolved.StartsWith($tempBase + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or -not (Split-Path -Leaf $resolved).StartsWith('universaarl-publish-')) { throw 'Unsichere temporaere Veroeffentlichungswurzel.' }
+    if (Test-Path -LiteralPath $resolved) {
+        $item = Get-Item -LiteralPath $resolved -Force -ErrorAction SilentlyContinue
+        if ($null -ne $item -and (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)) { Remove-Item -LiteralPath $resolved -Force -ErrorAction SilentlyContinue }
+        else { Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction SilentlyContinue }
+    }
+}
+
+function Invoke-CleanRemoteQuery {
+    param([Parameter(Mandatory)][string]$Url, [Parameter(Mandatory)][string]$Branch)
+    Invoke-UniversaarlCleanLsRemote -Url $Url -Ref "refs/heads/$Branch"
+}
+
+function Assert-ReviewGate {
+    param(
+        [Parameter(Mandatory)][string]$Repository,
+        [Parameter(Mandatory)][string]$Commit,
+        [Parameter(Mandatory)][string]$ReviewFile
+    )
+    $headReview = Read-UniversaarlCommitText -Repository $Repository -Commit $Commit -Path $ReviewFile -MaximumBytes 65536 -Required
+    if (-not [string]::IsNullOrWhiteSpace([string]$headReview.content)) { throw "Pruefdatei '$ReviewFile' ist im geprueften Commit nicht leer." }
+    $workingReview = Read-UniversaarlWorkingText -Repository $Repository -Path $ReviewFile -MaximumBytes 65536 -RequireCleanRepository
+    if (-not [string]::IsNullOrWhiteSpace($workingReview)) { throw "Pruefdatei '$ReviewFile' ist in der Arbeitskopie nicht leer." }
+}
+
+function Assert-BoundProjectStates {
+    param(
+        [Parameter(Mandatory)]$AuditReport,
+        [Parameter(Mandatory)]$Configuration,
+        [Parameter(Mandatory)][string]$SelectedProject
+    )
+    $states = @{}
+    foreach ($entry in $Configuration.projects) {
+        $id = [string]$entry.id
+        $path = Get-UniversaarlConfiguredPath -Project $entry
+        $expectedSha = Get-InputSha -Report $AuditReport -Id $id
+        Assert-UniversaarlCommitRuntimeSafe -Repository $path -Commit $expectedSha -AllowedVersionedMedia @($entry.allowedVersionedMedia)
+        $current = Get-UniversaarlRepositoryFingerprint -Repository $path
+        $projectResult = Get-ProjectResult -Report $AuditReport -Id $id
+        if ($null -eq $projectResult -or $null -eq $projectResult.fingerprintAfter) { throw "Abschliessender Fingerprint fuer '$id' fehlt." }
+        if ($projectResult.targetUnchanged -ne $true) { throw "Der Audit hat fuer '$id' keinen unveraenderten Zielzustand nachgewiesen." }
+        if ($current.head -ne $expectedSha -or -not (Test-UniversaarlFingerprintEqual -Expected $projectResult.fingerprintAfter -Actual $current)) { throw "Repositoryzustand von '$id' hat sich seit dem Audit veraendert." }
+        if ($id -eq $SelectedProject) {
+            if ($current.branch -ne [string]$entry.publish.branch) { throw "Aktueller Zweig von '$id' stimmt nicht mit dem freigegebenen Zielzweig ueberein." }
+            if ($current.dirty) { throw "Arbeitsbaum von '$id' ist nicht sauber." }
+            Assert-ReviewGate -Repository $path -Commit $expectedSha -ReviewFile ([string]$entry.reviewFile)
+            $null = Test-ConfiguredRemote -Repository $path -Entry $entry
+        }
+        $states[$id] = [pscustomobject]@{ path = $path; commit = $expectedSha; fingerprint = $current; config = $entry }
+    }
+    $states
+}
+
+Write-Host "Pruefe Veroeffentlichungsbedingungen fuer '$Project' im Lauf '$RunId' ..."
+$auditOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $AuditPath -RunValidations -RunId $RunId 2>&1)
+$auditExitCode = $LASTEXITCODE
+$auditOutput | ForEach-Object { Write-Host $_ }
+if ($auditExitCode -ne 0) { Add-Blocker "Der aktuelle technische Lauf ist mit Rueckgabecode $auditExitCode fehlgeschlagen." }
+if (-not (Test-Path -LiteralPath $AuditReportPath -PathType Leaf)) { Add-Blocker "Der aktuelle technische Lauf erzeugte keinen gebundenen Bericht; Rueckgabecode $auditExitCode." }
+
+$AuditReport = $null
+if ($Blockers.Count -eq 0) {
+    try { $AuditReport = Read-UniversaarlBoundReport -Path $AuditReportPath -RunId $RunId -Kind audit -TrustedRoot $ReportRoot }
+    catch { Add-Blocker "Der technische Laufbericht ist nicht verwendbar: $($_.Exception.Message)" }
+}
+
+$goalOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $GoalPath -RunId $RunId 2>&1)
 $goalExitCode = $LASTEXITCODE
 $goalOutput | ForEach-Object { Write-Host $_ }
+if ($goalExitCode -ne 0) { Add-Blocker "Der aktuelle Zielpruefungslauf ist mit Rueckgabecode $goalExitCode fehlgeschlagen." }
+if (-not (Test-Path -LiteralPath $GoalReportPath -PathType Leaf)) { Add-Blocker "Der aktuelle Zielpruefungslauf erzeugte keinen gebundenen Bericht; Rueckgabecode $goalExitCode." }
 
-if ($goalExitCode -ne 0) {
-    $Blockers.Add("Die strategische Zielpruefung endete mit Rueckgabecode $goalExitCode.")
-}
-elseif (-not (Test-Path -LiteralPath $GoalReportPath -PathType Leaf)) {
-    $Blockers.Add('Die strategische Zielpruefung hat keinen maschinenlesbaren Bericht erzeugt.')
-}
-else {
-    $GoalReport = Get-Content -LiteralPath $GoalReportPath -Raw | ConvertFrom-Json
-    $ProjectGoalResult = @($GoalReport.projects | Where-Object { $_.id -eq $Project })[0]
-    $RelationshipGoalResult = @($GoalReport.relationships | Where-Object { $_.id -eq 'twin-reads-blueprint' })[0]
-
-    if ($null -eq $ProjectGoalResult) {
-        $Blockers.Add('Projekt fehlt im strategischen Zielbericht.')
-    }
-    elseif ($ProjectGoalResult.status -eq 'ROT') {
-        $Blockers.Add("Die strategische Projektziel-Pruefstufe ist ROT: $Project.")
-        foreach ($finding in @($ProjectGoalResult.findings | Where-Object { $_.severity -eq 'high' })) {
-            $Blockers.Add("$($finding.code): $($finding.message)")
-        }
-    }
-
-    if ($null -eq $RelationshipGoalResult) {
-        $Blockers.Add('Zusammenspiel fehlt im strategischen Zielbericht.')
-    }
-    elseif ($RelationshipGoalResult.status -eq 'ROT') {
-        $Blockers.Add('Die strategische Twin-Blueprint-Zielpruefung ist ROT.')
-        foreach ($finding in @($RelationshipGoalResult.findings | Where-Object { $_.severity -eq 'high' })) {
-            $Blockers.Add("$($finding.code): $($finding.message)")
-        }
-    }
+$GoalReport = $null
+if (Test-Path -LiteralPath $GoalReportPath -PathType Leaf) {
+    try { $GoalReport = Read-UniversaarlBoundReport -Path $GoalReportPath -RunId $RunId -Kind goal -TrustedRoot $ReportRoot }
+    catch { Add-Blocker "Der Zielbericht ist nicht verwendbar: $($_.Exception.Message)" }
 }
 
-Write-Host 'Pruefe die vollstaendig deutsche Kontrolloberflaeche ...'
-$languageOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $GermanSurfaceCheckPath 2>&1)
+$languageOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $ControlGermanPath -RunId $RunId 2>&1)
 $languageExitCode = $LASTEXITCODE
 $languageOutput | ForEach-Object { Write-Host $_ }
-if ($languageExitCode -ne 0) {
-    $Blockers.Add("Die Deutsch-Pruefung endete mit Rueckgabecode $languageExitCode.")
-}
+if ($languageExitCode -ne 0) { Add-Blocker "Die ergaenzende Deutsch-Pruefung des Kontrollzentrums endete mit Rueckgabecode $languageExitCode." }
 
-if ($null -eq $ProjectResult) { $Blockers.Add('Projekt fehlt im aktuellen Pruefbericht.') }
-if ($auditExitCode -ne 0 -and $null -eq $ProjectResult) { $Blockers.Add("Der technische Pruefprozess endete mit Rueckgabecode $auditExitCode.") }
-
-if ($null -ne $ProjectResult) {
-    if ($ProjectResult.status -ne 'GRUEN') { $Blockers.Add("Projektstatus ist $($ProjectResult.status), nicht GRUEN.") }
-    if ($ProjectResult.validation -ne 'passed') { $Blockers.Add('Die abgeschottete technische Pruefung ist nicht bestanden.') }
-    if ($ProjectResult.targetUnchanged -ne $true) { $Blockers.Add('Unveraendertheitsnachweis des Zielprojekts fehlt.') }
-    if ($ProjectResult.dirty -eq $true) { $Blockers.Add('Arbeitsbaum ist nicht sauber.') }
-    if ($ProjectResult.hasCommit -ne $true) { $Blockers.Add('Es existiert kein uebergabefaehiger Commit.') }
-}
-
-if ($null -eq $Relationship -or $Relationship.status -ne 'passed') {
-    $relationStatus = if ($null -eq $Relationship) { 'fehlt' } elseif ($Relationship.status -eq 'failed') { 'fehlgeschlagen' } elseif ($Relationship.status -eq 'warning') { 'mit Warnungen' } else { 'nicht bestanden' }
-    $Blockers.Add("Die Twin-Blueprint-Vertragspruefung ist $relationStatus.")
-}
-
-if ($null -eq $ProjectConfig.publish -or $ProjectConfig.publish.enabled -ne $true) {
-    $reason = if ($null -ne $ProjectConfig.publish -and $ProjectConfig.publish.blockReason) {
-        [string]$ProjectConfig.publish.blockReason
-    }
-    else { 'Die Veroeffentlichung ist nicht aktiviert.' }
-    $Blockers.Add($reason)
-}
-
-$remote = if ($null -ne $ProjectConfig.publish) { [string]$ProjectConfig.publish.remote } else { '' }
-$branch = if ($null -ne $ProjectConfig.publish) { [string]$ProjectConfig.publish.branch } else { '' }
-$expectedPushUrl = if ($null -ne $ProjectConfig.publish) { [string]$ProjectConfig.publish.expectedPushUrl } else { '' }
-
-if ([string]::IsNullOrWhiteSpace($remote)) { $Blockers.Add('Kein Git-Ziel fuer die Veroeffentlichung konfiguriert.') }
-if ([string]::IsNullOrWhiteSpace($branch) -or $branch -notmatch '^[A-Za-z0-9._/-]+$' -or $branch -match '\.\.|@\{') {
-    $Blockers.Add('Kein sicherer Zielbranch konfiguriert.')
-}
-if ([string]::IsNullOrWhiteSpace($expectedPushUrl)) { $Blockers.Add('Die exakte erwartete Push-URL ist nicht bestaetigt.') }
-
-if (-not (Test-Path -LiteralPath $TargetPath -PathType Container)) {
-    $Blockers.Add('Zielprojekt ist nicht erreichbar.')
-}
-else {
-    $branchResult = Invoke-GitCapture -Repository $TargetPath -Arguments @('branch', '--show-current')
-    $headResult = Invoke-GitCapture -Repository $TargetPath -Arguments @('rev-parse', '--short', 'HEAD')
-    $fullHeadResult = Invoke-GitCapture -Repository $TargetPath -Arguments @('rev-parse', 'HEAD')
-    $statusResult = Invoke-GitCapture -Repository $TargetPath -Arguments @('status', '--porcelain=v1', '--untracked-files=all')
-
-    if ($branchResult.exitCode -ne 0 -or $branchResult.output -ne $branch) {
-        $Blockers.Add("Aktueller Zweig '$($branchResult.output)' stimmt nicht mit '$branch' ueberein.")
-    }
-    if ($headResult.exitCode -ne 0) {
-        $Blockers.Add('HEAD kann nicht gelesen werden.')
-    }
-    elseif ($null -ne $ProjectResult -and $headResult.output -ne [string]$ProjectResult.commit) {
-        $Blockers.Add('HEAD hat sich seit dem technischen Pruefbericht veraendert.')
-    }
-    if ($statusResult.exitCode -ne 0 -or -not [string]::IsNullOrWhiteSpace($statusResult.output)) {
-        $Blockers.Add('Arbeitsbaum ist nach der technischen Pruefung nicht sauber.')
-    }
-
-    $reviewFile = [string]$ProjectConfig.reviewFile
-    if ([string]::IsNullOrWhiteSpace($reviewFile) -or [IO.Path]::IsPathRooted($reviewFile) -or $reviewFile -match '(^|[\\/])\.\.([\\/]|$)') {
-        $Blockers.Add('Keine sichere Pruefdatei konfiguriert.')
-    }
-    else {
-        $reviewPath = Join-Path $TargetPath $reviewFile
-        if (-not (Test-Path -LiteralPath $reviewPath -PathType Leaf)) {
-            $Blockers.Add("Pruefdatei '$reviewFile' fehlt in der Arbeitskopie.")
-        }
-        else {
-            $reviewWorkingContent = Get-Content -LiteralPath $reviewPath -Raw
-            if (-not [string]::IsNullOrWhiteSpace($reviewWorkingContent)) {
-                $Blockers.Add("Pruefdatei '$reviewFile' ist in der Arbeitskopie nicht leer.")
-            }
-        }
-
-        $reviewHeadResult = Invoke-GitCapture -Repository $TargetPath -Arguments @('show', "HEAD:$reviewFile")
-        if ($reviewHeadResult.exitCode -ne 0) {
-            $Blockers.Add("Pruefdatei '$reviewFile' fehlt im uebergebenen Commit.")
-        }
-        elseif (-not [string]::IsNullOrWhiteSpace($reviewHeadResult.output)) {
-            $Blockers.Add("Pruefdatei '$reviewFile' ist im uebergebenen Commit nicht leer.")
-        }
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($remote)) {
-        $urlResult = Invoke-GitCapture -Repository $TargetPath -Arguments @('remote', 'get-url', '--push', $remote)
-        if ($urlResult.exitCode -ne 0) {
-            $Blockers.Add("Das Git-Ziel '$remote' besitzt keine lesbare Veroeffentlichungsadresse.")
-        }
-        elseif (-not [string]::IsNullOrWhiteSpace($expectedPushUrl) -and $urlResult.output -ne $expectedPushUrl) {
-            $Blockers.Add('Konfigurierte und tatsaechliche Push-URL stimmen nicht exakt ueberein.')
-        }
-    }
-
-    $remoteHead = $null
-    if ($Blockers.Count -eq 0) {
-        $oldTerminalPrompt = [Environment]::GetEnvironmentVariable('GIT_TERMINAL_PROMPT')
-        [Environment]::SetEnvironmentVariable('GIT_TERMINAL_PROMPT', '0')
+if ($null -ne $AuditReport -and $null -ne $GoalReport) {
+    foreach ($id in @($Config.projects | ForEach-Object { [string]$_.id })) {
         try {
-            $remoteResult = Invoke-GitCapture -Repository $TargetPath -Arguments @('ls-remote', '--heads', $remote, "refs/heads/$branch")
+            $auditSha = Get-InputSha -Report $AuditReport -Id $id
+            $goalSha = Get-InputSha -Report $GoalReport -Id $id
+            if ($auditSha -ne $goalSha) { Add-Blocker "Audit und Zielpruefung verwendeten fuer '$id' unterschiedliche Commits." }
         }
-        finally {
-            [Environment]::SetEnvironmentVariable('GIT_TERMINAL_PROMPT', $oldTerminalPrompt)
-        }
-        if ($remoteResult.exitCode -ne 0) {
-            $Blockers.Add('Der Zustand des entfernten Zweigs konnte nicht sicher gelesen werden.')
-        }
-        elseif (-not [string]::IsNullOrWhiteSpace($remoteResult.output)) {
-            $remoteHead = ($remoteResult.output -split '\s+')[0]
-            if ($remoteHead -eq $fullHeadResult.output) {
-                Write-Host 'Der gepruefte Commit ist bereits im entfernten Repository veroeffentlicht.'
-                exit 0
-            }
-            $ancestor = Invoke-GitCapture -Repository $TargetPath -Arguments @('merge-base', '--is-ancestor', $remoteHead, 'HEAD')
-            if ($ancestor.exitCode -ne 0) {
-                $Blockers.Add('Der entfernte HEAD ist kein bekannter Vorfahr des lokalen HEAD; die Veroeffentlichung wird blockiert.')
-            }
+        catch { Add-Blocker $_.Exception.Message }
+    }
+    $ProjectResult = Get-ProjectResult -Report $AuditReport -Id $Project
+    $ProjectGoalResult = Get-ProjectResult -Report $GoalReport -Id $Project
+    $TechnicalRelationship = @($AuditReport.relationships | Where-Object id -eq 'twin-reads-blueprint')[0]
+    $GoalRelationship = @($GoalReport.relationships | Where-Object id -eq 'twin-reads-blueprint')[0]
+    if ($null -eq $ProjectResult) { Add-Blocker 'Projekt fehlt im technischen Laufbericht.' }
+    else {
+        if ([string]$ProjectResult.status -ne 'GRUEN') { Add-Blocker "Projektstatus ist $($ProjectResult.status), nicht GRUEN." }
+        if ([string]$ProjectResult.validation -ne 'passed') { Add-Blocker 'Die technische Pruefung ist nicht bestanden.' }
+        if ([string]$ProjectResult.germanValidation -ne 'passed') { Add-Blocker 'Der projektspezifische maschinenlesbare Deutsch-Nachweis ist nicht bestanden.' }
+        if ($ProjectResult.targetUnchanged -ne $true) { Add-Blocker 'Unveraendertheitsnachweis des Zielprojekts fehlt.' }
+    }
+    if ($null -eq $TechnicalRelationship -or [string]$TechnicalRelationship.status -ne 'passed') { Add-Blocker 'Die commitgebundene Twin-Blueprint-Vertragspruefung ist nicht bestanden.' }
+    if ($null -eq $ProjectGoalResult -or [string]$ProjectGoalResult.status -notin @('GRUEN', 'GELB')) { Add-Blocker 'Die strategische Projektziel-Pruefstufe ist rot oder unbekannt.' }
+    if ($null -eq $GoalRelationship -or [string]$GoalRelationship.status -notin @('GRUEN', 'GELB')) { Add-Blocker 'Die strategische Zusammenspiel-Pruefstufe ist rot oder unbekannt.' }
+    if ($null -ne $TechnicalRelationship) {
+        if ([string]$TechnicalRelationship.providerCommit -ne (Get-InputSha $AuditReport 'blueprint') -or [string]$TechnicalRelationship.consumerCommit -ne (Get-InputSha $AuditReport 'project-twin')) { Add-Blocker 'Der technische Vertragsnachweis ist nicht an beide Eingabe-SHAs gebunden.' }
+    }
+    if ($null -ne $GoalRelationship) {
+        if ([string]$GoalRelationship.providerCommit -ne (Get-InputSha $GoalReport 'blueprint') -or [string]$GoalRelationship.consumerCommit -ne (Get-InputSha $GoalReport 'project-twin')) { Add-Blocker 'Der strategische Zusammenspielnachweis ist nicht an beide Eingabe-SHAs gebunden.' }
+    }
+}
+
+if ($null -eq $ProjectConfig.publish -or $ProjectConfig.publish.enabled -ne $true) { Add-Blocker 'Die Veroeffentlichung ist fuer dieses Projekt nicht aktiviert.' }
+
+$states = $null
+if ($Blockers.Count -eq 0) {
+    try { $states = Assert-BoundProjectStates -AuditReport $AuditReport -Configuration $Config -SelectedProject $Project }
+    catch { Add-Blocker $_.Exception.Message }
+}
+
+$selectedState = if ($null -ne $states) { $states[$Project] } else { $null }
+$remoteHead = $null
+$expectedUrl = if ($null -ne $selectedState) { [string]$selectedState.config.publish.expectedPushUrl } else { '' }
+$branch = if ($null -ne $selectedState) { [string]$selectedState.config.publish.branch } else { '' }
+$commit = if ($null -ne $selectedState) { [string]$selectedState.commit } else { '' }
+if ($Blockers.Count -eq 0) {
+    try {
+        $refCheck = Invoke-UniversaarlGitRead -Repository $selectedState.path -Arguments @('check-ref-format', '--branch', $branch)
+        if ($refCheck.exitCode -ne 0) { throw 'Der Zielzweig ist kein gueltiger Git-Zweigname.' }
+        $remote = Invoke-CleanRemoteQuery -Url $expectedUrl -Branch $branch
+        if ($remote.exitCode -ne 0) { throw 'Der Zustand des entfernten Zielzweigs konnte nicht sicher gelesen werden.' }
+        if (-not [string]::IsNullOrWhiteSpace($remote.output)) {
+            $remoteHead = ($remote.output -split '\s+')[0]
+            Assert-FullCommitSha -Commit $remoteHead
+            if ($remoteHead -eq $commit) { Write-Host 'Der gepruefte Commit ist bereits auf dem freigegebenen Zielzweig veroeffentlicht.'; exit 0 }
+            $ancestor = Invoke-UniversaarlGitRead -Repository $selectedState.path -Arguments @('merge-base', '--is-ancestor', $remoteHead, $commit)
+            if ($ancestor.exitCode -ne 0) { throw 'Der entfernte HEAD ist kein bekannter Vorfahr des geprueften Commits.' }
         }
     }
+    catch { Add-Blocker $_.Exception.Message }
 }
 
 if ($Blockers.Count -gt 0) {
@@ -236,31 +213,57 @@ if ($Blockers.Count -gt 0) {
 
 if (-not $Execute) {
     Write-Host ''
-    Write-Host "VEROEFFENTLICHUNGSBEREIT: $Project / $branch"
+    Write-Host "VEROEFFENTLICHUNGSBEREIT: $Project / $branch / $commit"
     Write-Host 'Es wurde nichts uebertragen. Fuer die echte Veroeffentlichung denselben Aufruf mit -Execute starten.'
     exit 0
 }
 
-$oldTerminalPrompt = [Environment]::GetEnvironmentVariable('GIT_TERMINAL_PROMPT')
-$oldOptionalLocks = [Environment]::GetEnvironmentVariable('GIT_OPTIONAL_LOCKS')
-[Environment]::SetEnvironmentVariable('GIT_TERMINAL_PROMPT', '0')
-[Environment]::SetEnvironmentVariable('GIT_OPTIONAL_LOCKS', '0')
 try {
-    & git -C $TargetPath push --porcelain $remote "HEAD:refs/heads/$branch"
-    $pushExitCode = $LASTEXITCODE
+    $states = Assert-BoundProjectStates -AuditReport $AuditReport -Configuration $Config -SelectedProject $Project
+    $selectedState = $states[$Project]
+    $expectedUrl = Test-ConfiguredRemote -Repository $selectedState.path -Entry $selectedState.config
+    if ([string]$selectedState.commit -ne $commit) { throw 'Die ausgewaehlte Commit-SHA hat sich vor dem Push veraendert.' }
+    $refSpec = Get-UniversaarlExactPushRefSpec -Commit $commit -Branch $branch
+}
+catch {
+    Write-Host "VEROEFFENTLICHUNG BLOCKIERT: $($_.Exception.Message)"
+    exit 1
+}
+
+$pushRoot = New-PublisherTemporaryRoot
+$pushRootLock = $null
+$pushRepositoryLock = $null
+$hooksLock = $null
+try {
+    $pushRootLock = Open-UniversaarlLockedDirectoryChain -Directory $pushRoot
+    $pushRepository = Join-Path $pushRoot 'push-copy'
+    New-UniversaarlCommitSnapshot -SourceRepository $selectedState.path -Commit $commit -Destination $pushRepository -SandboxRoot $pushRoot -AllowedVersionedMedia @($selectedState.config.allowedVersionedMedia) | Out-Null
+    $pushRepositoryLock = Open-UniversaarlLockedDirectoryChain -Directory $pushRepository
+    $gitHome = Join-Path $pushRoot 'git-home'
+    $hooksPath = Join-Path $pushRoot 'publisher-hooks'
+    $null = Initialize-UniversaarlSafeDirectory -TrustedRoot $pushRoot -Directory $hooksPath
+    $hooksLock = Open-UniversaarlLockedDirectoryChain -Directory $hooksPath
+    if (@(Get-ChildItem -LiteralPath $hooksPath -Force -ErrorAction Stop).Count -ne 0) { throw 'Kontrollierter Publisher-Hookpfad ist nicht leer.' }
+    $hookConfig = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -Arguments @('config', 'core.hooksPath', $hooksPath)
+    if ($hookConfig.exitCode -ne 0) { throw 'Kontrollierter leerer Publisher-Hookpfad konnte nicht an die frische Push-Kopie gebunden werden.' }
+    $credentialManager = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -Arguments @('credential-manager', '--version')
+    if ($credentialManager.exitCode -ne 0) { throw 'Der fest freigegebene Git Credential Manager ist fuer die authentifizierte Uebertragung nicht verfuegbar.' }
+    $credentialConfig = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -Arguments @('config', 'credential.helper', 'manager')
+    if ($credentialConfig.exitCode -ne 0) { throw 'Git Credential Manager konnte nicht in der bereinigten Push-Kopie aktiviert werden.' }
+    Assert-UniversaarlCleanPushRepositoryConfiguration -Repository $pushRepository -GitHome $gitHome -ExpectedHooksPath $hooksPath -TrustedSandboxRoot $pushRoot -RequireCredentialManager
+    if (@(Get-ChildItem -LiteralPath $hooksPath -Force -ErrorAction Stop).Count -ne 0) { throw 'Kontrollierter Publisher-Hookpfad wurde vor der Uebertragung veraendert.' }
+    $push = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -Arguments @('push', '--porcelain', $expectedUrl, $refSpec)
+    if ($push.exitCode -ne 0) { throw "Die Git-Uebertragung ist mit Rueckgabecode $($push.exitCode) fehlgeschlagen." }
+    $null = Assert-BoundProjectStates -AuditReport $AuditReport -Configuration $Config -SelectedProject $Project
+    $verify = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -Arguments @('ls-remote', '--heads', $expectedUrl, "refs/heads/$branch")
+    $published = if ($verify.output) { ($verify.output -split '\s+')[0] } else { '' }
+    if ($verify.exitCode -ne 0 -or $published -ne $commit) { throw 'Die Uebertragung wurde ausgefuehrt, aber die exakte Commit-SHA konnte nicht bestaetigt werden.' }
 }
 finally {
-    [Environment]::SetEnvironmentVariable('GIT_TERMINAL_PROMPT', $oldTerminalPrompt)
-    [Environment]::SetEnvironmentVariable('GIT_OPTIONAL_LOCKS', $oldOptionalLocks)
+    Close-UniversaarlDirectoryLock -Lock $hooksLock
+    Close-UniversaarlDirectoryLock -Lock $pushRepositoryLock
+    Close-UniversaarlDirectoryLock -Lock $pushRootLock
+    Remove-PublisherTemporaryRoot -Root $pushRoot
 }
-
-if ($pushExitCode -ne 0) { throw "Die Git-Uebertragung ist mit Rueckgabecode $pushExitCode fehlgeschlagen." }
-
-$verifyResult = Invoke-GitCapture -Repository $TargetPath -Arguments @('ls-remote', '--heads', $remote, "refs/heads/$branch")
-$publishedHead = if ($verifyResult.output) { ($verifyResult.output -split '\s+')[0] } else { '' }
-if ($verifyResult.exitCode -ne 0 -or $publishedHead -ne $fullHeadResult.output) {
-    throw 'Die Uebertragung wurde ausgefuehrt, aber der entfernte Stand konnte nicht bestaetigt werden.'
-}
-
-Write-Host "VEROEFFENTLICHUNG ERFOLGREICH: $Project / $branch / $($fullHeadResult.output)"
+Write-Host "VEROEFFENTLICHUNG ERFOLGREICH: $Project / $branch / $commit"
 exit 0

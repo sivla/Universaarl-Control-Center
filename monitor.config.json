@@ -13,6 +13,17 @@
       "reviewFile": "REVIEW.md",
       "requiredNpmScript": "test",
       "validationArguments": ["test"],
+      "germanCheck": {
+        "npmScript": "test:german",
+        "resultSchemaVersion": 1
+      },
+      "allowedVersionedMedia": [
+        {
+          "path": "artifacts/walkthrough/generated/UABC-WT-ENV-001/walkthrough.webm",
+          "maxBytes": 1048576,
+          "mode": "100644"
+        }
+      ],
       "maxActiveChanges": 1,
       "publish": {
         "enabled": true,
@@ -31,6 +42,11 @@
       "reviewFile": "REVIEW.md",
       "requiredNpmScript": "check",
       "validationArguments": ["run", "check"],
+      "germanCheck": {
+        "npmScript": "test:german",
+        "resultSchemaVersion": 1
+      },
+      "allowedVersionedMedia": [],
       "maxActiveChanges": 1,
       "publish": {
         "enabled": true,

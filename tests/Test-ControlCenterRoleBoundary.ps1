@@ -6,6 +6,20 @@ Set-StrictMode -Version Latest
 $env:GIT_OPTIONAL_LOCKS = '0'
 
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$portfolioPath = Join-Path $root 'portfolio.state.json'
+$portfolio = Get-Content -LiteralPath $portfolioPath -Raw | ConvertFrom-Json
+if ($portfolio.schemaVersion -ne 1 -or @($portfolio.projects).Count -ne 3) { throw 'Der schlanke Portfoliozustand fehlt oder ist unvollstaendig.' }
+$expectedPortfolioFields = @('projectId','overallGoal','largestGap','lastCommit','mainBlocker','nextDeliveryBlock')
+$expectedProjectIds = @('spectra','blueprint','project-twin')
+foreach ($project in @($portfolio.projects)) {
+    $actualFields = @($project.PSObject.Properties.Name)
+    if ($actualFields.Count -ne $expectedPortfolioFields.Count -or @($expectedPortfolioFields | Where-Object { $_ -notin $actualFields }).Count -gt 0) { throw "Portfolioeintrag '$($project.projectId)' ist nicht lean oder unvollstaendig." }
+    if ($project.projectId -notin $expectedProjectIds -or $project.lastCommit -notmatch '^[0-9a-f]{40}$') { throw 'Portfolioeintrag besitzt keine erlaubte Projektkennung oder volle Commit-SHA.' }
+    foreach ($field in @('overallGoal','largestGap','mainBlocker','nextDeliveryBlock')) {
+        if ([string]::IsNullOrWhiteSpace([string]$project.$field)) { throw "Portfoliofeld '$field' ist leer." }
+    }
+}
+if (@($portfolio.projects.projectId | Select-Object -Unique).Count -ne 3) { throw 'Portfolio enthaelt doppelte Projektkennungen.' }
 $forbidden = @(
     'consumer',
     'scripts\Install-BCProjectOSConsumer.ps1',

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-12",
+  "projects": [
+    {
+      "projectId": "spectra",
+      "overallGoal": "Kundenunabhaengiges, reproduzierbar veroeffentlichbares, sicher installierbares und kontrolliert aktualisierbares Betriebssystem fuer Business-Central-Projekte.",
+      "largestGap": "Die Alpha ist technisch vorbereitet, besitzt aber noch keinen separat freigegebenen Merge und damit keinen echten unveraenderlichen Release-Nachweis.",
+      "lastCommit": "76fd84450812909f37b9c3c1211d807a9a28590b",
+      "mainBlocker": "Der kontrollgepruefte Draft-PR wurde noch nicht separat zum Merge, Tag und Release freigegeben.",
+      "nextDeliveryBlock": "Den groessten verbleibenden lokal loesbaren P1/P2-Abstand der Alpha-End-to-End-Kette schliessen und als einen geprueften PR-Commit uebergeben."
+    },
+    {
+      "projectId": "blueprint",
+      "overallGoal": "Vollstaendige fachliche und operative Source of Truth fuer die erfolgreiche Business-Central-Basic-Einfuehrung bei Universaarl.",
+      "largestGap": "Die durchgaengige Rueckverfolgbarkeit von Anforderung ueber Loesung und Arbeitspaket bis UAT und Evidence ist noch nicht vollstaendig geschlossen.",
+      "lastCommit": "2bde33b2aa106582ceaed7f99ce80fd3171ff818",
+      "mainBlocker": "Echte Kunden-, Finanz-, Steuer-, Schreib- und Abnahmefreigaben fehlen; der reale Zustand bleibt deshalb vor Ausfuehrung und Go-live blockiert.",
+      "nextDeliveryBlock": "Die groesste lokal loesbare P1/P2-Luecke der Einfuehrungskette als einen kohaerenten, synthetisch pruefbaren Lieferstand schliessen."
+    },
+    {
+      "projectId": "project-twin",
+      "overallGoal": "Robustes, verstaendliches und taeglich nutzbares, strikt nur-lesendes Projektcockpit fuer validierte versionierte Snapshots.",
+      "largestGap": "Fuer den produktiven End-to-End-Betrieb fehlt ein real bereitgestellter und freigegebener Manifest-B-Commit.",
+      "lastCommit": "c739b8953948ebada7a47d560577316c6e18693d",
+      "mainBlocker": "Ohne real validierten Manifest-B-Commit darf der Twin keinen produktiven Projektstand anzeigen.",
+      "nextDeliveryBlock": "Den ersten real freigegebenen Manifest-B-Commit commitgebunden integrieren und den positiven sowie die zentralen blockierten Browserwege nachweisen."
+    }
+  ]
+}

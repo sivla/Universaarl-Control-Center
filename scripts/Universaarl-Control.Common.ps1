@@ -897,7 +897,7 @@ function New-UniversaarlCommitSnapshot {
     $populate = $null
     for ($attempt = 0; $attempt -lt 2; $attempt++) {
         $populate = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('read-tree', '-mu', 'HEAD')
-        $populateAttempts.Add("Versuch $($attempt + 1): $($populate.output)")
+        $populateAttempts.Add("Versuch $($attempt + 1) (Code $($populate.exitCode)): $($populate.output)")
         if ($populate.exitCode -eq 0) { break }
         if ($attempt -eq 0) { Start-Sleep -Milliseconds 200 }
     }

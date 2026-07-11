@@ -51,7 +51,10 @@ function Test-ConfiguredRemote {
 
 function New-PublisherTemporaryRoot {
     $tempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar)
-    $root = Join-Path $tempBase ("universaarl-publish-$RunId-{0}" -f [Guid]::NewGuid().ToString('N'))
+    # Die Laufkennung bleibt im gebundenen Bericht. Im Dateisystem genuegt eine
+    # GUID; der kuerzere Name haelt tiefe, gueltige Repositorypfade unter der
+    # klassischen Windows-Pfadgrenze.
+    $root = Join-Path $tempBase ("universaarl-publish-{0}" -f [Guid]::NewGuid().ToString('N'))
     $null = Initialize-UniversaarlSafeDirectory -TrustedRoot $tempBase -Directory $root
     $root
 }

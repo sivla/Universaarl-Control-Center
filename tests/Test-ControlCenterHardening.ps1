@@ -117,10 +117,11 @@ try {
         [pscustomobject]@{ id = 'blueprint-binds-spectra'; status = 'GELB'; fullValidationPassed = $true },
         [pscustomobject]@{ id = 'twin-reads-blueprint'; status = 'GELB'; fullValidationPassed = $true }
     )
-    Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationships $scopedTechnicalRelationships -ProjectGoalResult $scopedProjectGoal -GoalRelationships $scopedGoalRelationships).Count -gt 0) -Message 'Noch nicht implementierter Vollvalidator blockierte die Veroeffentlichung nicht.'
     $oldFullValidatorAvailability = $script:UniversaarlFullContractValidatorAvailable
-    $script:UniversaarlFullContractValidatorAvailable = $true
     try {
+        $script:UniversaarlFullContractValidatorAvailable = $false
+        Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationships $scopedTechnicalRelationships -ProjectGoalResult $scopedProjectGoal -GoalRelationships $scopedGoalRelationships).Count -gt 0) -Message 'Explizit deaktivierter Vollvalidator blockierte die Veroeffentlichung nicht.'
+        $script:UniversaarlFullContractValidatorAvailable = $true
         Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationships $scopedTechnicalRelationships -ProjectGoalResult $scopedProjectGoal -GoalRelationships $scopedGoalRelationships).Count -eq 0) -Message 'Vollstaendig validierte Beziehungen mit gelber dokumentierter Folgearbeit wurden abgelehnt.'
         $scopedTechnicalRelationships[1].status = 'warning'
         Assert-True -Condition (@(Get-UniversaarlScopedPublishGateBlockers -ProjectResult $scopedProject -TechnicalRelationships $scopedTechnicalRelationships -ProjectGoalResult $scopedProjectGoal -GoalRelationships $scopedGoalRelationships).Count -gt 0) -Message 'Eine technische Vertragswarnung wurde als publishbar akzeptiert.'
@@ -392,7 +393,7 @@ try {
         @{ message = 'BCProjectOS targetUnchanged false wurde vom gebundenen Reader akzeptiert.'; mutate = { param($value) $value.verificationInputs.bcprojectos.targetUnchanged = $false } },
         @{ message = 'Array statt exakt typisierter Spectra-Bindungs-SHA wurde akzeptiert.'; mutate = { param($value) $value.relationships[0].sourceCommit = @($reportSha) } },
         @{ message = 'Technisch abweichender Projektname wurde als BCProjectOS-Bindung akzeptiert.'; mutate = { param($value) $value.relationships[0].technicalProjectName = 'Spectra' } },
-        @{ message = 'Bestandenbehauptung ohne implementierten Vollvalidator wurde akzeptiert.'; mutate = { param($value) $value.relationships[0].status = 'passed'; $value.relationships[0].fullValidationPassed = $true } }
+        @{ message = 'Bestandenbehauptung ohne typstrengen Vollnachweis wurde akzeptiert.'; mutate = { param($value) $value.relationships[0].status = 'passed'; $value.relationships[0].fullValidationPassed = $false } }
     )) {
         $candidate = (($validReport | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
         & $coercionCase.mutate $candidate

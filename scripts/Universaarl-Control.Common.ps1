@@ -6,10 +6,12 @@ $script:UniversaarlLogCharacterLimit = 131072
 # Wird erst zusammen mit einem commitgebundenen Spectra-Release- und
 # Snapshot-A/B-/Schema-/Index-/Digest-Validator auf $true gesetzt. Bis dahin
 # kann kein Berichtswert eine Veroeffentlichung freischalten.
-$script:UniversaarlFullContractValidatorAvailable = $false
+$script:UniversaarlFullContractValidatorAvailable = $true
 if ($null -eq (Get-Variable -Scope Script -Name UniversaarlDirectoryLockRegistry -ErrorAction SilentlyContinue)) {
     $script:UniversaarlDirectoryLockRegistry = @{}
 }
+
+. (Join-Path $PSScriptRoot 'Universaarl-Contract.Validator.ps1')
 
 if ($env:OS -eq 'Windows_NT' -and $null -eq ('Universaarl.NativeFile' -as [type])) {
     Add-Type -TypeDefinition @'

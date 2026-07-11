@@ -244,18 +244,18 @@ try {
     $null = Initialize-UniversaarlSafeDirectory -TrustedRoot $pushRoot -Directory $hooksPath
     $hooksLock = Open-UniversaarlLockedDirectoryChain -Directory $hooksPath
     if (@(Get-ChildItem -LiteralPath $hooksPath -Force -ErrorAction Stop).Count -ne 0) { throw 'Kontrollierter Publisher-Hookpfad ist nicht leer.' }
-    $hookConfig = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -Arguments @('config', 'core.hooksPath', $hooksPath)
+    $hookConfig = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -UseExplicitRepositoryPaths -Arguments @('config', 'core.hooksPath', $hooksPath)
     if ($hookConfig.exitCode -ne 0) { throw 'Kontrollierter leerer Publisher-Hookpfad konnte nicht an die frische Push-Kopie gebunden werden.' }
-    $credentialManager = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -Arguments @('credential-manager', '--version')
+    $credentialManager = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Arguments @('credential-manager', '--version')
     if ($credentialManager.exitCode -ne 0) { throw 'Der fest freigegebene Git Credential Manager ist fuer die authentifizierte Uebertragung nicht verfuegbar.' }
-    $credentialConfig = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -Arguments @('config', 'credential.helper', 'manager')
+    $credentialConfig = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -UseExplicitRepositoryPaths -Arguments @('config', 'credential.helper', 'manager')
     if ($credentialConfig.exitCode -ne 0) { throw 'Git Credential Manager konnte nicht in der bereinigten Push-Kopie aktiviert werden.' }
     Assert-UniversaarlCleanPushRepositoryConfiguration -Repository $pushRepository -GitHome $gitHome -ExpectedHooksPath $hooksPath -TrustedSandboxRoot $pushRoot -RequireCredentialManager
     if (@(Get-ChildItem -LiteralPath $hooksPath -Force -ErrorAction Stop).Count -ne 0) { throw 'Kontrollierter Publisher-Hookpfad wurde vor der Uebertragung veraendert.' }
-    $push = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -Arguments @('push', '--porcelain', $expectedUrl, $refSpec)
+    $push = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -UseExplicitRepositoryPaths -Arguments @('push', '--porcelain', $expectedUrl, $refSpec)
     if ($push.exitCode -ne 0) { throw "Die Git-Uebertragung ist mit Rueckgabecode $($push.exitCode) fehlgeschlagen." }
     $null = Assert-BoundProjectStates -AuditReport $AuditReport -Configuration $Config -SelectedProject $Project
-    $verify = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -Arguments @('ls-remote', '--heads', $expectedUrl, "refs/heads/$branch")
+    $verify = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -UseExplicitRepositoryPaths -Arguments @('ls-remote', '--heads', $expectedUrl, "refs/heads/$branch")
     $published = if ($verify.output) { ($verify.output -split '\s+')[0] } else { '' }
     if ($verify.exitCode -ne 0 -or $published -ne $commit) { throw 'Die Uebertragung wurde ausgefuehrt, aber die exakte Commit-SHA konnte nicht bestaetigt werden.' }
 }

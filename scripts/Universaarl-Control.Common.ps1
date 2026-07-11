@@ -716,7 +716,8 @@ function Invoke-UniversaarlIsolatedGit {
     param(
         [Parameter(Mandatory)][string]$GitHome,
         [Parameter(Mandatory)][string[]]$Arguments,
-        [string]$Repository
+        [string]$Repository,
+        [switch]$UseExplicitRepositoryPaths
     )
     $gitHomeParent = Split-Path -Parent ([IO.Path]::GetFullPath($GitHome))
     $null = Initialize-UniversaarlSafeDirectory -TrustedRoot $gitHomeParent -Directory $GitHome
@@ -750,7 +751,13 @@ function Invoke-UniversaarlIsolatedGit {
         [Environment]::SetEnvironmentVariable('GIT_ATTR_NOSYSTEM', '1')
         # Standard-Proxys bleiben absichtlich erhalten: Der positivgelistete HTTPS-Zugriff auf GitHub kann einen Unternehmensproxy benoetigen. CA-/TLS-Ueberschreibungen und Helper-Steuerung sind dagegen bereinigt.
         $ErrorActionPreference = 'SilentlyContinue'
-        $all = if ($Repository) { @('-C', $Repository) + $Arguments } else { $Arguments }
+        $all = if ($UseExplicitRepositoryPaths) {
+            if ([string]::IsNullOrWhiteSpace($Repository)) { throw 'Explizite Git-Repositorypfade benoetigen ein Repository.' }
+            $repositoryRoot = [IO.Path]::GetFullPath($Repository).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+            @("--git-dir=$(Join-Path $repositoryRoot '.git')", "--work-tree=$repositoryRoot") + $Arguments
+        }
+        elseif ($Repository) { @('-C', $Repository) + $Arguments }
+        else { $Arguments }
         $output = @(& git @all 2>&1)
         [pscustomobject]@{ exitCode = $LASTEXITCODE; output = (($output | ForEach-Object { [string]$_ }) -join "`n").Trim() }
     }
@@ -780,7 +787,7 @@ function Assert-UniversaarlCleanPushRepositoryConfiguration {
         [Parameter(Mandatory)][string]$TrustedSandboxRoot,
         [switch]$RequireCredentialManager
     )
-    $listed = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('config', '--local', '--name-only', '--list')
+    $listed = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -UseExplicitRepositoryPaths -Arguments @('config', '--local', '--name-only', '--list')
     if ($listed.exitCode -ne 0) { throw 'Lokale Git-Konfiguration der Push-Kopie kann nicht vollstaendig gelesen werden.' }
     $names = @($listed.output -split "`n" | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ })
     $forbidden = @($names | Where-Object { $_ -match '^(?:url\.|include\.|includeif\.|remote\.)' -or $_ -match '\.(?:insteadof|pushinsteadof)$' })
@@ -798,17 +805,17 @@ function Assert-UniversaarlCleanPushRepositoryConfiguration {
         if (@(Get-ChildItem -LiteralPath $expectedHooks -Force -ErrorAction Stop).Count -ne 0) { throw 'Kontrollierter Git-Hook-Pfad der Push-Kopie ist nicht leer.' }
     }
     finally { Close-UniversaarlDirectoryLock -Lock $hookDirectoryLock }
-    $hooks = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('config', '--local', '--get-all', 'core.hooksPath')
+    $hooks = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -UseExplicitRepositoryPaths -Arguments @('config', '--local', '--get-all', 'core.hooksPath')
     if ($hooks.exitCode -ne 0 -or @($hooks.output -split "`n" | Where-Object { $_ }).Count -ne 1 -or -not [string]::Equals([IO.Path]::GetFullPath($hooks.output), $expectedHooks, [StringComparison]::OrdinalIgnoreCase)) { throw 'Git-Hook-Pfad der Push-Kopie stimmt nicht exakt mit dem kontrollierten leeren Publisher-Pfad ueberein.' }
-    $bare = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('config', '--local', '--get', 'core.bare')
+    $bare = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -UseExplicitRepositoryPaths -Arguments @('config', '--local', '--get', 'core.bare')
     if ($bare.exitCode -ne 0 -or $bare.output -ne 'false') { throw 'Kernkonfiguration der Push-Kopie entspricht nicht der exakten nicht-baren Commitkopie.' }
     if ($RequireCredentialManager) {
-        $credential = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('config', '--local', '--get-all', 'credential.helper')
+        $credential = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -UseExplicitRepositoryPaths -Arguments @('config', '--local', '--get-all', 'credential.helper')
         if ($credential.exitCode -ne 0 -or $credential.output -ne 'manager') { throw 'Push-Kopie verwendet nicht exakt den freigegebenen Git Credential Manager.' }
     }
-    $remotes = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('remote')
+    $remotes = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -UseExplicitRepositoryPaths -Arguments @('remote')
     if ($remotes.exitCode -ne 0 -or -not [string]::IsNullOrWhiteSpace($remotes.output)) { throw 'Push-Kopie besitzt ein entferntes Git-Ziel.' }
-    $gitDirectory = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -Arguments @('rev-parse', '--absolute-git-dir')
+    $gitDirectory = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -UseExplicitRepositoryPaths -Arguments @('rev-parse', '--absolute-git-dir')
     if ($gitDirectory.exitCode -ne 0) { throw 'Git-Verzeichnis der Push-Kopie ist unbekannt.' }
     $internalHooks = Join-Path $gitDirectory.output 'hooks'
     if (Test-Path -LiteralPath $internalHooks) {

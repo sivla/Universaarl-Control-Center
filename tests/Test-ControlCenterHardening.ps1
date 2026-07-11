@@ -95,6 +95,13 @@ try {
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $snapshot '.git\FETCH_HEAD'))) -Message 'Commit-Kopie verraet die Quelladresse ueber FETCH_HEAD.'
     $snapshotHeadFile = [IO.File]::ReadAllText((Join-Path $snapshot '.git\HEAD'), [Text.Encoding]::ASCII).Trim()
     Assert-True -Condition ($snapshotHeadFile -eq $snapshotFixture.sha) -Message 'Commit-Kopie besitzt keinen direkt an die exakte SHA gebundenen abgeloesten HEAD.'
+    $snapshotLock = Open-UniversaarlLockedDirectoryChain -Directory $snapshot
+    try {
+        $lockedRead = Invoke-UniversaarlIsolatedGit -GitHome (Join-Path $snapshotSandbox 'git-home') -Repository $snapshot -UseExplicitRepositoryPaths -Arguments @('rev-parse', 'HEAD')
+        Assert-True -Condition ($lockedRead.exitCode -eq 0 -and $lockedRead.output -eq $snapshotFixture.sha) -Message 'Explizite Git-Pfade konnten die umbenennungsgesperrte Commit-Kopie nicht lesen.'
+        Assert-UniversaarlCleanPushRepositoryConfiguration -Repository $snapshot -GitHome (Join-Path $snapshotSandbox 'git-home') -ExpectedHooksPath (Join-Path $snapshotSandbox 'leere-hooks') -TrustedSandboxRoot $snapshotSandbox
+    }
+    finally { Close-UniversaarlDirectoryLock -Lock $snapshotLock }
     Assert-Throws -Action { Assert-UniversaarlCommitRuntimeSafe -Repository $snapshotFixture.path -Commit $snapshotFixture.sha -AllowedVersionedMedia $blueprintMediaAllowlist -MaximumBytes 5 } -Message 'Gesamtgroessengrenze des Commit-Snapshots wurde nicht erzwungen.'
 
     Assert-True -Condition (Test-UniversaarlBoundReportExitCode -ExitCode 0) -Message 'Erfolgreicher Berichtsrueckgabecode wurde abgelehnt.'

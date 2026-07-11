@@ -8,7 +8,7 @@
       "id": "blueprint",
       "name": "Universaarl BC Blueprint V2",
       "pathAlias": "<BLUEPRINT_ROOT>",
-      "defaultPath": "C:\\Users\\kkali\\Universaarl-BC-Blueprint-V2-P001",
+      "defaultPath": "C:\\Users\\kkali\\Documents\\Universaarl Projekt BC Basic",
       "pathEnvironmentVariable": "UNIVERSAARL_BLUEPRINT_PATH",
       "reviewFile": "REVIEW.md",
       "requiredNpmScript": "test",
@@ -26,18 +26,18 @@
       ],
       "maxActiveChanges": 1,
       "publish": {
-        "enabled": true,
+        "enabled": false,
         "remote": "origin",
-        "branch": "codex/universaarl-blueprint-v2",
+        "branch": "codex/universaarl-projekt",
         "expectedPushUrl": "https://github.com/sivla/FiBu.git",
-        "blockReason": null
+        "blockReason": "Eigenstaendiges Projekt-Remote noch nicht freigegeben"
       }
     },
     {
       "id": "project-twin",
       "name": "Universaarl Project Twin",
       "pathAlias": "<TWIN_ROOT>",
-      "defaultPath": "C:\\Users\\kkali\\Documents\\Universaarl-Project-Twin-Multi-Project-Shell",
+      "defaultPath": "C:\\Users\\kkali\\Documents\\Universaarl-Project-Twin",
       "pathEnvironmentVariable": "UNIVERSAARL_TWIN_PATH",
       "reviewFile": "REVIEW.md",
       "requiredNpmScript": "check",
@@ -49,11 +49,11 @@
       "allowedVersionedMedia": [],
       "maxActiveChanges": 1,
       "publish": {
-        "enabled": true,
+        "enabled": false,
         "remote": "origin",
-        "branch": "codex/responsive-multi-project-shell-foundation",
+        "branch": "codex/universaarl-projekt-twin",
         "expectedPushUrl": "https://github.com/sivla/FiBu.git",
-        "blockReason": null
+        "blockReason": "Eigenstaendiges Projekt-Remote noch nicht freigegeben"
       }
     }
   ],

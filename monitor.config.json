@@ -26,11 +26,10 @@
       ],
       "maxActiveChanges": 1,
       "publish": {
-        "enabled": false,
+        "enabled": true,
         "remote": "origin",
         "branch": "codex/universaarl-projekt",
-        "expectedPushUrl": "https://github.com/sivla/FiBu.git",
-        "blockReason": "Eigenstaendiges Projekt-Remote noch nicht freigegeben"
+        "expectedPushUrl": "https://github.com/sivla/FiBu.git"
       }
     },
     {
@@ -49,11 +48,10 @@
       "allowedVersionedMedia": [],
       "maxActiveChanges": 1,
       "publish": {
-        "enabled": false,
+        "enabled": true,
         "remote": "origin",
         "branch": "codex/universaarl-projekt-twin",
-        "expectedPushUrl": "https://github.com/sivla/FiBu.git",
-        "blockReason": "Eigenstaendiges Projekt-Remote noch nicht freigegeben"
+        "expectedPushUrl": "https://github.com/sivla/FiBu.git"
       }
     }
   ],

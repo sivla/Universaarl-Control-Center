@@ -73,7 +73,7 @@ Die tatsaechliche Uebertragung benoetigt zusaetzlich `-Execute`:
 powershell -ExecutionPolicy Bypass -File .\scripts\Publish-UniversaarlCommit.ps1 -Project blueprint -Execute
 ```
 
-Die beiden kanonischen Arbeitszweige sind `codex/universaarl-projekt` und `codex/universaarl-projekt-twin`. Die Veroeffentlichung bleibt deaktiviert, bis fuer beide Projekte ein eigenstaendiges Remote ausdruecklich eingerichtet und freigegeben wurde. Alte FiBu- und technische Nebenarbeitskopien sind weder Pruefquelle noch Veroeffentlichungsquelle.
+Die beiden kanonischen Arbeitszweige sind `codex/universaarl-projekt` und `codex/universaarl-projekt-twin`. Sie werden ueber den kontrollierten Publisher auf ihre exakt gleichnamigen Zweige im freigegebenen GitHub-Repository uebertragen. Jeder Zielordner verfolgt nur seinen eigenen Arbeitszweig. Alte FiBu- und technische Nebenarbeitskopien sind weder Pruefquelle noch Veroeffentlichungsquelle.
 
 ## Bewertung
 

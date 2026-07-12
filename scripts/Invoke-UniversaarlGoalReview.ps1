@@ -10,6 +10,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $MonitorRoot = [IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 . (Join-Path $PSScriptRoot 'Universaarl-Control.Common.ps1')
+. (Join-Path $PSScriptRoot 'Universaarl-Contract.Validator.ps1')
 if ([string]::IsNullOrWhiteSpace($RunId)) { $RunId = New-UniversaarlRunId -Prefix 'ziel' }
 Assert-UniversaarlRunId -RunId $RunId
 if ([string]::IsNullOrWhiteSpace($ConfigPath)) { $ConfigPath = Join-Path $MonitorRoot 'monitor.config.json' }
@@ -183,6 +184,7 @@ $walkthroughTests = ''
 $blueprintConsumerBinding = ''
 $spectraBindingArtifactPresent = $false
 $spectraBindingIdentityValid = $false
+$spectraReleaseProof = $null
 if ($blueprintState.head) {
     $blueprintOpenSpec = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'openspec/config.yaml' -Findings $blueprintFindings -Code 'GOAL-BP-ARTIFACT'
     $blueprintArchitecture = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'architecture/enterprise-blueprint.yaml' -Findings $blueprintFindings -Code 'GOAL-BP-ARTIFACT'
@@ -208,7 +210,24 @@ if (-not [string]::IsNullOrWhiteSpace($blueprintConsumerBinding)) {
     }
     else {
         $spectraBindingIdentityValid = $true
-        $spectraFindings.Add((New-GoalFinding high 'GOAL-SPECTRA-UNVERIFIED' 'Eine nicht ausstehende Spectra-Bindung ist noch nicht durch den vollstaendigen Kontrollzentrum-Releasevalidator nachgewiesen.' 'governance/consumer-bindings.yaml; BCProjectOS-Releaseevidence' 'Bound-Zustand erst nach vollstaendiger commitgebundener Releasevalidierung akzeptieren.'))
+        try {
+            $body = [string]$spectraSection.Groups['body'].Value
+            $readScalar = {
+                param([string]$Name)
+                $match = [regex]::Match($body, "(?m)^  $([regex]::Escape($Name)):\s*(?<value>[^\r\n#]+?)\s*$")
+                if ($match.Success) { [string]$match.Groups['value'].Value } else { $null }
+            }
+            $bound = [pscustomobject]@{}
+            foreach ($field in @('bindingStatus','productId','technicalRepositoryName','repositoryUrl','releaseVersion','releaseTag','tagCommit','manifestPath','manifestSourceCommit','consumerMode','digestAlgorithm','payloadBundleDigest')) {
+                $bound | Add-Member -NotePropertyName $field -NotePropertyValue (& $readScalar $field)
+            }
+            $bound | Add-Member -NotePropertyName installableBlueprint -NotePropertyValue ((& $readScalar 'installableBlueprint') -ceq 'true')
+            $spectraReleaseProof = Test-UniversaarlSpectraReleaseBinding -Repository $verificationSourceRoot -Binding $bound
+            if ($spectraReleaseProof.fullValidationPassed -ne $true) { throw 'Der Releasevalidator lieferte keinen vollstaendigen positiven Nachweis.' }
+        }
+        catch {
+            $spectraFindings.Add((New-GoalFinding high 'GOAL-SPECTRA-UNVERIFIED' "Die gebundene Spectra-Version hat den vollstaendigen Kontrollzentrum-Releasevalidator nicht bestanden: $($_.Exception.Message)" 'governance/consumer-bindings.yaml; BCProjectOS-Releaseevidence' 'Bound-Zustand erst nach vollstaendiger commitgebundener Releasevalidierung akzeptieren.'))
+        }
     }
 }
 
@@ -305,7 +324,7 @@ if ($blueprintState.head -and $twinState.head) {
     $branchIndexProof = $null
     $twinConsumesLegacy = $twinAdapter -match 'project-artifacts/v0\.1' -or $twinAdapter -match "safeRoots\s*=\s*\[[^\]]*'exports'"
     $twinConsumesProjectData = ($twinRegistry -match 'exports/project-data/v1/index\.yaml' -or $twinAdapter -match 'exports/project-data/v1/index\.yaml') -and $twinAdapter -match 'allowedBranch' -and $twinAdapter -match 'rev-parse'
-    if ($null -ne $legacyExportEntry -and -not $twinConsumesLegacy) { $relationshipFindings.Add((New-GoalFinding medium 'GOAL-X-001' 'Der Twin liest den bisherigen Blueprint-Verbrauchervertrag noch nicht.' 'exports/project-artifacts/v0.1/index.yaml; Twin-Adapter' 'Verbraucheranpassung abschliessen oder die Luecke im Zwischenstand ausdruecklich ausweisen.')) }
+    if ($null -ne $legacyExportEntry -and -not $branchIndexPresent -and -not $twinConsumesLegacy) { $relationshipFindings.Add((New-GoalFinding medium 'GOAL-X-001' 'Der Twin liest den bisherigen Blueprint-Verbrauchervertrag noch nicht.' 'exports/project-artifacts/v0.1/index.yaml; Twin-Adapter' 'Verbraucheranpassung abschliessen oder die Luecke im Zwischenstand ausdruecklich ausweisen.')) }
     if ($null -ne $projectDataEntry -and -not $twinConsumesProjectData) { $relationshipFindings.Add((New-GoalFinding medium 'GOAL-X-002' 'Der Twin liest den projektbezogenen Blueprint-Datenvertrag noch nicht vollstaendig.' 'exports/project-data/v1/index.yaml; Twin-Registry; Twin-Adapter' 'Projektbezogene Indexbindung vor der endgueltigen Freigabe abschliessen.')) }
     if (-not $branchIndexPresent) { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-BRANCH-INDEX' 'Der commitgebundene BC-Basic-Branch-Index fehlt; der Twin darf den Projektstand nicht lesen.' 'exports/project-data/v1/index.yaml im Blueprint-HEAD' 'Indexvertrag im normalen Projektcommit erzeugen und validieren.')) }
     else {
@@ -352,7 +371,7 @@ if ($blueprintCoverage -eq 100) { $spectraCoverage += 20 }
 if ($verificationInput.sourceCommit -is [string] -and $verificationInput.sourceCommit -match '^[0-9a-f]{40}$') { $spectraCoverage += 20 }
 if ($spectraBindingArtifactPresent) { $spectraCoverage += 20 }
 if ($spectraBindingIdentityValid) { $spectraCoverage += 20 }
-# Die letzten 20 Prozent erfordern den noch nicht implementierten Vollvalidator.
+if ($null -ne $spectraReleaseProof -and $spectraReleaseProof.fullValidationPassed -eq $true) { $spectraCoverage += 20 }
 $relationshipCoverage = 0
 if ($blueprintCoverage -eq 100) { $relationshipCoverage += 20 }
 if ($twinCoverage -eq 100) { $relationshipCoverage += 20 }
@@ -362,7 +381,7 @@ if ($twinConsumesProjectData) { $relationshipCoverage += 20 }
 if ($null -ne $branchIndexProof -and $branchIndexProof.fullValidationPassed -eq $true) { $relationshipCoverage += 20 }
 $blueprintResult = [pscustomobject]@{ id = 'blueprint'; objective = [string]$GoalConfig.projects.blueprint.objective; currentGoal = [string]$GoalConfig.projects.blueprint.currentGoal; status = Get-GoalStatus @($blueprintFindings); evidenceCoverage = $blueprintCoverage; state = $blueprintState; findings = @($blueprintFindings) }
 $twinResult = [pscustomobject]@{ id = 'project-twin'; objective = [string]$GoalConfig.projects.'project-twin'.objective; currentGoal = [string]$GoalConfig.projects.'project-twin'.currentGoal; status = Get-GoalStatus @($twinFindings); evidenceCoverage = $twinCoverage; state = $twinState; findings = @($twinFindings) }
-$spectraRelationshipResult = [pscustomobject]@{ id = 'blueprint-binds-spectra'; contractType = 'versioned-product-release'; objective = [string]$GoalConfig.relationships.'blueprint-binds-spectra'.objective; status = Get-GoalStatus @($spectraFindings); fullValidationPassed = $false; evidenceCoverage = $spectraCoverage; productName = 'Spectra'; productId = 'spectra'; technicalProjectName = 'BCProjectOS'; sourceCommit = $verificationInput.sourceCommit; consumerCommit = $blueprintState.head; findings = @($spectraFindings) }
+$spectraRelationshipResult = [pscustomobject]@{ id = 'blueprint-binds-spectra'; contractType = 'versioned-product-release'; objective = [string]$GoalConfig.relationships.'blueprint-binds-spectra'.objective; status = Get-GoalStatus @($spectraFindings); fullValidationPassed = ($null -ne $spectraReleaseProof -and $spectraReleaseProof.fullValidationPassed -eq $true); evidenceCoverage = $spectraCoverage; productName = 'Spectra'; productId = 'spectra'; technicalProjectName = 'BCProjectOS'; sourceCommit = $verificationInput.sourceCommit; consumerCommit = $blueprintState.head; proof = $spectraReleaseProof; findings = @($spectraFindings) }
 $relationshipResult = [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'validated-branch-index'; objective = [string]$GoalConfig.relationships.'twin-reads-blueprint'.objective; status = Get-GoalStatus @($relationshipFindings); fullValidationPassed = ($null -ne $branchIndexProof -and $branchIndexProof.fullValidationPassed -eq $true -and $twinConsumesProjectData); evidenceCoverage = $relationshipCoverage; providerCommit = $blueprintState.head; consumerCommit = $twinState.head; proof = $branchIndexProof; findings = @($relationshipFindings) }
 $allFindings = @($blueprintFindings) + @($twinFindings) + @($spectraFindings) + @($relationshipFindings)
 $overall = Get-GoalStatus $allFindings

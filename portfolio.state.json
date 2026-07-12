@@ -5,26 +5,26 @@
     {
       "projectId": "spectra",
       "overallGoal": "Spectra 1.0.0 als vollstaendiges, kundenunabhaengiges Project Operating System fuer Business-Central-Einfuehrungs- und Betriebsprojekte reproduzierbar veroeffentlichen.",
-      "largestGap": "Nach dem unabhaengig bestaetigten Release 0.6.0-alpha.1 ist der portable Project-Story-Vertrag fuer 0.7 noch nicht releasefaehig: rekursive Schemaanwendung, Parent-Metadaten, Graph-Eindeutigkeit sowie vollstaendige Hypercare- und Multi-Domain-Konformitaet muessen gemeinsam belegt werden; danach folgen CLI-, Upgrade-/Recovery-, Pilot- und RC-Bloecke bis 1.0.",
-      "lastCommit": "ca577136802ed74821aec2e9b0612d002bb9a228",
-      "mainBlocker": "Kein externer Blocker; der aktuelle 0.7-Candidate ist fachlich NO-GO, bis verschachtelte Vertragsverletzungen durch echte rekursive Validierung fail-closed erkannt werden.",
-      "nextDeliveryBlock": "Einen sauberen Spectra-0.7-Candidate mit rekursivem portablem Story-Schema, positiven und gezielten negativen Real-Story-Fixtures, Parent-Abgleich, Graph-Duplikatschutz sowie vollstaendiger Hypercare-/Multi-Domain-Konformitaet liefern und unabhaengig pruefen; vorher kein Release."
+      "largestGap": "Spectra 0.7.0-alpha.1 ist unveraenderlich veroeffentlicht und in BC Basic vollstaendig gebunden. Fuer den Weg zu 1.0 fehlen als naechster zusammenhaengender Produktblock eine einheitliche Operator-CLI, belastbare Upgrade-/Backup-/Restore-Ablaufe und zwei voneinander isolierte Profilpiloten mit reproduzierbarer Evidence.",
+      "lastCommit": "dcdefa6a772393d22785ad518172d938c1ad5833",
+      "mainBlocker": "Kein externer Blocker fuer den Start des naechsten Releaseblocks; jede neue Versionsbehauptung bleibt bis zu einem erneut unabhaengig geprueften Tag, Commit, Manifest und Digest gesperrt.",
+      "nextDeliveryBlock": "Spectra 0.8.0-alpha.1 als getrennten OpenSpec-Block vorbereiten: eine Operator-CLI ueber Initialisierung, Validierung, Upgradeplanung, Upgrade, Backup, Restore und Candidate-Pruefung; dazu zwei isolierte Implementierungs-/Supportprofile, End-to-End-Runbooks, stabile Fehlercodes und positive wie negative Wiederanlaufnachweise."
     },
     {
       "projectId": "blueprint",
       "overallGoal": "Vollstaendige fachliche und operative Source of Truth fuer die erfolgreiche Business-Central-Basic-Einfuehrung bei Universaarl.",
-      "largestGap": "Kein offener fachlicher Story-Gap: drei Angebotsversionen, 19 Seiten, 17 Tickets mit Kommentaren und Worklogs, 80 Stunden, 9.600 EUR, 15 Ereignisse, drei Hypercaretage, 252 Relationen und die synthetische Abrechnungsfreigabe sind bis zum Projektabschluss validiert.",
-      "lastCommit": "fe43e260026830e456565166ff51199994f2b52a",
-      "mainBlocker": "Kein Blocker fuer den abgeschlossenen Simulationsstand; die spaetere Bindung eines veroeffentlichten Spectra-0.7-Releases bleibt ein eigener Folgeblock.",
-      "nextDeliveryBlock": "Den validierten BC-Abschlussstand stabil halten und nach unabhaengiger Veroeffentlichung von Spectra 0.7 dessen unveraenderliche Release-Evidence in einem eigenen Integrationscommit binden."
+      "largestGap": "Kein offener fachlicher Story-Gap: drei Angebotsversionen, 19 Seiten, 17 Tickets mit 34 Kommentaren und 17 Worklogs, 80 Stunden, 9.600 EUR, 15 Ereignisse, drei Hypercaretage, 252 native Relationen, synthetische Abrechnungsfreigabe und Spectra-0.7-Konformitaet sind bis zum Projektabschluss validiert.",
+      "lastCommit": "6697191d18ba3db9c9b250ce7ffb595df94868e1",
+      "mainBlocker": "Kein Blocker fuer den abgeschlossenen Simulationsstand; neue Produkt- oder Projekterkenntnisse duerfen nur anonymisiert als noch nicht uebernommene Kandidaten in einen spaeteren Spectra-Releaseprozess einfliessen.",
+      "nextDeliveryBlock": "Den validierten Abschlussstand als stabile Referenz fuer Twin und Spectra-Piloten halten; nur echte neue Simulations- oder Konformitaetsluecken in einem eigenen fachlich zusammenhaengenden Folgeblock bearbeiten."
     },
     {
       "projectId": "project-twin",
       "overallGoal": "Robustes, verstaendliches und taeglich nutzbares, strikt nur-lesendes Projektcockpit fuer validierte versionierte Snapshots.",
-      "largestGap": "Die vollstaendige Projektstory ist auf Desktop und Mobil sichtbar und exakt an BC Basic fe43e260 gebunden; offen bleibt die saubere Trennung vom bisherigen GitHub-Remote sivla/FiBu.git in ein eigenes Project-Twin-Repository sowie die dazugehoerige externe Publish-/Archivierungsentscheidung.",
-      "lastCommit": "bac0fd39ae16f89a4725109b6b09e486076377f0",
-      "mainBlocker": "Kein fachlicher oder technischer Blocker fuer den lokalen Read-only-Zwilling; die eigenstaendige Remote-/Repository-Zuordnung benoetigt eine ausdrueckliche externe Freigabe und bleibt deshalb ein ehrliches Publish-Gate.",
-      "nextDeliveryBlock": "Nach positiver Gesamtvertragspruefung den bestehenden offenen OpenSpec-Publishpunkt getrennt behandeln: eigenes Project-Twin-Remote festlegen, danach kontrollierten PR-/Merge-/Release-Prozess vorbereiten; bis dahin keine Remote-Aenderung."
+      "largestGap": "Die vollstaendige Projektstory und sechs Spectra-0.7-Nachweise sind auf Desktop und Mobil sichtbar und exakt an BC Basic 6697191d gebunden. Offen bleiben 13 nicht exakt gepinnte Abhaengigkeiten sowie die saubere Trennung vom bisherigen GitHub-Remote sivla/FiBu.git in ein eigenes Project-Twin-Repository mit anschliessender Freigabe und OpenSpec-Archivierung.",
+      "lastCommit": "c90872f38d8a32a28f913b850e9c81239c20605b",
+      "mainBlocker": "Kein fachlicher oder technischer Blocker fuer den lokalen Read-only-Zwilling; das eigene Remote ist ein externes Publish-Gate, und die Abhaengigkeitspins bleiben vor einem Release als technischer Restpunkt offen.",
+      "nextDeliveryBlock": "Abhaengigkeitspins in einem kleinen risikogesteuerten Block bereinigen und getrennt davon das eigene Project-Twin-Remote festlegen; danach kontrollierten PR-/Merge-/Releaseprozess sowie menschliche Freigabe und OpenSpec-Archivierung ausfuehren."
     }
   ]
 }

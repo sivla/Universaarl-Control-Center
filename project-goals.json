@@ -3,7 +3,7 @@
   "projects": {
     "blueprint": {
       "objective": "Ein vollstaendiges, standardnahes BC-Basic-Einfuehrungsprojekt fuer genau eine ehrlich synthetische Firma repositorybasiert so durchspielen, als waere die Sandbox die Produktivumgebung: vom versionierten Angebotsdokument und Projektstart ueber Confluence-Seiten, Tickets mit Kommentaren, Daten, Setup, P2P, O2C, Zahlungen, Abstimmung, Lager, Monatsabschluss, UAT, Schulung, Cutover und simulierten Go-live bis zum letzten Hypercaretag, Wiederanlauf, Abschluss und Handover; dabei bleiben hoechstens 80 abrechenbare Stunden und die Gesamtkosten strikt unter 10.000 EUR netto.",
-      "currentGoal": "Nach der Bindung des neuesten freigegebenen Spectra-Releases die vollstaendige digitale Projektstory erzeugen: lebendes Angebotsdokument mit Versionen und Ist-Abgleich, inhaltlich vollstaendiger Confluence-Seitenbaum, realistische Ticketwelt mit Statushistorie, Worklogs, Evidence und Abschlusskommentar fuer jedes Done-Ticket, chronologische Story vom Angebot bis Ende Hypercare sowie bidirektionale Verknuepfung mit BC-Playthrough, Tests, Entscheidungen, Deliverables und Branch-Index.",
+      "currentGoal": "Den vollstaendig validierten Simulationsabschluss inklusive lebendem Angebotsdokument, 19 Confluence-Seiten, 17 abgeschlossenen Tickets samt Kommentaren und Worklogs, chronologischer Story bis Ende Hypercare, BC-Playthrough, Tests, Entscheidungen, Deliverables, Branch-Index und unveraenderlicher Spectra-0.7-Bindung als stabile fachliche Referenz erhalten.",
       "antiGoals": [
         "Metadaten- oder Steuerungsarbeit ohne Beitrag zu einem fachlichen Auslieferungsziel",
         "Synthetische Termine, Freigaben oder Ergebnisse als reale Kunden-, BC-, Bank-, Produktions- oder Steueraktivitaet ausgeben",
@@ -13,8 +13,8 @@
     },
     "project-twin": {
       "objective": "Den jeweils neuesten vollstaendig validierten Commit des festgelegten BC-Basic-Entwicklungsbranches als sicheren, vollstaendig deutschen und ausschliesslich lesenden digitalen Projektzwilling darstellen: Angebot, Confluence-Seiten, Tickets samt Kommentaren, Projektstory, BC-Playthrough, Tests, Entscheidungen, Cutover und Hypercare bis zum Abschluss, ohne eigene fachliche Projektdaten oder Rueckschreibfunktionen zu besitzen.",
-      "currentGoal": "Den manifestfreien Branchmodus an den finalen BC-Basic-Commit binden und die vollstaendige navigierbare Projektstory vom Angebot bis Ende Hypercare darstellen: Angebotsversionen, Seitenbaum, Ticketboard und Ticketdetail mit Abschlusskommentaren, Timeline, BC-Sitzungen und Ledger Entries, Tests/Gates, Hypercaredashboard und Handover; Desktop, Mobil und fail-closed-Browserfall belegen.",
-      "requiredBaseCommit": "fe43e260026830e456565166ff51199994f2b52a",
+      "currentGoal": "Den manifestfreien Branchmodus exakt an BC Basic 6697191d binden und die vollstaendige navigierbare Projektstory vom Angebot bis Ende Hypercare sowie die positivgelistete Spectra-0.7-Release- und Konformitaets-Evidence auf Desktop und Mobil strikt nur-lesend anzeigen; danach Abhaengigkeitspins und eigenes Remote als getrennte Releasegates schliessen.",
+      "requiredBaseCommit": "bac0fd39ae16f89a4725109b6b09e486076377f0",
       "currentChange": "establish-read-only-project-twin-mvp",
       "antiGoals": [
         "Rueckschreiben oder eigene fachliche Wahrheit",

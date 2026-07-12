@@ -15,8 +15,8 @@
       "overallGoal": "Vollstaendige fachliche und operative Source of Truth fuer die erfolgreiche Business-Central-Basic-Einfuehrung bei Universaarl.",
       "largestGap": "Kein offener fachlicher Story-Gap: Der vollstaendige Sandbox-Playthrough vom Angebot bis Ende Hypercare ist mit 19 Confluence-Seiten, 17 abgeschlossenen Tickets, 34 Kommentaren, 17 Worklogs, 80 Stunden, 9.600 EUR, 15 Ereignissen, drei Hypercaretagen, 252 Relationen und Spectra-0.8-Konformitaet validiert.",
       "lastCommit": "5c646a643b2645d8b9e348cd81acb5fb38383721",
-      "mainBlocker": "Kein fachlicher oder technischer Blocker; der neue Spectra-0.8-Integrationscommit liegt exakt einen Commit vor dem bereits veroeffentlichten Entwicklungsbranch und wartet nur auf den bestandenen kontrollierten Publisherlauf.",
-      "nextDeliveryBlock": "Den exakt geprueften Commit 5c646a643b2645d8b9e348cd81acb5fb38383721 kontrolliert auf codex/universaarl-projekt veroeffentlichen und danach als unveraenderliche Referenz fuer Twin und den Spectra-0.9-Lernzyklus halten."
+      "mainBlocker": "Kein fachlicher, technischer oder Veroeffentlichungsblocker: Der exakt gepruefte Spectra-0.8-Integrationscommit ist auf codex/universaarl-projekt veroeffentlicht und remote unabhaengig bestaetigt.",
+      "nextDeliveryBlock": "Den veroeffentlichten Commit 5c646a643b2645d8b9e348cd81acb5fb38383721 als unveraenderliche fachliche Referenz fuer den Twin und den Spectra-0.9-Lernzyklus halten; neue Kundenstory nur bei einer belegten neuen Simulationsluecke erweitern."
     },
     {
       "projectId": "project-twin",

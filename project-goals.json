@@ -1,35 +1,74 @@
 {
   "schemaVersion": 1,
+  "principle": "Fachlich schnell, technisch ehrlich.",
+  "v1WorkingRule": "V1.0 ist der erste real nutzbare, durchklickbare und fachlich zusammenhaengende Release-Stand. Verbindlich sind Business-Ziel, Datenintegritaet, sichere Bindungen und Kernablaeufe. Nicht blockierende Struktur-, Komfort-, Performance- und Zusatzhaertungsthemen werden nach V1.0 als priorisierter V1.x-Backlog weiterentwickelt.",
+  "simulationRule": "Die Simulation verwendet keine beliebigen Mockup-Daten. Alle synthetischen Firmen-, Personen-, Artikel-, Lieferanten-, Kunden-, Finanz-, Steuer-, Bank-, Einkaufs-, Verkaufs-, Lager-, Projekt-, Ticket- und Evidence-Daten muessen untereinander plausibel, fachlich begruendet und ueber den gesamten Projektverlauf konsistent sein. Jeder Kernprozess wird wie in einer realen BC-Basic-Einfuehrung vom Ausloeser bis zu Buchung, Abstimmung, Ausnahme, Freigabe, Schulung, Betrieb und Nachweis durchdacht und als schlanker Standardweg dokumentiert.",
+  "nextPortfolioMilestone": "Die belegten BC- und Twin-Staende werden unabhaengig kontrollgeprueft, in ihre stabilen Zweige integriert und erst danach veroeffentlicht. Der laufende Twin bleibt bis dahin auf dem letzten validierten Producerstand sichtbar; neue Fach- oder Komfortarbeit wird nicht in diesen Abschlussblock aufgenommen.",
   "projects": {
     "blueprint": {
-      "objective": "Ein vollstaendiges, standardnahes BC-Basic-Einfuehrungsprojekt fuer genau eine ehrlich synthetische Firma repositorybasiert so durchspielen, als waere die Sandbox die Produktivumgebung: vom versionierten Angebotsdokument und Projektstart ueber Confluence-Seiten, Tickets mit Kommentaren, Daten, Setup, P2P, O2C, Zahlungen, Abstimmung, Lager, Monatsabschluss, UAT, Schulung, Cutover und simulierten Go-live bis zum letzten Hypercaretag, Wiederanlauf, Abschluss und Handover; dabei bleiben hoechstens 80 abrechenbare Stunden und die Gesamtkosten strikt unter 10.000 EUR netto.",
-      "currentGoal": "Den auf Commit 2d09ec142570f86701cd0d92a738f0c759b7abe8 veroeffentlichten, vollstaendig validierten Sandbox-Playthrough als lueckenlose Projektstory vom ersten Angebotsstand bis zum Ende der Hypercare erhalten: drei Angebotsstaende, 19 Confluence-Seiten, 17 abgeschlossene Tickets, 34 Abschlusskommentare, 17 Worklogs, 80 Stunden und 9.600 EUR, 15 Projektereignisse, drei Hypercaretage, Baseline-Angebot-Ist-Abgleich, Spectra-0.9-Bindung und read-only Adapter-Provenienz bleiben commitgebunden nachvollziehbar. Simulierte Kundenfreigaben und Business-Central-Schritte bleiben echte Prozessgates, blockieren den synthetischen Playthrough aber nicht.",
+      "objective": "BC Basic V1 als verkaufbares, durchdachtes und lean wiederholbares Standardprodukt fertigstellen, mit dem ein realer Kunde auf dem kuerzesten belastbaren Weg von Angebot und Vorbereitung ueber Fit-to-Standard, Konfiguration, Datenmigration, UAT und Befaehigung bis zu Cutover, Hypercare und sicherem Betrieb gefuehrt werden kann.",
+      "currentGoal": "Den auf Commit 4557d93c4b89697c13c7345b39c167f09f441d03 belegten Drei-Space-Stand stabil halten und kontrolliert in den Producerbranch integrieren. Kundenprojekt, Produktbuch und Consultant-Handbuch sind source-driven getrennt; 28 Seiten, 43 Katalogdokumente, 19/19 Migrationen und 50 Jira-Tickets sind validiert. Neue Fachinhalte oder Strukturarbeit erfolgen erst nach diesem Integrations- und Publishblock.",
+      "v1ExitCriteria": [
+        "Ein eindeutiges Standardangebot, Scope, Voraussetzungen, Nichtleistungen und Change-Regel",
+        "Reproduzierbare Standardprozesse und feldnahe Konfigurations-/SoD-Baseline",
+        "Datenmigration, UAT, Rollenbefaehigung, Cutover, Restart, Hypercare und Handover durchgespielt",
+        "Ein Consultant kann damit ein echtes Projekt starten und der Kunde versteht Mitwirkung, Entscheidungen und Betrieb",
+        "Alle synthetischen Aussagen bleiben von realen Kunden-, Sandbox-, Steuer- und Rechtsbestaetigungen getrennt",
+        "Vollstaendiger validierter Snapshot fuer Project Twin",
+        "Unveraenderliche Bindung an Spectra 1.0.0 mit Tag, Commit, Manifest und Digest",
+        "Finaler sauberer V1.0-Commit mit leerem REVIEW.md und vollstaendiger End-to-End-Regression",
+        "Plausible, ueber alle Prozessketten konsistente synthetische Unternehmens- und Belegdaten statt beliebiger Mockups",
+        "Standardisierte fachliche Sollprozesse mit Ausnahmen, Kontrollen, Entscheidungen, Verantwortlichkeiten und Kundenerklaerung",
+        "Drei klar getrennte Confluence-Spaces fuer Kundenprojekt, BC-Basic-Produktbuch und Consultant-Handbuch mit stabiler Seitenhierarchie und ohne doppelte Wahrheit",
+        "Kundenprojekt-Navigation von Support und Unternehmen bis Hypercare, Handover und Projektsteuerung; bestehende Referenzen bleiben ueber ein Migrationsmapping nachvollziehbar",
+        "Alle Confluence-Seiten sind in gerenderter Form lesbar: konsistente Ueberschriften, Listen, Tabellen, Evidence-Bloecke, Umlaute und Links; insbesondere die Verifikationsseite fuehrt fachliches Ergebnis vor technischer Pruefausgabe",
+        "Jede Dokumentart folgt ihrem realen Nutzungsstil: Kundendokumente sind verstaendlich, Schulungsunterlagen lern- und uebungsorientiert, Prozessdokumente ablauforientiert, Cutover- und Supportdokumente operativ, Produktbuch und Consultant-Handbuch klar getrennt",
+        "Die Projektquelle liefert die semantische Confluence- und Jira-Darstellungsstruktur mit Spaces, Modulen, Hierarchie, Reihenfolge, Views, Gruppen und initialem Auf-/Einklappzustand; Consumer erfinden keine Struktur"
+      ],
       "antiGoals": [
-        "Metadaten- oder Steuerungsarbeit ohne Beitrag zu einem fachlichen Auslieferungsziel",
-        "Synthetische Termine, Freigaben oder Ergebnisse als reale Kunden-, BC-, Bank-, Produktions- oder Steueraktivitaet ausgeben",
-        "Erweiterungen, Integrationen, Produktion, Projekte, Service oder erweitertes Lager im BC-Basic-Erstprojekt",
-        "Produktive Steueruebermittlung, reale Kundensysteme oder aktive BC-Schreibzugriffe verwenden"
+        "Neue Dokumentenwelten, kuenstliche Tickets oder Meetings ohne direkten Kundennutzen",
+        "Sonderloesungen vor gepruefter Standardabbildung",
+        "Synthetische Ergebnisse als reale Kunden-, BC-, Bank-, Steuer- oder Rechtsfreigabe ausgeben",
+        "Technische Governance als Ersatz fuer Angebot, Beratung, Einrichtung, Befaehigung oder Projektdurchfuehrung",
+        "V1.0 wegen nicht blockierender Struktur- oder Komfortoptimierungen verzoegern"
       ]
     },
     "project-twin": {
-      "objective": "Den jeweils neuesten vollstaendig validierten Commit des festgelegten BC-Basic-Entwicklungsbranches als sicheren, vollstaendig deutschen und ausschliesslich lesenden digitalen Projektzwilling darstellen: Angebot, Confluence-Seiten, Tickets samt Kommentaren, Projektstory, BC-Playthrough, Tests, Entscheidungen, Cutover und Hypercare bis zum Abschluss, ohne eigene fachliche Projektdaten oder Rueckschreibfunktionen zu besitzen.",
-      "currentGoal": "Mit Twin-Commit c3655becef223175b60990f513459215043e9e8c exakt den validierten BC-Basic-Commit 2d09ec142570f86701cd0d92a738f0c759b7abe8 darstellen und die vollstaendige Projektstory samt Spectra 0.9, Baseline-Angebot-Ist-Abgleich, 97 Exporten und commitgebundener Adapter-Provenienz strikt nur-lesend sichtbar halten. Fehlende, manipulierte oder widerspruechliche Quellen muessen deutsch und fail-closed mit HTTP 503 blockieren. Weitere MVP-Aufgaben, eigenes Repository und OpenSpec-Abschluss bleiben getrennte Folgegates.",
-      "requiredBaseCommit": "bac0fd39ae16f89a4725109b6b09e486076377f0",
+      "objective": "Project Twin V1 als strikt nur-lesendes, deutschsprachiges und in weniger als zwei Minuten erfassbares Produkt- und Projektcockpit veroeffentlichungsreif machen, das immer den neuesten vollstaendig validierten BC-Basic-Branch-Commit sicher darstellt.",
+      "currentGoal": "Den auf Commit 4167d0cb2e3cbc72544190e8c3a40002f800d7cf belegten Twin-Stand stabil halten und kontrolliert veroeffentlichen. Der dauerhafte Branchkanal liest den letzten validierten Producercommit; der Drei-Space-Kandidat 4557d93c4b89697c13c7345b39c167f09f441d03 ist mit Cross-Contract 3/3, 144/144 Tests sowie Desktop- und 390px-Browsernachweisen abgenommen. Neue UI-Funktionen bleiben ausserhalb dieses Abschlussblocks.",
+      "v1ExitCriteria": [
+        "Automatische einmalige Commitbindung an den neuesten validierten BC-Basic-Branchstand",
+        "Fuenf handlungsorientierte Leitfragen decken Angebot bis Betrieb ohne neue Fachwahrheit ab",
+        "Desktop, A11y und sichtbare deutsche Inhalte abgenommen; Mobil mit einfachem Responsive-Smoke ohne offensichtliche Unbenutzbarkeit",
+        "Manipulierte, unvollstaendige oder widerspruechliche Quellen liefern sichtbar HTTP 503",
+        "Technische Evidence bleibt nachgelagert und die Oberflaeche schreibt niemals zurueck",
+        "Eigene V1-Release- und Repository-Gates sind vollstaendig geklaert",
+        "Cockpit und Projektdokumentation lesen nachweislich denselben finalen BC-Basic-V1.0-Commit",
+        "Finaler sauberer Twin-V1.0-Commit mit leerem REVIEW.md und reproduzierbarer Browser-Evidence",
+        "Komplette fachliche Projektstory und Prozessketten ohne technische Vorkenntnisse nachvollziehbar",
+        "Realistische Daten, Entscheidungen, Tests, Schulungen und Betriebsergebnisse sichtbar statt generischer Mockup-Kacheln",
+        "Drei fachlich getrennte Confluence-Spaces mit hierarchischer Navigation, Breadcrumbs und commitgebundenen Querverweisen sichtbar",
+        "Repraesentative Seiten aus allen drei Spaces sind im Browser ohne kaputte Markdown-, Tabellen-, Listen-, Encoding- oder Linkdarstellung abgenommen",
+        "Epic, Story, Aufgabe, Unteraufgabe, Fehler und Aenderung sind in Board, Listen und Details durch eine Jira-nahe konsistente Icon-/Farblogik unmittelbar erkennbar; Typtext und Barrierefreiheit verhindern eine reine Farbcodierung",
+        "Confluence-Module und Jira-Gruppen werden ausschliesslich aus der commitgebundenen Projektquellenstruktur modular, tastaturbedienbar und auf-/einklappbar gerendert; ungueltige Strukturen blockieren fail-closed"
+      ],
+      "requiredBaseCommit": "4167d0cb2e3cbc72544190e8c3a40002f800d7cf",
       "currentChange": "establish-read-only-project-twin-mvp",
       "antiGoals": [
+        "Dokumentenarchiv statt handlungsorientierter Orientierung",
         "Rueckschreiben oder eigene fachliche Wahrheit",
-        "Erfundene Termine, Zustaende, Meilensteine oder kaufmaennische Werte",
-        "Fachfunktionen ausser Projektwechsel, Quellbindung und lesender Darstellung",
-        "Oberflaechenfortschritt ohne validierten Quellvertrag und Herkunftsnachweis"
+        "Erfundene Projektzustaende, Termine oder kaufmaennische Werte",
+        "Technische Kennzahlen in der Hauptansicht",
+        "V1.0 durch Mobile-Perfektion, Layoutfeinschliff oder zusaetzliche Haertung ohne reproduzierbaren Kernfehler blockieren"
       ]
     }
   },
   "relationships": {
     "blueprint-binds-spectra": {
-      "objective": "BC Basic bindet ausschliesslich einen unveraenderlichen, vollstaendig nachgewiesenen Spectra-Release aus dem technischen Repository BCProjectOS; solange Tag, Commit und Digest fehlen oder widersprechen, bleibt PENDING_BCPROJECTOS_RELEASE blockierend."
+      "objective": "BC Basic bindet nur unveraenderliche, vollstaendig nachgewiesene Spectra-Releases; neue Spectra-Entwicklung bleibt bis zur Veroeffentlichung PENDING und veraendert den laufenden Kundenstand nicht."
     },
     "twin-reads-blueprint": {
-      "objective": "Jeder im Twin angezeigte fachliche Wert stammt nachvollziehbar aus dem validierten Branch-Index und einem positivgelisteten Git-Blob des gepinnten BC-Basic-Commits. Bestandene synthetische Kunden-, UAT-, Cutover-, Go-live-, Hypercare- und Handover-Gates werden als Simulationsergebnis dargestellt; fehlende oder ungueltige Quelldaten bleiben sichtbar deutsch blockiert und werden niemals erfunden."
+      "objective": "Twin loest den erlaubten BC-Basic-Branch je Lauf genau einmal auf eine volle Commit-SHA auf und liest nur validierte, positivgelistete Git-Blobs dieses Commits; ungueltige Quellen blockieren sichtbar mit HTTP 503."
     }
   }
 }

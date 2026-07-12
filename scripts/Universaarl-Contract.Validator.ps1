@@ -76,8 +76,17 @@ function Test-UniversaarlSpectraReleaseBinding {
     if (-not (Test-UniversaarlGitAncestor -Repository $Repository -Ancestor ([string]$Binding.manifestSourceCommit) -Descendant $tagCommit)) { throw 'Manifest-Source-Commit ist kein Vorfahr des Tag-Commits.' }
     $manifestBlob = Read-UniversaarlCommitText -Repository $Repository -Commit $tagCommit -Path ([string]$Binding.manifestPath) -MaximumBytes 1048576 -Required
     $manifest = $manifestBlob.content | ConvertFrom-Json
-    Assert-UniversaarlExactProperties $manifest @('schema_version','product_id','release_version','release_kind','manifest_state','release_date','expected_tag','source_commit','consumer_mode','installable_blueprint','blueprint_version','payload','binding_requirements','excluded_from_payload','known_limits') 'Spectra-Releasemanifest'
-    if ($manifest.schema_version -ne 1 -or $manifest.product_id -cne 'spectra' -or $manifest.release_version -cne $version -or $manifest.expected_tag -cne $tag -or $manifest.source_commit -cne [string]$Binding.manifestSourceCommit -or $manifest.release_kind -cne 'installable_blueprint' -or $manifest.manifest_state -cne 'final' -or $manifest.consumer_mode -cne 'INSTALLABLE_BLUEPRINT' -or $manifest.installable_blueprint -ne $true -or $manifest.blueprint_version -cne $version) { throw 'Spectra-Releasemanifest ist nicht final installierbar oder widerspruechlich.' }
+    $manifestSchema = [int]$manifest.schema_version
+    if ($manifestSchema -notin @(1,2,3)) { throw 'Spectra-Releasemanifest verwendet eine nicht unterstuetzte Schemaversion.' }
+    $manifestProperties = @('schema_version','product_id','release_version','release_kind','manifest_state','release_date','expected_tag','source_commit')
+    if ($manifestSchema -ge 2) { $manifestProperties += 'source_tree' }
+    $manifestProperties += @('consumer_mode','installable_blueprint','blueprint_version','payload','binding_requirements','excluded_from_payload','known_limits')
+    Assert-UniversaarlExactProperties $manifest $manifestProperties 'Spectra-Releasemanifest'
+    if ($manifest.product_id -cne 'spectra' -or $manifest.release_version -cne $version -or $manifest.expected_tag -cne $tag -or $manifest.source_commit -cne [string]$Binding.manifestSourceCommit -or $manifest.release_kind -cne 'installable_blueprint' -or $manifest.manifest_state -cne 'final' -or $manifest.consumer_mode -cne 'INSTALLABLE_BLUEPRINT' -or $manifest.installable_blueprint -ne $true -or $manifest.blueprint_version -cne $version) { throw 'Spectra-Releasemanifest ist nicht final installierbar oder widerspruechlich.' }
+    if ($manifestSchema -ge 2) {
+        $sourceTree = Invoke-UniversaarlGitRead -Repository $Repository -Arguments @('rev-parse', "$($Binding.manifestSourceCommit)^{tree}")
+        if ($sourceTree.exitCode -ne 0 -or $manifest.source_tree -cne [string]$sourceTree.output) { throw 'Spectra-Source-Tree widerspricht dem Manifest-Source-Commit.' }
+    }
     if ($Binding.consumerMode -cne 'INSTALLABLE_BLUEPRINT' -or $Binding.installableBlueprint -ne $true -or $Binding.digestAlgorithm -cne 'SHA-256') { throw 'Spectra-Consumerbindung ist nicht installierbar.' }
     $records = [Collections.Generic.List[object]]::new(); $seen = @{}
     foreach ($file in @($manifest.payload.files)) {

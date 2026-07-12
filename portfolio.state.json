@@ -1,30 +1,33 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-12",
+  "updatedAt": "2026-07-13",
+  "principle": "Fachlich schnell, technisch ehrlich.",
+  "v1WorkingRule": "Zuerst einen real nutzbaren, fachlich geschlossenen und durchklickbaren V1.0-Stand liefern. Nur reproduzierbare Business-, Integritaets-, Sicherheits- und Releasefehler blockieren; Struktur-, Komfort- und Zusatzhaertung folgen im V1.x-Backlog.",
+  "simulationRule": "Keine beliebigen Mockup-Daten: Die synthetische BC-Basic-Firma, Stammdaten, Belege, Salden, Prozesse, Entscheidungen, Tests, Schulungen und Betriebsergebnisse muessen realistisch, konsistent und ueber die komplette Projektstory nachvollziehbar sein.",
   "projects": [
     {
       "projectId": "spectra",
-      "overallGoal": "Spectra 1.0.0 als vollstaendiges, kundenunabhaengiges Project Operating System fuer Business-Central-Einfuehrungs- und Betriebsprojekte reproduzierbar veroeffentlichen.",
-      "largestGap": "Spectra 0.9.0-alpha.1 ist veroeffentlicht und in der vollstaendigen BC-Basic-Sandboxstory sowie im Project Twin commitgebunden pilotiert. Reconciliation, read-only Adapter-Provenienz, 102 Release-Payloads und die beiden nachgelagerten Vertragsbeziehungen sind unabhaengig bestanden; als belegte generische Restluecke bleibt vor dem Hauptrelease insbesondere der standardisierte Coverage-Nachweis fuer native-zu-portable Referenzgraphprojektionen.",
-      "lastCommit": "8e991afe455406280610a98f15dd776444fb81ef",
-      "mainBlocker": "Kein Blocker fuer 0.9 oder dessen End-to-End-Pilot. Der Weg zum Hauptrelease bleibt an einen eigenen, reviewbaren OpenSpec-Funktionsblock mit anonymisierter Evidence und erneutem Release-Gate gebunden.",
-      "nextDeliveryBlock": "Als naechsten grossen Spectra-Block den anonymisierten Graph-Coverage-Befund aus BC Basic pruefen und einen generischen, fail-closed Relationsklassen- und Coverage-Vertrag bis zum naechsten reproduzierbaren Releasekandidaten umsetzen; keine weiteren Funktionen ohne belegte Restluecke aufnehmen."
+      "overallGoal": "Externe, kundenunabhaengige Produktvertrags- und Release-Evidence fuer die wiederholbare BC-Basic-Einfuehrung.",
+      "largestGap": "Der abgegrenzte Projektartenblock ist auf Commit cf8cb586470afcaeda78bb3225f7067a6824e982, Tree e4c25298f55401600505f2dfbc5bb2f8149ddf82, mit Fresh-Clone-Nachweis sauber abgeschlossen. Der veroeffentlichte RC1-Stand bleibt unveraendert; es wurde keine neue Version oder Release-Evidence erfunden.",
+      "lastCommit": "cf8cb586470afcaeda78bb3225f7067a6824e982",
+      "mainBlocker": "Fuer Spectra 1.0 fehlen weiterhin die kontrollierte Integration der getrennten lokalen Folgeblocks und der unabhaengige finale Releaseprozess mit unveraenderlichem Tag, Commit, Manifest und Digest.",
+      "nextDeliveryBlock": "Bis zu einem eigenen Releaseauftrag keine neue Fachfunktion beginnen. Den sauberen Projektartenstand als Evidence halten und den naechsten Integrations- oder Releaseblock erneut eng abgrenzen."
     },
     {
       "projectId": "blueprint",
-      "overallGoal": "Vollstaendige fachliche und operative Source of Truth fuer die erfolgreiche Business-Central-Basic-Einfuehrung bei Universaarl.",
-      "largestGap": "Die vollstaendige Sandbox-Projektstory ist fachlich abgeschlossen, an Spectra 0.9.0-alpha.1 gebunden und als Commit 2d09ec142570f86701cd0d92a738f0c759b7abe8 veroeffentlicht. Baseline 68h/11.050 EUR, Angebot und Ist 80h/9.600 EUR, 97 Twin-Exporte und read-only Adapter-Provenienz sind reproduzierbar nachgewiesen; die Storyzaehlungen und synthetische Wahrheitsgrenze bleiben unveraendert.",
-      "lastCommit": "2d09ec142570f86701cd0d92a738f0c759b7abe8",
-      "mainBlocker": "Kein fachlicher, technischer oder Publish-Blocker fuer den abgeschlossenen Spectra-0.9-Sandboxstand. Neue Kundeninstanzarbeit braucht einen eigenen fachlichen Erweiterungsauftrag und darf den belegten Abschluss nicht umdeuten.",
-      "nextDeliveryBlock": "Den veroeffentlichten Abschlussstand stabil halten und nur die fuer Spectra 1.0 relevante anonymisierte Graph-Coverage-Luecke als vorgeschlagenen blueprint-candidate nachweisen; keine neue Projektphase oder produktive Behauptung erfinden."
+      "overallGoal": "Ein verkaufbares und lean wiederholbares BC-Basic-Standardprodukt, das den Kunden fachlich, organisatorisch und operativ bis zur sicheren taeglichen Nutzung befaehigt.",
+      "largestGap": "Der Drei-Space-Producer ist auf Commit 4557d93c4b89697c13c7345b39c167f09f441d03, Tree 97d29bedf15b6976cd7061ba8f28af430b2d761c, sauber abgeschlossen: 3 Spaces, 22 Hauptseiten im Verhaeltnis 6/8/8, 6 Unterseiten, 19/19 verlustfreie Migrationen, 43 Katalogdokumente und 50 Jira-Tickets.",
+      "lastCommit": "4557d93c4b89697c13c7345b39c167f09f441d03",
+      "mainBlocker": "Kein offener fachlicher Producer- oder Consumerblocker. Offen sind nur die kontrollierte Integration in den stabilen Producerbranch und die spaetere Veroeffentlichung.",
+      "nextDeliveryBlock": "Den belegten Drei-Space-Commit unabhaengig kontrollpruefen und erst danach in den stabilen Producerbranch integrieren; keine neue Kundenwahrheit oder Strukturarbeit in diesen Abschlussblock aufnehmen."
     },
     {
       "projectId": "project-twin",
-      "overallGoal": "Robustes, verstaendliches und taeglich nutzbares, strikt nur-lesendes Projektcockpit fuer validierte versionierte Snapshots.",
-      "largestGap": "Der Twin zeigt lokal die vollstaendige Projektstory gegen BC Basic 2d09ec142570f86701cd0d92a738f0c759b7abe8 sowie Spectra 0.9 mit 102/102 Payloads, Reconciliation, Hashes, Mapping und 97 Exporten. Desktop, Mobil, 108 Tests, Build und der reale HTTP-503-Fail-closed-Fall sind bestanden; offen bleiben weitere MVP-Aufgaben, OpenSpec-Abschluss und die eigene kanonische Repository-Zuordnung.",
-      "lastCommit": "c3655becef223175b60990f513459215043e9e8c",
-      "mainBlocker": "Kein fachlicher oder technischer Blocker fuer den lokal funktionierenden Read-only-Zwilling. Die eigenstaendige Repository-Zuordnung bleibt ein externes Publish-Gate; der Twin-Commit wird bis dahin nicht ueber das fremde FiBu-Remote veroeffentlicht.",
-      "nextDeliveryBlock": "Die noch offenen, belegten MVP-Aufgaben im bestehenden OpenSpec-Change schliessen und den Stand erneut commitgebunden pruefen; danach eigenes Repository und kontrollierte Veroeffentlichung als getrennten Auftrag einrichten."
+      "overallGoal": "Ein strikt nur-lesendes, handlungsorientiertes Cockpit fuer den neuesten validierten BC-Basic-Branch-Commit.",
+      "largestGap": "Project Twin ist auf Commit 4167d0cb2e3cbc72544190e8c3a40002f800d7cf, Tree 56d09cea800250a717a8ae755ddb262e6d1b9f47, sauber abgeschlossen. Der Branchkanal bleibt dauerhaft auf codex/universaarl-projekt; der BC-Kandidat 4557d93c4b89697c13c7345b39c167f09f441d03 wurde mit Cross-Contract 3/3 und sichtbarer Browserabnahme fuer drei Spaces und Jira geprueft.",
+      "lastCommit": "4167d0cb2e3cbc72544190e8c3a40002f800d7cf",
+      "mainBlocker": "Kein offener lokaler Fach-, Integritaets- oder Darstellungsblocker. Offen sind nur Kontrollpruefung, Zusammenfuehrung und Veroeffentlichung der belegten BC-/Twin-Staende.",
+      "nextDeliveryBlock": "BC- und Twin-Commit unabhaengig gegen Publishergates pruefen, kontrolliert in ihre stabilen Zweige integrieren und erst danach veroeffentlichen. Komfort- und Zusatzhaertung bleiben V1.x."
     }
   ]
 }

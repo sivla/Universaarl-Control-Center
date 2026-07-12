@@ -431,7 +431,7 @@ if ($RunValidations) {
             if (-not $result.snapshotEligible) { continue }
             $snapshot = Join-Path $SandboxRoot ([string]$project.id)
             try {
-                New-UniversaarlCommitSnapshot -SourceRepository $projectPaths[[string]$project.id] -Commit $result.commit -Destination $snapshot -SandboxRoot $SandboxRoot -AllowedVersionedMedia @($project.allowedVersionedMedia) | Out-Null
+                New-UniversaarlCommitSnapshot -SourceRepository $projectPaths[[string]$project.id] -Commit $result.commit -Destination $snapshot -SandboxRoot $SandboxRoot -ExpectedBranch $result.branch -AllowedVersionedMedia @($project.allowedVersionedMedia) | Out-Null
                 $snapshotPaths[[string]$project.id] = $snapshot
             }
             catch { $result.findings += New-Finding critical 'SAFE-001' "Commitgebundene Wegwerfkopie konnte nicht erstellt werden: $($_.Exception.Message)" }
@@ -462,8 +462,8 @@ if ($RunValidations) {
             $smokeTwin = Join-Path $smokeRoot 'project-twin'
             New-Item -ItemType Directory -Path $smokeRoot -Force | Out-Null
             try {
-                New-UniversaarlCommitSnapshot -SourceRepository $projectPaths['blueprint'] -Commit $inputShas['blueprint'] -Destination $smokeBlueprint -SandboxRoot $smokeRoot -AllowedVersionedMedia @($projectConfigs['blueprint'].allowedVersionedMedia) | Out-Null
-                New-UniversaarlCommitSnapshot -SourceRepository $projectPaths['project-twin'] -Commit $inputShas['project-twin'] -Destination $smokeTwin -SandboxRoot $smokeRoot -AllowedVersionedMedia @($projectConfigs['project-twin'].allowedVersionedMedia) | Out-Null
+                New-UniversaarlCommitSnapshot -SourceRepository $projectPaths['blueprint'] -Commit $inputShas['blueprint'] -Destination $smokeBlueprint -SandboxRoot $smokeRoot -ExpectedBranch (@($results | Where-Object { $_.id -eq 'blueprint' })[0].branch) -AllowedVersionedMedia @($projectConfigs['blueprint'].allowedVersionedMedia) | Out-Null
+                New-UniversaarlCommitSnapshot -SourceRepository $projectPaths['project-twin'] -Commit $inputShas['project-twin'] -Destination $smokeTwin -SandboxRoot $smokeRoot -ExpectedBranch (@($results | Where-Object { $_.id -eq 'project-twin' })[0].branch) -AllowedVersionedMedia @($projectConfigs['project-twin'].allowedVersionedMedia) | Out-Null
                 $runtime = Get-NpmRuntime
                 $smokeInstallLog = Join-Path $LogRoot "$RunId-vertrag-installation.log"
                 $smokeInstall = Invoke-UniversaarlSanitizedProcess -Runner $runner -FilePath $runtime.node -Arguments @($runtime.npmCli, 'ci', '--ignore-scripts', '--no-audit', '--no-fund') -WorkingDirectory $smokeTwin -SandboxRoot $smokeRoot -LogPath $smokeInstallLog -LogRoot $LogRoot -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots @($smokeTwin, $smokeBlueprint, $smokeRoot)
@@ -473,7 +473,12 @@ if ($RunValidations) {
                 $blueprintBeforeSmoke = Get-UniversaarlRepositoryFingerprint -Repository $smokeBlueprint
                 $smokeScript = Join-Path $PSScriptRoot 'Invoke-TwinContractSmoke.mjs'
                 $crossLog = Join-Path $LogRoot "$RunId-vertrag.log"
-                $smoke = Invoke-UniversaarlSanitizedProcess -Runner $runner -FilePath $runtime.node -Arguments @($smokeScript, $smokeTwin, $smokeBlueprint, $inputShas['project-twin'], $inputShas['blueprint']) -WorkingDirectory $smokeTwin -SandboxRoot $smokeRoot -LogPath $crossLog -LogRoot $LogRoot -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots @($smokeTwin, $smokeBlueprint, $smokeRoot)
+                $smokeEnvironment = @{
+                    UABC_SOURCE_REPO = $smokeBlueprint
+                    UABC_EXPECTED_COMMIT = $inputShas['blueprint']
+                    UABC_BRANCH_COMMIT_CONTRACT = '1'
+                }
+                $smoke = Invoke-UniversaarlSanitizedProcess -Runner $runner -FilePath $runtime.node -Arguments @($smokeScript, $smokeTwin, $smokeBlueprint, $inputShas['project-twin'], $inputShas['blueprint']) -WorkingDirectory $smokeTwin -SandboxRoot $smokeRoot -LogPath $crossLog -LogRoot $LogRoot -AdditionalEnvironment $smokeEnvironment -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots @($smokeTwin, $smokeBlueprint, $smokeRoot)
                 if ($smoke.exitCode -ne 0 -or $smoke.outputTruncated) { throw 'Der Twin konnte die frisch installierte Blueprint-Commitkopie nicht erfolgreich normalisieren.' }
                 try {
                     $payload = $smoke.output.Trim() | ConvertFrom-Json

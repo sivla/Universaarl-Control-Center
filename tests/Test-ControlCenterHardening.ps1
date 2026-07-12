@@ -95,6 +95,12 @@ try {
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $snapshot '.git\FETCH_HEAD'))) -Message 'Commit-Kopie verraet die Quelladresse ueber FETCH_HEAD.'
     $snapshotHeadFile = [IO.File]::ReadAllText((Join-Path $snapshot '.git\HEAD'), [Text.Encoding]::ASCII).Trim()
     Assert-True -Condition ($snapshotHeadFile -eq $snapshotFixture.sha) -Message 'Commit-Kopie besitzt keinen direkt an die exakte SHA gebundenen abgeloesten HEAD.'
+    $branchSnapshot = Join-Path $snapshotSandbox 'zweig-kopie'
+    New-UniversaarlCommitSnapshot -SourceRepository $snapshotFixture.path -Commit $snapshotFixture.sha -Destination $branchSnapshot -SandboxRoot $snapshotSandbox -ExpectedBranch 'codex/commit-pruefung' -AllowedVersionedMedia $blueprintMediaAllowlist | Out-Null
+    Assert-True -Condition ((Invoke-FixtureGit -Repository $branchSnapshot -Arguments @('rev-parse', 'HEAD')) -eq $snapshotFixture.sha) -Message 'Zweiggebundene Commit-Kopie besitzt nicht die exakte SHA.'
+    Assert-True -Condition ((Invoke-FixtureGit -Repository $branchSnapshot -Arguments @('branch', '--show-current')) -eq 'codex/commit-pruefung') -Message 'Zweiggebundene Commit-Kopie besitzt nicht den erwarteten lokalen Pruefzweig.'
+    Assert-True -Condition ([string]::IsNullOrWhiteSpace((Invoke-FixtureGit -Repository $branchSnapshot -Arguments @('remote')))) -Message 'Zweiggebundene Commit-Kopie besitzt ein Remote.'
+    Assert-Throws -Action { New-UniversaarlCommitSnapshot -SourceRepository $snapshotFixture.path -Commit $snapshotFixture.sha -Destination (Join-Path $snapshotSandbox 'ungueltiger-zweig') -SandboxRoot $snapshotSandbox -ExpectedBranch '../ungueltig' -AllowedVersionedMedia $blueprintMediaAllowlist } -Message 'Ungueltiger lokaler Pruefzweig wurde akzeptiert.'
     $snapshotLock = Open-UniversaarlLockedDirectoryChain -Directory $snapshot
     try {
         $lockedRead = Invoke-UniversaarlIsolatedGit -GitHome (Join-Path $snapshotSandbox 'git-home') -Repository $snapshot -UseExplicitRepositoryPaths -Arguments @('rev-parse', 'HEAD')
@@ -345,6 +351,9 @@ try {
     Commit-FixtureChange -Fixture $environmentFixture -Path '.env.example' -Content "# Pfad: (C:\secret)`nTOKEN=<TOKEN>`n"
     $commentWindowsPath = Test-UniversaarlEnvironmentExample -Repository $environmentFixture.path -Commit $environmentFixture.sha
     Assert-True -Condition (-not $commentWindowsPath.safe) -Message 'Geklammerter absoluter Windows-Pfad im Kommentar wurde uebersehen.'
+    Commit-FixtureChange -Fixture $environmentFixture -Path '.env.example' -Content "# Erwartet werden https://github.com/sivla/FiBu.git und der Branch codex/universaarl-projekt.`nSOURCE_REPO=`n"
+    $commentHttpsUrl = Test-UniversaarlEnvironmentExample -Repository $environmentFixture.path -Commit $environmentFixture.sha
+    Assert-True -Condition $commentHttpsUrl.safe -Message 'HTTPS-URL im Kommentar wurde faelschlich als absoluter Windows-Hostpfad bewertet.'
     Commit-FixtureChange -Fixture $environmentFixture -Path '.env.example' -Content "# ghp_abcdefghijklmnopqrstuvwxyz123456`nTOKEN=<TOKEN>`n"
     $commentSecret = Test-UniversaarlEnvironmentExample -Repository $environmentFixture.path -Commit $environmentFixture.sha
     Assert-True -Condition (-not $commentSecret.safe) -Message 'Geheimnisform in Kommentar wurde uebersehen.'

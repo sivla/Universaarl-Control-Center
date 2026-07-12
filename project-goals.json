@@ -2,19 +2,19 @@
   "schemaVersion": 1,
   "projects": {
     "blueprint": {
-      "objective": "Ein vollstaendiges, standardnahes BC-Basic-Einfuehrungsprojekt fuer genau eine ehrlich synthetische Firma in der Sandbox playthru in drei Phasen planen, dokumentieren, schulen und bis zum ersten Monatsabschluss mit fachlich gepruefter UStVA-Vorschau durchfuehren; dabei bleiben hoechstens 80 abrechenbare Stunden und die Gesamtkosten strikt unter 10.000 EUR netto.",
-      "currentGoal": "Als naechsten Schritt ausschliesslich den validierbaren Planungs- und Quellvertrag fuer die drei Phasen bereitstellen: realistische, aber eindeutig synthetische Jira- und Confluence-Inhalte, Datenanforderungen, Trainings, Handbuecher, Monatsabschluss, UStVA-Vorschau, die Stunden- und Kostengrenzen sowie commitgebundene Playwright-Szenarien. Die tatsaechliche Phasenausfuehrung beginnt erst nach der gesonderten Pruefung und Freigabe dieses Vertrags.",
+      "objective": "Ein vollstaendiges, standardnahes BC-Basic-Einfuehrungsprojekt fuer genau eine ehrlich synthetische Firma repositorybasiert so durchspielen, als waere die Sandbox die Produktivumgebung: vom versionierten Angebotsdokument und Projektstart ueber Confluence-Seiten, Tickets mit Kommentaren, Daten, Setup, P2P, O2C, Zahlungen, Abstimmung, Lager, Monatsabschluss, UAT, Schulung, Cutover und simulierten Go-live bis zum letzten Hypercaretag, Wiederanlauf, Abschluss und Handover; dabei bleiben hoechstens 80 abrechenbare Stunden und die Gesamtkosten strikt unter 10.000 EUR netto.",
+      "currentGoal": "Nach der Bindung des neuesten freigegebenen Spectra-Releases die vollstaendige digitale Projektstory erzeugen: lebendes Angebotsdokument mit Versionen und Ist-Abgleich, inhaltlich vollstaendiger Confluence-Seitenbaum, realistische Ticketwelt mit Statushistorie, Worklogs, Evidence und Abschlusskommentar fuer jedes Done-Ticket, chronologische Story vom Angebot bis Ende Hypercare sowie bidirektionale Verknuepfung mit BC-Playthrough, Tests, Entscheidungen, Deliverables und Branch-Index.",
       "antiGoals": [
         "Metadaten- oder Steuerungsarbeit ohne Beitrag zu einem fachlichen Auslieferungsziel",
-        "Erfundene reale Kundentermine, Arbeitszeiten, Freigaben oder Steuerergebnisse",
+        "Synthetische Termine, Freigaben oder Ergebnisse als reale Kunden-, BC-, Bank-, Produktions- oder Steueraktivitaet ausgeben",
         "Erweiterungen, Integrationen, Produktion, Projekte, Service oder erweitertes Lager im BC-Basic-Erstprojekt",
-        "Produktive Steueruebermittlung oder BC-Schreibzugriffe ausserhalb einer ausdruecklich freigegebenen playthru-Aenderung"
+        "Produktive Steueruebermittlung, reale Kundensysteme oder aktive BC-Schreibzugriffe verwenden"
       ]
     },
     "project-twin": {
-      "objective": "Beliebige freigegebene, versionierte Projektsnapshots ueber eine generische Mehrprojekt-Oberflaeche sicher und ausschliesslich lesend darstellen, ohne eigene fachliche Projektdaten oder Fachfunktionen zu besitzen.",
-      "currentGoal": "Den rein lesenden Mehrprojekt-Twin ausschliesslich an validierte A/B-Snapshotvertraege binden: Ohne extern gebundenen Metadatencommit, gueltiges Manifest, Schema, Index und Payload-Digest bleibt jede fachliche Ansicht sichtbar deutsch blockiert; ein generischer Git-Tree-Fallback ist unzulaessig.",
-      "requiredBaseCommit": "f7d45dd45b2726aa64602fd74183c41586865f8f",
+      "objective": "Den jeweils neuesten vollstaendig validierten Commit des festgelegten BC-Basic-Entwicklungsbranches als sicheren, vollstaendig deutschen und ausschliesslich lesenden digitalen Projektzwilling darstellen: Angebot, Confluence-Seiten, Tickets samt Kommentaren, Projektstory, BC-Playthrough, Tests, Entscheidungen, Cutover und Hypercare bis zum Abschluss, ohne eigene fachliche Projektdaten oder Rueckschreibfunktionen zu besitzen.",
+      "currentGoal": "Den manifestfreien Branchmodus an den finalen BC-Basic-Commit binden und die vollstaendige navigierbare Projektstory vom Angebot bis Ende Hypercare darstellen: Angebotsversionen, Seitenbaum, Ticketboard und Ticketdetail mit Abschlusskommentaren, Timeline, BC-Sitzungen und Ledger Entries, Tests/Gates, Hypercaredashboard und Handover; Desktop, Mobil und fail-closed-Browserfall belegen.",
+      "requiredBaseCommit": "fe43e260026830e456565166ff51199994f2b52a",
       "currentChange": "establish-read-only-project-twin-mvp",
       "antiGoals": [
         "Rueckschreiben oder eigene fachliche Wahrheit",
@@ -29,7 +29,7 @@
       "objective": "BC Basic bindet ausschliesslich einen unveraenderlichen, vollstaendig nachgewiesenen Spectra-Release aus dem technischen Repository BCProjectOS; solange Tag, Commit und Digest fehlen oder widersprechen, bleibt PENDING_BCPROJECTOS_RELEASE blockierend."
     },
     "twin-reads-blueprint": {
-      "objective": "Jeder im Twin angezeigte fachliche Wert stammt nachvollziehbar aus einem validierten, commitgebundenen Blueprint-Snapshot; fehlende, nicht validierte oder noch nicht unterstuetzte Quelldaten bleiben sichtbar leer und werden niemals erfunden."
+      "objective": "Jeder im Twin angezeigte fachliche Wert stammt nachvollziehbar aus dem validierten Branch-Index und einem positivgelisteten Git-Blob des gepinnten BC-Basic-Commits. Bestandene synthetische Kunden-, UAT-, Cutover-, Go-live-, Hypercare- und Handover-Gates werden als Simulationsergebnis dargestellt; fehlende oder ungueltige Quelldaten bleiben sichtbar deutsch blockiert und werden niemals erfunden."
     }
   }
 }

@@ -4,27 +4,27 @@
   "projects": [
     {
       "projectId": "spectra",
-      "overallGoal": "Kundenunabhaengiges, reproduzierbar veroeffentlichbares, sicher installierbares und kontrolliert aktualisierbares Betriebssystem fuer Business-Central-Projekte.",
-      "largestGap": "Der commitgebunden gepruefte 0.1.0-alpha.2-Candidate muss noch unveraendert durch PR, Merge, annotierten Tag und Prerelease-Publikation promotet werden.",
-      "lastCommit": "de76a441428675efbadbcd3d6223b8116c0aabcf",
-      "mainBlocker": "Die externe Release-Promotion samt finalem Manifest, Source-Commit, Tag- und Release-Nachweis ist noch nicht abgeschlossen.",
-      "nextDeliveryBlock": "Spectra 0.1.0-alpha.2 nach erneut gruenen Gates ueber normalen PR-Prozess mergen, annotiert taggen, als Prerelease veroeffentlichen und vollstaendig nachpruefen."
+      "overallGoal": "Spectra 1.0.0 als vollstaendiges, kundenunabhaengiges Project Operating System fuer Business-Central-Einfuehrungs- und Betriebsprojekte reproduzierbar veroeffentlichen.",
+      "largestGap": "Nach dem unabhaengig bestaetigten Release 0.6.0-alpha.1 ist der portable Project-Story-Vertrag fuer 0.7 noch nicht releasefaehig: rekursive Schemaanwendung, Parent-Metadaten, Graph-Eindeutigkeit sowie vollstaendige Hypercare- und Multi-Domain-Konformitaet muessen gemeinsam belegt werden; danach folgen CLI-, Upgrade-/Recovery-, Pilot- und RC-Bloecke bis 1.0.",
+      "lastCommit": "ca577136802ed74821aec2e9b0612d002bb9a228",
+      "mainBlocker": "Kein externer Blocker; der aktuelle 0.7-Candidate ist fachlich NO-GO, bis verschachtelte Vertragsverletzungen durch echte rekursive Validierung fail-closed erkannt werden.",
+      "nextDeliveryBlock": "Einen sauberen Spectra-0.7-Candidate mit rekursivem portablem Story-Schema, positiven und gezielten negativen Real-Story-Fixtures, Parent-Abgleich, Graph-Duplikatschutz sowie vollstaendiger Hypercare-/Multi-Domain-Konformitaet liefern und unabhaengig pruefen; vorher kein Release."
     },
     {
       "projectId": "blueprint",
       "overallGoal": "Vollstaendige fachliche und operative Source of Truth fuer die erfolgreiche Business-Central-Basic-Einfuehrung bei Universaarl.",
-      "largestGap": "Nach den abgeschlossenen Prozess-, Cash-, Lager-, Monatsabschluss- und UAT-Simulationen fehlen noch Schulung, Cutover-/Go-live-Generalprobe, Hypercare, Wiederanlauf, Abschluss und vollstaendige Uebergabe.",
-      "lastCommit": "1f96df80fbc1ab9c566d3e88f634482d56b7e46d",
-      "mainBlocker": "Das synthetische Projekt ist noch nicht formell bis zur Betriebsuebergabe und zum Abschluss durchgespielt; reale BC-Ausfuehrung bleibt bewusst offen.",
-      "nextDeliveryBlock": "Schulung, Cutover, simulierten Go-live, Hypercare, Wiederanlauf, Abschlussmeeting und Handover als dateibasierte Generalprobe mit Evidence und synthetischer Abnahme durchfuehren."
+      "largestGap": "Kein offener fachlicher Story-Gap: drei Angebotsversionen, 19 Seiten, 17 Tickets mit Kommentaren und Worklogs, 80 Stunden, 9.600 EUR, 15 Ereignisse, drei Hypercaretage, 252 Relationen und die synthetische Abrechnungsfreigabe sind bis zum Projektabschluss validiert.",
+      "lastCommit": "fe43e260026830e456565166ff51199994f2b52a",
+      "mainBlocker": "Kein Blocker fuer den abgeschlossenen Simulationsstand; die spaetere Bindung eines veroeffentlichten Spectra-0.7-Releases bleibt ein eigener Folgeblock.",
+      "nextDeliveryBlock": "Den validierten BC-Abschlussstand stabil halten und nach unabhaengiger Veroeffentlichung von Spectra 0.7 dessen unveraenderliche Release-Evidence in einem eigenen Integrationscommit binden."
     },
     {
       "projectId": "project-twin",
       "overallGoal": "Robustes, verstaendliches und taeglich nutzbares, strikt nur-lesendes Projektcockpit fuer validierte versionierte Snapshots.",
-      "largestGap": "Der Twin muss den vereinfachten Vertrag fuer den neuesten vollstaendig validierten Commit des festgelegten BC-Basic-Branches noch implementieren und sichtbar im Browser beweisen.",
-      "lastCommit": "c739b8953948ebada7a47d560577316c6e18693d",
-      "mainBlocker": "Adapter, Registry, Tests und Browsernachweis sind noch nicht vollstaendig auf den Branch-Commit-Vertrag umgestellt.",
-      "nextDeliveryBlock": "BC-Basic-Commit 1f96df80fbc1ab9c566d3e88f634482d56b7e46d ueber den Indexvertrag integrieren, positive Desktop-/Mobilansicht und zentrale fail-closed-Faelle nachweisen."
+      "largestGap": "Die vollstaendige Projektstory ist auf Desktop und Mobil sichtbar und exakt an BC Basic fe43e260 gebunden; offen bleibt die saubere Trennung vom bisherigen GitHub-Remote sivla/FiBu.git in ein eigenes Project-Twin-Repository sowie die dazugehoerige externe Publish-/Archivierungsentscheidung.",
+      "lastCommit": "bac0fd39ae16f89a4725109b6b09e486076377f0",
+      "mainBlocker": "Kein fachlicher oder technischer Blocker fuer den lokalen Read-only-Zwilling; die eigenstaendige Remote-/Repository-Zuordnung benoetigt eine ausdrueckliche externe Freigabe und bleibt deshalb ein ehrliches Publish-Gate.",
+      "nextDeliveryBlock": "Nach positiver Gesamtvertragspruefung den bestehenden offenen OpenSpec-Publishpunkt getrennt behandeln: eigenes Project-Twin-Remote festlegen, danach kontrollierten PR-/Merge-/Release-Prozess vorbereiten; bis dahin keine Remote-Aenderung."
     }
   ]
 }

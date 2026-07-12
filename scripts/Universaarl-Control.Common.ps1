@@ -1011,6 +1011,7 @@ function New-UniversaarlCommitSnapshot {
         [Parameter(Mandatory)][string]$Commit,
         [Parameter(Mandatory)][string]$Destination,
         [Parameter(Mandatory)][string]$SandboxRoot,
+        [string]$ExpectedBranch,
         [object[]]$AllowedVersionedMedia = @()
     )
     Assert-FullCommitSha -Commit $Commit
@@ -1031,9 +1032,21 @@ function New-UniversaarlCommitSnapshot {
     if ($fetch.exitCode -ne 0) { throw "Commit konnte nicht in die Wegwerfkopie uebernommen werden: $($fetch.output)" }
     # `git checkout` ist auf Windows fuer frisch geholte, grosse Baume gelegentlich
     # an kurzlebigen Dateisperren gescheitert. HEAD und Arbeitsbaum werden deshalb
-    # ohne Hook-Ausfuehrung direkt an den bereits geprueften Commit gebunden.
-    $detach = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('update-ref', '--no-deref', 'HEAD', $Commit)
-    if ($detach.exitCode -ne 0) { throw "Commit konnte nicht als abgeloester HEAD gebunden werden: $($detach.output)" }
+    # ohne Hook-Ausfuehrung direkt an den bereits geprueften Commit gebunden. Fuer
+    # projektspezifische Validatoren darf die Pruefkopie optional denselben lokalen
+    # Branchnamen tragen; Commit, Baum und fehlende Remotes bleiben unveraendert.
+    if ([string]::IsNullOrWhiteSpace($ExpectedBranch)) {
+        $bindHead = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('update-ref', '--no-deref', 'HEAD', $Commit)
+        if ($bindHead.exitCode -ne 0) { throw "Commit konnte nicht als abgeloester HEAD gebunden werden: $($bindHead.output)" }
+    }
+    else {
+        if ($ExpectedBranch -notmatch '^[A-Za-z0-9][A-Za-z0-9._/-]*$' -or $ExpectedBranch -match '(?:\.\.|@\{|//|/\.|\.lock(?:/|$)|[./]$)') { throw 'Erwarteter lokaler Pruefzweig ist ungueltig.' }
+        $branchRef = "refs/heads/$ExpectedBranch"
+        $bindBranch = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('update-ref', $branchRef, $Commit)
+        if ($bindBranch.exitCode -ne 0) { throw "Commit konnte nicht an den lokalen Pruefzweig gebunden werden: $($bindBranch.output)" }
+        $symbolicHead = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('symbolic-ref', 'HEAD', $branchRef)
+        if ($symbolicHead.exitCode -ne 0) { throw "Lokaler Pruefzweig konnte nicht als HEAD gesetzt werden: $($symbolicHead.output)" }
+    }
     $populateAttempts = [Collections.Generic.List[string]]::new()
     $populate = $null
     for ($attempt = 0; $attempt -lt 2; $attempt++) {
@@ -1348,7 +1361,10 @@ function Test-UniversaarlEnvironmentExample {
             $comment = $trimmed.TrimStart('#').Trim()
             $commentSecret = @(Get-UniversaarlSecretFindings -Text $comment).Count -gt 0
             $commentSensitiveValue = $false
-            $commentAbsolutePath = $comment -match '(?i)(?:[A-Za-z]:[\\/]|\\\\[^\\/\s]+[\\/]|(?<![A-Za-z0-9_.:/-])/(?!/)[A-Za-z0-9._-]+(?:/|\b))'
+            # Ein Windows-Laufwerk darf nicht mitten in einem URI-Schema wie
+            # `https://` erkannt werden. Der linke Begrenzer schliesst deshalb
+            # Buchstaben/Ziffern sowie weitere URI-/Pfadzeichen aus.
+            $commentAbsolutePath = $comment -match '(?i)(?:(?<![A-Za-z0-9_.:/-])[A-Za-z]:[\\/]|\\\\[^\\/\s]+[\\/]|(?<![A-Za-z0-9_.:/-])/(?!/)[A-Za-z0-9._-]+(?:/|\b))'
             if ($comment -match '(?i)\b(?:tenant|tenant[_-]?id|mandant|mandantenkennung)\s*[:=]\s*([^\s#]+)') {
                 $tenantValue = $Matches[1].Trim([char[]]@('"', "'"))
                 if ($tenantValue -notmatch $placeholderPattern) { $commentSensitiveValue = $true }

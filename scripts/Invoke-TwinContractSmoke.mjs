@@ -51,31 +51,41 @@ const server = await createServer({
 
 try {
   const adapter = await server.ssrLoadModule('/src/server/adapter.ts');
-  const universaarlState = await adapter.createTwinState('universaarl', blueprintRoot);
   const bcBasicState = await adapter.createTwinState('bc-basic', blueprintRoot, {
     projectDataContract: {
-      path: 'exports/project-data/v1/index.yaml',
+      manifestPath: 'exports/project-data/v1/snapshot-manifest.json',
+      schemaPath: 'governance/schemas/project-snapshot-manifest.schema.json',
+      indexPath: 'exports/project-data/v1/index.yaml',
       expectedProjectId: 'UABC-BC-BASIC-001',
+      expectedProducerId: 'blueprint',
     },
   });
+  const story = bcBasicState.story;
   const summary = {
     sources: {
-      universaarl: { commit: universaarlState.source.commit, dirty: universaarlState.source.dirty },
       bcBasic: { commit: bcBasicState.source.commit, dirty: bcBasicState.source.dirty },
     },
-    stats: { universaarl: universaarlState.stats, bcBasic: bcBasicState.stats },
-    warningCount: universaarlState.warnings.length + bcBasicState.warnings.length,
-    warnings: [...universaarlState.warnings, ...bcBasicState.warnings],
-    gapCount: universaarlState.gaps.length + bcBasicState.gaps.length,
+    stats: { bcBasic: bcBasicState.stats },
+    story: story ? {
+      offers: story.offer?.versions.length ?? 0,
+      pages: story.pages.length,
+      tickets: story.tickets.length,
+      timeline: story.timeline.length,
+      hypercare: story.hypercare.length,
+      relations: story.relations.length,
+    } : null,
+    warningCount: bcBasicState.warnings.length,
+    warnings: bcBasicState.warnings,
+    gapCount: bcBasicState.gaps.length,
   };
 
   console.log(JSON.stringify(summary));
 
-  if (universaarlState.source.commit !== expectedBlueprintCommit || universaarlState.source.dirty
-    || universaarlState.stats.capabilities < 1 || universaarlState.stats.changes < 1 || universaarlState.stats.documents < 1
-    || bcBasicState.source.commit !== expectedBlueprintCommit || bcBasicState.source.dirty
-    || bcBasicState.source.projectId !== 'bc-basic' || bcBasicState.stats.jira !== 21
-    || bcBasicState.stats.evidence !== 8 || bcBasicState.evidenceItems.length !== 0) {
+  if (bcBasicState.source.commit !== expectedBlueprintCommit || bcBasicState.source.dirty
+    || bcBasicState.source.projectId !== 'bc-basic' || !story
+    || story.offer?.versions.length !== 3 || story.pages.length !== 19 || story.tickets.length !== 17
+    || story.timeline.length !== 15 || story.hypercare.length !== 3 || story.relations.length !== 252
+    || bcBasicState.evidenceItems.length !== 0) {
     process.exitCode = 3;
   }
 } finally {

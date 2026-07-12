@@ -5,18 +5,18 @@
     {
       "projectId": "spectra",
       "overallGoal": "Spectra 1.0.0 als vollstaendiges, kundenunabhaengiges Project Operating System fuer Business-Central-Einfuehrungs- und Betriebsprojekte reproduzierbar veroeffentlichen.",
-      "largestGap": "Spectra 0.8.0-alpha.1 ist als installierbarer, reproduzierbarer Prerelease mit Operator-, Recovery-, portablem Story- und Graphtrennungsvertrag veroeffentlicht und in der vollstaendigen BC-Basic-Projektstory gebunden. Fuer den Weg zu 1.0 fehlen noch die bewusst zurueckgestellte generische Baseline-Reconciliation und die commitgebundene Adapter-Provenienz.",
-      "lastCommit": "5dd23c2ff2c408c03fd613348fcb305635cfbf9a",
-      "mainBlocker": "Kein Blocker fuer den veroeffentlichten 0.8-Stand; 0.9 darf die beiden zurueckgestellten Faehigkeiten erst nach generischem OpenSpec-Entwurf, anonymisierter Evidence und frischen Upgrade-/Recovery-/Negativtests als Produktvertrag uebernehmen.",
-      "nextDeliveryBlock": "Spectra 0.9 als naechsten zusammenhaengenden Releaseblock definieren und umsetzen: generisches Baseline-Angebot-Ist-Reconciliation-Modell sowie deklarativen Adapter-Provenienzvertrag mit Source-Hash, Mappingversion, Projektionsdigest und Schreibschutz liefern; anschliessend Candidate, unabhaengige Gates, PR, Merge, Tag und Prerelease strikt getrennt durchlaufen."
+      "largestGap": "Spectra 0.9.0-alpha.1 ist mit generischem Baseline-Angebot-Ist-Abgleich und deklarativer read-only Adapter-Provenienz als reproduzierbarer Prerelease veroeffentlicht. 102 Payloadblobs, finaler Manifestcommit, annotierter Tag und Digest sind unabhaengig gebunden; offen bleibt die reale Rueckkopplung dieses Vertrags in BC Basic und den Twin sowie der anschliessende, aus belegten Restluecken abgeleitete Weg zu 1.0.",
+      "lastCommit": "8e991afe455406280610a98f15dd776444fb81ef",
+      "mainBlocker": "Kein Releaseblocker fuer 0.9. Die naechste Spectra-Funktionsstufe darf erst nach der konkreten BC-Basic- und Twin-Integration aus deren anonymisierten, validierten Restluecken abgeleitet werden.",
+      "nextDeliveryBlock": "Spectra 0.9 in BC Basic und Project Twin commitgebunden pilotieren; danach die verbleibenden generischen 1.0-Luecken aus der vollstaendigen Sandbox-Projektstory ermitteln und als genau einen neuen OpenSpec-Funktionsblock starten."
     },
     {
       "projectId": "blueprint",
       "overallGoal": "Vollstaendige fachliche und operative Source of Truth fuer die erfolgreiche Business-Central-Basic-Einfuehrung bei Universaarl.",
-      "largestGap": "Kein offener fachlicher Story-Gap: Der vollstaendige Sandbox-Playthrough vom Angebot bis Ende Hypercare ist mit 19 Confluence-Seiten, 17 abgeschlossenen Tickets, 34 Kommentaren, 17 Worklogs, 80 Stunden, 9.600 EUR, 15 Ereignissen, drei Hypercaretagen, 252 Relationen und Spectra-0.8-Konformitaet validiert.",
+      "largestGap": "Die vollstaendige Sandbox-Projektstory ist fachlich abgeschlossen und veroeffentlicht. Laufende Erweiterung ist die konkrete Bindung des veroeffentlichten Spectra-0.9-Vertrags samt versioniertem Baseline-Angebot-Ist-Abgleich und read-only Adapter-Provenienz, ohne bestehende Storyzaehlungen oder die synthetische Wahrheitsgrenze zu verfaelschen.",
       "lastCommit": "5c646a643b2645d8b9e348cd81acb5fb38383721",
-      "mainBlocker": "Kein fachlicher, technischer oder Veroeffentlichungsblocker: Der exakt gepruefte Spectra-0.8-Integrationscommit ist auf codex/universaarl-projekt veroeffentlicht und remote unabhaengig bestaetigt.",
-      "nextDeliveryBlock": "Den veroeffentlichten Commit 5c646a643b2645d8b9e348cd81acb5fb38383721 als unveraenderliche fachliche Referenz fuer den Twin und den Spectra-0.9-Lernzyklus halten; neue Kundenstory nur bei einer belegten neuen Simulationsluecke erweitern."
+      "mainBlocker": "Kein Blocker fuer die bestehende Story; die Spectra-0.9-Integration wird erst nach vollstaendiger lokaler Projekt-, Index-, Deutsch-, Negativ- und Fresh-Clone-Pruefung als neuer Kundencommit akzeptiert.",
+      "nextDeliveryBlock": "Spectra 0.9.0-alpha.1 exakt binden, vorhandene Angebots- und Istwerte reconciliieren, die Twin-Projektion commitgebunden provenance-sichern und anschliessend genau einen validierten BC-Basic-Commit zur Kontrollpruefung uebergeben."
     },
     {
       "projectId": "project-twin",
@@ -24,7 +24,7 @@
       "largestGap": "Der Twin zeigt die vollstaendige Projektstory gegen BC Basic 5c646a6 auf Desktop und Mobil sowie Spectra 0.8 mit 89/89 Payloads und akzeptierter Graphtrennung; Positiv- und Fail-closed-Browserpfad, 104 Tests, Build und beide Vertragsketten sind gruen. Offen bleiben ausschliesslich eigenes Repository, menschliche Freigabe und OpenSpec-Archivierung.",
       "lastCommit": "1a55d9dfb86c2632daf6a9288bc160179f1eef3b",
       "mainBlocker": "Kein fachlicher oder technischer Blocker fuer den lokalen Read-only-Zwilling; die eigenstaendige Repository-Zuordnung und menschliche Freigabe bleiben externe Publish-Gates und werden nicht erfunden.",
-      "nextDeliveryBlock": "Ein eigenes kanonisches Project-Twin-Repository eindeutig zuordnen oder neu bereitstellen; erst danach Remote-/PR-/Mergeprozess kontrolliert ausfuehren und menschliche Freigabe sowie OpenSpec-Archivierung als letzte getrennte Publishgates abschliessen."
+      "nextDeliveryBlock": "Nach dem neuen validierten BC-Basic-Spectra-0.9-Commit den Twin exakt auf diesen Branchstand binden und Reconciliation sowie Adapter-Provenienz sichtbar und fail-closed darstellen; die eigene kanonische Repository-Zuordnung bleibt danach das getrennte externe Publishgate."
     }
   ]
 }

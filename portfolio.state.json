@@ -5,17 +5,17 @@
     {
       "projectId": "spectra",
       "overallGoal": "Spectra 1.0.0 als vollstaendiges, kundenunabhaengiges Project Operating System fuer Business-Central-Einfuehrungs- und Betriebsprojekte reproduzierbar veroeffentlichen.",
-      "largestGap": "Der erste Spectra-0.8-Block liefert eine unabhaengig gepruefte Operator-CLI mit sieben Befehlen, Dry-run-Standard, stabilen JSON-Codes und zwei isolierten Profilpiloten. Fuer einen 0.8-Candidate fehlen noch die echte Delegation an bestehende Produktfunktionen, die vollstaendige Upgrade-/Backup-/Restore-Wiederanlaufstrecke, frischer-Clone-Proof und Candidate-Evidence.",
-      "lastCommit": "ab2504d917ed2e7ab3363bf9b6af3a6feaf3d64c",
-      "mainBlocker": "Kein externer Blocker fuer die weitere 0.8-Implementierung; Candidate, Tag und Release bleiben bis zu vollstaendiger delegierter Funktion, Recovery-Evidence und unabhaengigem Releasegate gesperrt.",
-      "nextDeliveryBlock": "Die Operator-CLI an die vorhandenen Init-, Validate-, Upgrade-, Backup-, Restore- und Candidate-Funktionen anbinden; idempotente Wiederaufnahme und Rollback mit zwei isolierten Profilpiloten belegen und danach einen frischen-Clone-Readinesslauf vorbereiten."
+      "largestGap": "Der Spectra-0.8-Funktionsblock delegiert jetzt alle sieben Operatorbefehle real, uebernimmt nonzero-Validatoren fail-closed und belegt Backup/Restore, Rollback, Pflichtverzeichnisse, zwei isolierte Profile und Fresh-Clone. Offen ist nur noch der getrennte 0.8.0-alpha.1-Candidate mit Manifest, Digest und unabhaengiger Readinesspruefung.",
+      "lastCommit": "bd14bb8e7b0e21c439f8735ceba05d53ac55c889",
+      "mainBlocker": "Kein Implementierungsblocker; Candidate, Tag und Release bleiben bis zu einem separat erzeugten und unabhaengig vollstaendig geprueften Candidate-Manifest gesperrt.",
+      "nextDeliveryBlock": "Exakt einen Spectra-0.8.0-alpha.1-Candidate aus bd14bb8 erzeugen: Scope einfrieren, Candidate-Manifest und Payloaddigest deterministisch erstellen, alle Produkt-/Workspace-/Recovery-/OpenSpec-Gates in frischer Kopie pruefen und danach eine unabhaengige GO/NO-GO-Entscheidung einholen."
     },
     {
       "projectId": "blueprint",
       "overallGoal": "Vollstaendige fachliche und operative Source of Truth fuer die erfolgreiche Business-Central-Basic-Einfuehrung bei Universaarl.",
       "largestGap": "Kein offener fachlicher Story-Gap: Der historische 68-Stunden-/11.050-EUR-Plan ist jetzt sauber vom synthetischen 80-Stunden-/9.600-EUR-Angebot und Ist getrennt. Die vollstaendige Story, 17 Tickets, 34 Kommentare, 17 Worklogs, 15 Ereignisse, drei Hypercaretage, 252 Relationen und Spectra-0.7-Konformitaet bleiben validiert.",
       "lastCommit": "28286b8c0e1943d7fa614022cef6aa0d28882c15",
-      "mainBlocker": "Kein Blocker fuer den abgeschlossenen Simulationsstand; neue Produkt- oder Projekterkenntnisse duerfen nur anonymisiert als noch nicht uebernommene Kandidaten in einen spaeteren Spectra-Releaseprozess einfliessen.",
+      "mainBlocker": "Kein Blocker fuer den abgeschlossenen und auf dem Entwicklungsbranch veroeffentlichten Simulationsstand; neue Erkenntnisse bleiben bis zur Spectra-Releaseentscheidung reine anonymisierte Kandidaten.",
       "nextDeliveryBlock": "Den validierten Abschlussstand als stabile Referenz halten und die drei anonymisierten Kandidaten Baseline-Reconciliation, Adapter-Provenienz und Graph-Coverage erst ueber den Spectra-0.8-OpenSpec-Prozess bewerten lassen; keine direkte Uebernahme."
     },
     {

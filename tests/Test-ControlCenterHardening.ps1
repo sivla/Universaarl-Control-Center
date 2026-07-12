@@ -78,6 +78,8 @@ try {
         'REVIEW.md' = ''
         'tracked.txt' = 'versioniert'
     }
+    $snapshotParent = $snapshotFixture.sha
+    Commit-FixtureChange -Fixture $snapshotFixture -Path 'tracked.txt' -Content 'versioniert-zwei'
     Write-FixtureText -Root $snapshotFixture.path -Relative 'ignored.marker' -Content 'darf nicht kopiert werden'
     Write-FixtureText -Root $snapshotFixture.path -Relative 'untracked.marker' -Content 'darf nicht kopiert werden'
     $snapshotSandbox = Join-Path $TestRoot 'snapshot-sandbox'
@@ -95,6 +97,11 @@ try {
     Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $snapshot '.git\FETCH_HEAD'))) -Message 'Commit-Kopie verraet die Quelladresse ueber FETCH_HEAD.'
     $snapshotHeadFile = [IO.File]::ReadAllText((Join-Path $snapshot '.git\HEAD'), [Text.Encoding]::ASCII).Trim()
     Assert-True -Condition ($snapshotHeadFile -eq $snapshotFixture.sha) -Message 'Commit-Kopie besitzt keinen direkt an die exakte SHA gebundenen abgeloesten HEAD.'
+    $historySnapshot = Join-Path $snapshotSandbox 'historien-kopie'
+    New-UniversaarlCommitSnapshot -SourceRepository $snapshotFixture.path -Commit $snapshotFixture.sha -Destination $historySnapshot -SandboxRoot $snapshotSandbox -IncludeHistory -AllowedVersionedMedia $blueprintMediaAllowlist | Out-Null
+    $null = Invoke-FixtureGit -Repository $historySnapshot -Arguments @('cat-file', '-e', "$snapshotParent^{commit}")
+    Assert-True -Condition ([string]::IsNullOrWhiteSpace((Invoke-FixtureGit -Repository $historySnapshot -Arguments @('remote')))) -Message 'Historien-Kopie besitzt ein Remote.'
+    Assert-True -Condition (-not (Test-Path -LiteralPath (Join-Path $historySnapshot '.git\FETCH_HEAD'))) -Message 'Historien-Kopie verraet die Quelladresse ueber FETCH_HEAD.'
     $branchSnapshot = Join-Path $snapshotSandbox 'zweig-kopie'
     New-UniversaarlCommitSnapshot -SourceRepository $snapshotFixture.path -Commit $snapshotFixture.sha -Destination $branchSnapshot -SandboxRoot $snapshotSandbox -ExpectedBranch 'codex/commit-pruefung' -AllowedVersionedMedia $blueprintMediaAllowlist | Out-Null
     Assert-True -Condition ((Invoke-FixtureGit -Repository $branchSnapshot -Arguments @('rev-parse', 'HEAD')) -eq $snapshotFixture.sha) -Message 'Zweiggebundene Commit-Kopie besitzt nicht die exakte SHA.'

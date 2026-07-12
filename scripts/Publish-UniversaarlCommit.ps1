@@ -219,6 +219,15 @@ if ($Blockers.Count -eq 0) {
             $ancestor = Invoke-UniversaarlGitRead -Repository $selectedState.path -Arguments @('merge-base', '--is-ancestor', $remoteHead, $commit)
             if ($ancestor.exitCode -ne 0) { throw 'Der entfernte HEAD ist kein bekannter Vorfahr des geprueften Commits.' }
         }
+        $revision = if ($null -ne $remoteHead) { "$remoteHead..$commit" } else { $commit }
+        $history = Invoke-UniversaarlGitRead -Repository $selectedState.path -Arguments @('rev-list', '--reverse', $revision)
+        if ($history.exitCode -ne 0 -or [string]::IsNullOrWhiteSpace($history.output)) { throw 'Die zu veroeffentlichende Commit-Historie kann nicht vollstaendig bestimmt werden.' }
+        foreach ($historyCommit in @($history.output -split "`n" | Where-Object { $_ })) {
+            Assert-FullCommitSha -Commit $historyCommit
+            Assert-UniversaarlCommitRuntimeSafe -Repository $selectedState.path -Commit $historyCommit -AllowedVersionedMedia @($selectedState.config.allowedVersionedMedia)
+            $historyEnvironmentExample = Test-UniversaarlEnvironmentExample -Repository $selectedState.path -Commit $historyCommit
+            if ($historyEnvironmentExample.present -and $historyEnvironmentExample.safe -ne $true) { throw "Unsichere versionierte `.env.example` in der zu veroeffentlichenden Historie bei Commit $historyCommit." }
+        }
     }
     catch { Add-Blocker $_.Exception.Message }
 }
@@ -257,7 +266,7 @@ $hooksLock = $null
 try {
     $pushRootLock = Open-UniversaarlLockedDirectoryChain -Directory $pushRoot
     $pushRepository = Join-Path $pushRoot 'push-copy'
-    New-UniversaarlCommitSnapshot -SourceRepository $selectedState.path -Commit $commit -Destination $pushRepository -SandboxRoot $pushRoot -AllowedVersionedMedia @($selectedState.config.allowedVersionedMedia) | Out-Null
+    New-UniversaarlCommitSnapshot -SourceRepository $selectedState.path -Commit $commit -Destination $pushRepository -SandboxRoot $pushRoot -IncludeHistory -AllowedVersionedMedia @($selectedState.config.allowedVersionedMedia) | Out-Null
     $pushRepositoryLock = Open-UniversaarlLockedDirectoryChain -Directory $pushRepository
     $gitHome = Join-Path $pushRoot 'git-home'
     $hooksPath = Join-Path $pushRoot 'publisher-hooks'
@@ -275,7 +284,12 @@ try {
     $null = Assert-UniversaarlBoundVerificationSourceState -AuditReport $AuditReport -GoalReport $GoalReport -Configuration $Config
     $null = Assert-BoundProjectStates -AuditReport $AuditReport -Configuration $Config -SelectedProject $Project
     $push = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -UseExplicitRepositoryPaths -Arguments @('push', '--porcelain', $expectedUrl, $refSpec)
-    if ($push.exitCode -ne 0) { throw "Die Git-Uebertragung ist mit Rueckgabecode $($push.exitCode) fehlgeschlagen." }
+    if ($push.exitCode -ne 0) {
+        $pushDetail = ([string]$push.output -replace '[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '').Trim()
+        if ($pushDetail.Length -gt 2000) { $pushDetail = $pushDetail.Substring(0, 2000) + ' ...' }
+        if ([string]::IsNullOrWhiteSpace($pushDetail)) { $pushDetail = 'Git lieferte keine Diagnoseausgabe.' }
+        throw "Die Git-Uebertragung ist mit Rueckgabecode $($push.exitCode) fehlgeschlagen: $pushDetail"
+    }
     $null = Assert-BoundProjectStates -AuditReport $AuditReport -Configuration $Config -SelectedProject $Project
     $verify = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $pushRepository -UseExplicitRepositoryPaths -Arguments @('ls-remote', '--heads', $expectedUrl, "refs/heads/$branch")
     $published = if ($verify.output) { ($verify.output -split '\s+')[0] } else { '' }

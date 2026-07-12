@@ -1012,6 +1012,7 @@ function New-UniversaarlCommitSnapshot {
         [Parameter(Mandatory)][string]$Destination,
         [Parameter(Mandatory)][string]$SandboxRoot,
         [string]$ExpectedBranch,
+        [switch]$IncludeHistory,
         [object[]]$AllowedVersionedMedia = @()
     )
     Assert-FullCommitSha -Commit $Commit
@@ -1028,7 +1029,10 @@ function New-UniversaarlCommitSnapshot {
     if ($init.exitCode -ne 0) { throw "Temporaeres Git-Repository konnte nicht angelegt werden: $($init.output)" }
     $config = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('config', 'core.hooksPath', $hooks)
     if ($config.exitCode -ne 0) { throw 'Git-Hooks konnten in der Wegwerfkopie nicht isoliert werden.' }
-    $fetch = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('-c', 'protocol.file.allow=always', 'fetch', '--quiet', '--no-tags', '--depth=1', $SourceRepository, $Commit)
+    $fetchArguments = @('-c', 'protocol.file.allow=always', 'fetch', '--quiet', '--no-tags')
+    if (-not $IncludeHistory) { $fetchArguments += '--depth=1' }
+    $fetchArguments += @($SourceRepository, $Commit)
+    $fetch = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments $fetchArguments
     if ($fetch.exitCode -ne 0) { throw "Commit konnte nicht in die Wegwerfkopie uebernommen werden: $($fetch.output)" }
     # `git checkout` ist auf Windows fuer frisch geholte, grosse Baume gelegentlich
     # an kurzlebigen Dateisperren gescheitert. HEAD und Arbeitsbaum werden deshalb

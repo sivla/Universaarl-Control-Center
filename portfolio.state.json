@@ -5,26 +5,26 @@
     {
       "projectId": "spectra",
       "overallGoal": "Spectra 1.0.0 als vollstaendiges, kundenunabhaengiges Project Operating System fuer Business-Central-Einfuehrungs- und Betriebsprojekte reproduzierbar veroeffentlichen.",
-      "largestGap": "Der Spectra-0.8-Funktionsblock delegiert jetzt alle sieben Operatorbefehle real, uebernimmt nonzero-Validatoren fail-closed und belegt Backup/Restore, Rollback, Pflichtverzeichnisse, zwei isolierte Profile und Fresh-Clone. Offen ist nur noch der getrennte 0.8.0-alpha.1-Candidate mit Manifest, Digest und unabhaengiger Readinesspruefung.",
-      "lastCommit": "bd14bb8e7b0e21c439f8735ceba05d53ac55c889",
-      "mainBlocker": "Kein Implementierungsblocker; Candidate, Tag und Release bleiben bis zu einem separat erzeugten und unabhaengig vollstaendig geprueften Candidate-Manifest gesperrt.",
-      "nextDeliveryBlock": "Exakt einen Spectra-0.8.0-alpha.1-Candidate aus bd14bb8 erzeugen: Scope einfrieren, Candidate-Manifest und Payloaddigest deterministisch erstellen, alle Produkt-/Workspace-/Recovery-/OpenSpec-Gates in frischer Kopie pruefen und danach eine unabhaengige GO/NO-GO-Entscheidung einholen."
+      "largestGap": "Spectra 0.8.0-alpha.1 ist als installierbarer, reproduzierbarer Prerelease mit Operator-, Recovery-, portablem Story- und Graphtrennungsvertrag veroeffentlicht und in der vollstaendigen BC-Basic-Projektstory gebunden. Fuer den Weg zu 1.0 fehlen noch die bewusst zurueckgestellte generische Baseline-Reconciliation und die commitgebundene Adapter-Provenienz.",
+      "lastCommit": "5dd23c2ff2c408c03fd613348fcb305635cfbf9a",
+      "mainBlocker": "Kein Blocker fuer den veroeffentlichten 0.8-Stand; 0.9 darf die beiden zurueckgestellten Faehigkeiten erst nach generischem OpenSpec-Entwurf, anonymisierter Evidence und frischen Upgrade-/Recovery-/Negativtests als Produktvertrag uebernehmen.",
+      "nextDeliveryBlock": "Spectra 0.9 als naechsten zusammenhaengenden Releaseblock definieren und umsetzen: generisches Baseline-Angebot-Ist-Reconciliation-Modell sowie deklarativen Adapter-Provenienzvertrag mit Source-Hash, Mappingversion, Projektionsdigest und Schreibschutz liefern; anschliessend Candidate, unabhaengige Gates, PR, Merge, Tag und Prerelease strikt getrennt durchlaufen."
     },
     {
       "projectId": "blueprint",
       "overallGoal": "Vollstaendige fachliche und operative Source of Truth fuer die erfolgreiche Business-Central-Basic-Einfuehrung bei Universaarl.",
-      "largestGap": "Kein offener fachlicher Story-Gap: Der historische 68-Stunden-/11.050-EUR-Plan ist jetzt sauber vom synthetischen 80-Stunden-/9.600-EUR-Angebot und Ist getrennt. Die vollstaendige Story, 17 Tickets, 34 Kommentare, 17 Worklogs, 15 Ereignisse, drei Hypercaretage, 252 Relationen und Spectra-0.7-Konformitaet bleiben validiert.",
-      "lastCommit": "28286b8c0e1943d7fa614022cef6aa0d28882c15",
-      "mainBlocker": "Kein Blocker fuer den abgeschlossenen und auf dem Entwicklungsbranch veroeffentlichten Simulationsstand; neue Erkenntnisse bleiben bis zur Spectra-Releaseentscheidung reine anonymisierte Kandidaten.",
-      "nextDeliveryBlock": "Den validierten Abschlussstand als stabile Referenz halten und die drei anonymisierten Kandidaten Baseline-Reconciliation, Adapter-Provenienz und Graph-Coverage erst ueber den Spectra-0.8-OpenSpec-Prozess bewerten lassen; keine direkte Uebernahme."
+      "largestGap": "Kein offener fachlicher Story-Gap: Der vollstaendige Sandbox-Playthrough vom Angebot bis Ende Hypercare ist mit 19 Confluence-Seiten, 17 abgeschlossenen Tickets, 34 Kommentaren, 17 Worklogs, 80 Stunden, 9.600 EUR, 15 Ereignissen, drei Hypercaretagen, 252 Relationen und Spectra-0.8-Konformitaet validiert.",
+      "lastCommit": "5c646a643b2645d8b9e348cd81acb5fb38383721",
+      "mainBlocker": "Kein fachlicher oder technischer Blocker; der neue Spectra-0.8-Integrationscommit liegt exakt einen Commit vor dem bereits veroeffentlichten Entwicklungsbranch und wartet nur auf den bestandenen kontrollierten Publisherlauf.",
+      "nextDeliveryBlock": "Den exakt geprueften Commit 5c646a643b2645d8b9e348cd81acb5fb38383721 kontrolliert auf codex/universaarl-projekt veroeffentlichen und danach als unveraenderliche Referenz fuer Twin und den Spectra-0.9-Lernzyklus halten."
     },
     {
       "projectId": "project-twin",
       "overallGoal": "Robustes, verstaendliches und taeglich nutzbares, strikt nur-lesendes Projektcockpit fuer validierte versionierte Snapshots.",
-      "largestGap": "Die vollstaendige Projektstory und Spectra-0.7-Nachweise sind gegen BC Basic 28286b8 vollstaendig vertragsgeprueft; alle direkten Abhaengigkeiten sind exakt gepinnt und der Audit meldet keine DEP-Abweichung mehr. Offen bleiben ausschliesslich das eigene Project-Twin-Repository, die menschliche Freigabe und OpenSpec-Archivierung.",
-      "lastCommit": "10086ce97fff2caadca04e9743d807c033bbffb4",
+      "largestGap": "Der Twin zeigt die vollstaendige Projektstory gegen BC Basic 5c646a6 auf Desktop und Mobil sowie Spectra 0.8 mit 89/89 Payloads und akzeptierter Graphtrennung; Positiv- und Fail-closed-Browserpfad, 104 Tests, Build und beide Vertragsketten sind gruen. Offen bleiben ausschliesslich eigenes Repository, menschliche Freigabe und OpenSpec-Archivierung.",
+      "lastCommit": "1a55d9dfb86c2632daf6a9288bc160179f1eef3b",
       "mainBlocker": "Kein fachlicher oder technischer Blocker fuer den lokalen Read-only-Zwilling; die eigenstaendige Repository-Zuordnung und menschliche Freigabe bleiben externe Publish-Gates und werden nicht erfunden.",
-      "nextDeliveryBlock": "Read-only feststellen, ob ein eigenes kanonisches Project-Twin-Repository bereits existiert; erst nach eindeutiger Zuordnung den kontrollierten Remote-/PR-/Mergeprozess ausfuehren und danach menschliche Freigabe sowie OpenSpec-Archivierung getrennt abschliessen."
+      "nextDeliveryBlock": "Ein eigenes kanonisches Project-Twin-Repository eindeutig zuordnen oder neu bereitstellen; erst danach Remote-/PR-/Mergeprozess kontrolliert ausfuehren und menschliche Freigabe sowie OpenSpec-Archivierung als letzte getrennte Publishgates abschliessen."
     }
   ]
 }

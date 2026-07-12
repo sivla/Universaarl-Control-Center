@@ -3,7 +3,7 @@
   "projects": {
     "blueprint": {
       "objective": "Ein vollstaendiges, standardnahes BC-Basic-Einfuehrungsprojekt fuer genau eine ehrlich synthetische Firma repositorybasiert so durchspielen, als waere die Sandbox die Produktivumgebung: vom versionierten Angebotsdokument und Projektstart ueber Confluence-Seiten, Tickets mit Kommentaren, Daten, Setup, P2P, O2C, Zahlungen, Abstimmung, Lager, Monatsabschluss, UAT, Schulung, Cutover und simulierten Go-live bis zum letzten Hypercaretag, Wiederanlauf, Abschluss und Handover; dabei bleiben hoechstens 80 abrechenbare Stunden und die Gesamtkosten strikt unter 10.000 EUR netto.",
-      "currentGoal": "Den vollstaendig validierten Simulationsabschluss mit versioniert getrenntem historischen Plan, synthetischem Angebot und Ist, 19 Confluence-Seiten, 17 abgeschlossenen Tickets samt Kommentaren und Worklogs, Story bis Ende Hypercare, Branch-Index und Spectra-0.7-Bindung als stabile fachliche Referenz erhalten.",
+      "currentGoal": "Den vollstaendig validierten Sandbox-Playthrough als lueckenlose Projektstory vom ersten Angebotsstand bis zum Ende der Hypercare erhalten: drei Angebotsstaende, 19 Confluence-Seiten, 17 abgeschlossene Tickets, 34 Abschlusskommentare, 17 Worklogs, 80 Stunden und 9.600 EUR, 15 Projektereignisse, drei Hypercaretage, alle BC-Basic-Prozessnachweise, 252 Relationen, einen validierten Branch-Index und die unveraenderliche Spectra-0.8-Bindung. Simulierte Kundenfreigaben und Business-Central-Schritte bleiben echte Prozessgates, blockieren den synthetischen Playthrough aber nicht.",
       "antiGoals": [
         "Metadaten- oder Steuerungsarbeit ohne Beitrag zu einem fachlichen Auslieferungsziel",
         "Synthetische Termine, Freigaben oder Ergebnisse als reale Kunden-, BC-, Bank-, Produktions- oder Steueraktivitaet ausgeben",
@@ -13,7 +13,7 @@
     },
     "project-twin": {
       "objective": "Den jeweils neuesten vollstaendig validierten Commit des festgelegten BC-Basic-Entwicklungsbranches als sicheren, vollstaendig deutschen und ausschliesslich lesenden digitalen Projektzwilling darstellen: Angebot, Confluence-Seiten, Tickets samt Kommentaren, Projektstory, BC-Playthrough, Tests, Entscheidungen, Cutover und Hypercare bis zum Abschluss, ohne eigene fachliche Projektdaten oder Rueckschreibfunktionen zu besitzen.",
-      "currentGoal": "Den manifestfreien Branchmodus exakt an den validierten BC-Basic-Branchstand 28286b8 binden und die vollstaendige Projektstory sowie Spectra-0.7-Evidence strikt nur-lesend anzeigen; nach geschlossenen Abhaengigkeitspins verbleiben eigenes Repository, menschliche Freigabe und OpenSpec-Archivierung als getrennte Publishgates.",
+      "currentGoal": "Den manifestfreien Branchmodus exakt an den validierten BC-Basic-Commit 5c646a643b2645d8b9e348cd81acb5fb38383721 binden und die vollstaendige Projektstory vom Angebot bis Ende Hypercare samt Confluence-Seiten, abgeschlossenen Tickets, Kommentaren, Worklogs, BC-Playthrough und Spectra-0.8-Evidence strikt nur-lesend darstellen; fehlende oder widerspruechliche Quellen muessen deutsch und fail-closed blockieren. Eigenes Repository, menschliche Freigabe und OpenSpec-Archivierung bleiben getrennte Publishgates.",
       "requiredBaseCommit": "bac0fd39ae16f89a4725109b6b09e486076377f0",
       "currentChange": "establish-read-only-project-twin-mvp",
       "antiGoals": [

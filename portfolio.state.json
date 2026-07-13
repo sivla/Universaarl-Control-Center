@@ -7,11 +7,11 @@
   "projects": [
     {
       "projectId": "spectra",
-      "overallGoal": "Externe, kundenunabhaengige Produktvertrags- und Release-Evidence fuer die wiederholbare BC-Basic-Einfuehrung.",
-      "largestGap": "Der lokale Spectra-1.0.0-PENDING-Candidate ist auf Commit B 9c0bb9b4ff43d74d3756c6388cff0da7ddedf3c7, Tree dfc1fb8cc14d074ad8633f712398b0bc5c86ad22, unabhaengig gruen. Er bindet den Releasevertragscommit A 61b2cccddcdb751809a4a8a174b45d6f4de6dfeb mit 294 eindeutigen Payloads im Modus 100644 und Digest 06674b877918d01be6698c18e806dcb14d5ff1fc540275936a6729051827a27b; 22/22 Vertragsgruppen, 29/29 OpenSpec strict und die Post-Test-Invarianz sind bestanden.",
-      "lastCommit": "9c0bb9b4ff43d74d3756c6388cff0da7ddedf3c7",
-      "mainBlocker": "Spectra bleibt PENDING_BCPROJECTOS_RELEASE. Der unabhaengig gruene lokale Candidate ist weder final noch installierbar, getaggt oder veroeffentlicht; fuer Release-GO fehlen Promotion, finales Manifest, normaler PR/Merge, annotierter Tag, nicht als Draft veroeffentlichter Release und Post-Release-Verifikation.",
-      "nextDeliveryBlock": "Keine weitere Fachfunktion und kein neuer Candidate. Der naechste getrennte Release-Gateblock ist die kontrollierte Promotion des unabhaengig gruenen Candidates mit finalem Manifest, normalem PR/Merge, annotiertem spectra-v1.0.0-Tag, Veroeffentlichung und unabhaengigem Postcheck; bis dahin bleibt der Status PENDING."
+      "overallGoal": "Ein kundenunabhaengiges, ausrollbares Projekt-, Support-, Wissens- und Informationsbetriebssystem mit kontrollierter Jira-/Confluence-Adoption.",
+      "largestGap": "Spectra 1.1.0-alpha.1 ist als installierbares Non-Draft-Prerelease vollstaendig veroeffentlicht und unabhaengig post-release verifiziert. Remote-main und Releasecommit sind 1dc0fd14c256dfc926eae48b1e1f664339ebb9e4; das annotierte Tagobjekt 95015425d81ba530c4c05802f0d45853551df266 zeigt exakt darauf. Das finale Manifest bindet Source 72c46fe24932ce3c3b397c6055e4e99ffa1735c6 und Tree 6b17c699bf9dbe264bb276e6b142d9befe746f75, 303 Payloads im Modus 100644 und Digest 5dc5cfe358e1c3b76d1c6dcc4a6269b8794255c791fee292505cb405f3de4459. Exact-Tag-Adoption fuer Implementation und Support-only ist BOUND und mit null Remote-Writes gruen.",
+      "lastCommit": "1dc0fd14c256dfc926eae48b1e1f664339ebb9e4",
+      "mainBlocker": "Der Release kann bestehende Jira-/Confluence-Strukturen aus einem revisionsgebundenen Discovery-Export inventarisieren, projektspezifisch mappen, planen und lokal atomar uebernehmen. Ein echter Live-Atlassian-Adapter fuer read/plan/apply ist bewusst noch nicht enthalten; Jira- und Confluence-APIs werden nicht direkt aufgerufen und entfernte Strukturen nicht veraendert.",
+      "nextDeliveryBlock": "Spectra 1.1.0-alpha.1 zuerst gegen das BC-Basic-Bestandsprojekt als reales Referenzprofil anwenden: Jira-Site, Projekt und Board sowie Confluence-Site, Spaces und Root-Seiten konfigurieren, Discovery read-only importieren, Mapping und Plan pruefen und den lokalen Workspace erzeugen. Danach als getrennten 1.1.x-Block den minimalen read-only Atlassian-Discovery-Adapter mit lokaler .env-/Secret-Provider-Bindung entwickeln; Remote-Apply bleibt bis eigener Freigabe gesperrt."
     },
     {
       "projectId": "blueprint",

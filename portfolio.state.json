@@ -16,18 +16,18 @@
     {
       "projectId": "blueprint",
       "overallGoal": "Ein verkaufbares und lean wiederholbares BC-Basic-Standardprodukt, das den Kunden fachlich, organisatorisch und operativ bis zur sicheren taeglichen Nutzung befaehigt.",
-      "largestGap": "Die CRONUS-Rebaseline ist auf Commit 5f2d5dccb56dff7cec26885edf098f46ecbeee61, Tree b5763702f2c8b0fe9da37f52b54797e1cb715da7, unabhaengig gruen. Der validierte Stand trennt Standard-CRONUS, Soll und Delta, meldet pilotConfigured=false, writesApplied=false, readback pending, selectedOption=null und writesAuthorized=false. Historische Country-/Company-Ausfuehrung ist aus allen aktiven Exportflaechen entfernt; 174/174 Fokus, 175/175 Governance, Deutsch 19/19, OpenSpec, Snapshot, Katalog, Referenzen und der 145-Sekunden-Gesamtcheck sind bestanden.",
-      "lastCommit": "5f2d5dccb56dff7cec26885edf098f46ecbeee61",
-      "mainBlocker": "Kein Vertrags- oder Twin-Blocker fuer den read-only Ausgangsstand. Vor jedem BC-Schreiben bleibt W0-01-read-company-identity der einzige zulaessige naechste Schritt; Zielgesellschaft, Resetstrategie, interne Gesellschafts-ID und Readback muessen daraus belegt entschieden werden.",
-      "nextDeliveryBlock": "W0-01 in der Playthru-Umgebung kontrolliert read-only ausfuehren und bereinigte Evidence fuer Gesellschaftsidentitaet, CRONUS-Provenienz und Zielstrategie erzeugen. Danach die Entscheidung sauber in Quelle, Jira, Confluence, Run-Plan, Snapshot und Twin zurueckfuehren; erst dann CORE-FINANCE separat freigeben."
+      "largestGap": "Der blockierte W0-01-Nur-Lese-Versuch ist auf Commit e3b2fb7f13d2e2ba722a5f841edf659a3e731933, Tree 0c330f03d50cc5b65bd21977318747712d4782e7, unabhaengig gruen. UABC-BASIC-DE ist der technische Mandantenname; Standard CRONUS ist ausschliesslich als Nutzerinformation klassifiziert. Der Browser blockierte vor DOM-, Screenshot- und Feldreadback, daher bleiben bcReadbackAuthority=false, pilotConfigured=false, writesApplied=false, writesAuthorized=false und selectedOption=null. UABC-39 ist mit 0,25 Stunden Worklog blockiert; Fokus 161/161, Governance 184/184, Walkthrough 10/10, Playwright 2/2, Snapshot, Katalog und Referenzen sind bestanden.",
+      "lastCommit": "e3b2fb7f13d2e2ba722a5f841edf659a3e731933",
+      "mainBlocker": "Vor jedem BC-Schreiben bleibt ein manuell zugaenglicher read-only W0-01-Termin erforderlich. Interne Gesellschafts-ID, Anzeigename, Firmendaten, Country/Region, CRONUS-Feldindizien und Gesellschaftsabgrenzung sind noch nicht aus BC gelesen; URL, Titel und Nutzerinformation ersetzen diesen Feldreadback nicht.",
+      "nextDeliveryBlock": "Den unabhaengig validierten Producercommit zuerst im Twin sichtbar und fail-closed binden. Danach W0-01 in einem manuell zugaenglichen read-only Termin mit sichtbaren Feldnachweisen abschliessen und erst auf dieser Grundlage Ziel-/Resetstrategie sowie einen separaten CORE-FINANCE-Schreibblock entscheiden."
     },
     {
       "projectId": "project-twin",
       "overallGoal": "Ein strikt nur-lesendes, handlungsorientiertes Cockpit fuer den neuesten validierten BC-Basic-Branch-Commit.",
       "largestGap": "Project Twin ist auf Commit 4a74caa92bc23342a9464615a8c22b9ed507fcd6, Tree 10838842a1b700227d7238704402ea775ed7d1b2, gegen BC-Commit 5f2d5dccb56dff7cec26885edf098f46ecbeee61 unabhaengig gruen. 138 positivgelistete Git-Blobs und alle Digests stimmen; Fokus/Cross-Contract 41/41 sowie der bereinigte Gesamtcheck mit 16 Testdateien und 200 Tests, Deutsch, TypeScript und Build sind bestanden. Sechs Browserkernrouten und die API liefern HTTP 200, die Konsole 0 Fehler/0 Warnungen.",
       "lastCommit": "4a74caa92bc23342a9464615a8c22b9ed507fcd6",
-      "mainBlocker": "Kein offener lokaler Twin-, Cross-Contract- oder Browserblocker fuer den validierten Producerstand 5f2d5dccb56dff7cec26885edf098f46ecbeee61. Der Twin zeigt Standard-CRONUS, Pilot/Schreiben Nein, Readback ausstehend, W0-01 als einzigen naechsten Schritt und keine aktuelle Country-/Company-/Defect-/Retest-Evidence.",
-      "nextDeliveryBlock": "Den aktuell darstellbaren Stand stabil halten und erst den naechsten unabhaengig validierten BC-Producercommit nach W0-01 erneut fail-closed binden. Tickets und Tagebuch bleiben geldfrei; Budget bleibt getrennt. Keine neue Twin-Fachwahrheit oder vorweggenommene BC-Ausfuehrung."
+      "mainBlocker": "Der bisherige Twin-Commit ist fuer Producer 5f2d5dccb56dff7cec26885edf098f46ecbeee61 gruen, zeigt aber den neuen unabhaengig validierten W0-01-Producercommit e3b2fb7f13d2e2ba722a5f841edf659a3e731933 noch nicht. Es besteht kein Producerdefekt; die commitgebundene Twin-Neubindung laeuft.",
+      "nextDeliveryBlock": "Exakt Producer e3b2fb7f13d2e2ba722a5f841edf659a3e731933 mit 139 Allowlistartefakten fail-closed binden und den blockierten W0-01-Versuch, 0,25 Stunden Ist, 46/1/3 Ticketstatus sowie die getrennte Budgetansicht browserseitig belegen. Keine neue Twin-Fachwahrheit oder vorweggenommene BC-Ausfuehrung."
     }
   ]
 }

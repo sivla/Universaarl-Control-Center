@@ -8,26 +8,26 @@
     {
       "projectId": "spectra",
       "overallGoal": "Externe, kundenunabhaengige Produktvertrags- und Release-Evidence fuer die wiederholbare BC-Basic-Einfuehrung.",
-      "largestGap": "Der abgegrenzte Projektartenblock ist auf Commit cf8cb586470afcaeda78bb3225f7067a6824e982, Tree e4c25298f55401600505f2dfbc5bb2f8149ddf82, mit Fresh-Clone-Nachweis sauber abgeschlossen. Der veroeffentlichte RC1-Stand bleibt unveraendert; es wurde keine neue Version oder Release-Evidence erfunden.",
-      "lastCommit": "cf8cb586470afcaeda78bb3225f7067a6824e982",
-      "mainBlocker": "Fuer Spectra 1.0 fehlen weiterhin die kontrollierte Integration der getrennten lokalen Folgeblocks und der unabhaengige finale Releaseprozess mit unveraenderlichem Tag, Commit, Manifest und Digest.",
-      "nextDeliveryBlock": "Bis zu einem eigenen Releaseauftrag keine neue Fachfunktion beginnen. Den sauberen Projektartenstand als Evidence halten und den naechsten Integrations- oder Releaseblock erneut eng abgrenzen."
+      "largestGap": "Der P0-Skillkatalog ist auf Commit 2c02c5970b7592fac3fd1fc810b202319c7318ba, Tree 87d1962c1190d2f3f02519a6c306097567c5e030, unabhaengig gruen: 11 Skills, 13/13 Negativfaelle, 11/11 Trigger-/Forward-Faelle sowie fail-closed Atlassian- und BC-Sandbox-Proben. RC.1 ist veroeffentlicht; RC.2 und RC.3 sind lokal commitgebunden geprueft, aber noch nicht integriert oder veroeffentlicht.",
+      "lastCommit": "2c02c5970b7592fac3fd1fc810b202319c7318ba",
+      "mainBlocker": "Der normale Push des RC.2-Integrationsbranches und ein Draft-PR gegen main benoetigen eine ausdrueckliche Remote-Freigabe. Ohne sie bleiben RC.2, RC.3 und der finale 1.0.0-Gate lokal und unveroeffentlicht.",
+      "nextDeliveryBlock": "Nach ausdruecklicher Freigabe zuerst RC.2 normal pushen und per Draft-PR integrieren; danach RC.3 in derselben belegten Reihenfolge und erst anschliessend den finalen 1.0.0-Gate ausfuehren. Keine neue Fachfunktion in diesen Releaseblock aufnehmen."
     },
     {
       "projectId": "blueprint",
       "overallGoal": "Ein verkaufbares und lean wiederholbares BC-Basic-Standardprodukt, das den Kunden fachlich, organisatorisch und operativ bis zur sicheren taeglichen Nutzung befaehigt.",
-      "largestGap": "Der Drei-Space-Producer ist auf Commit 4557d93c4b89697c13c7345b39c167f09f441d03, Tree 97d29bedf15b6976cd7061ba8f28af430b2d761c, sauber abgeschlossen: 3 Spaces, 22 Hauptseiten im Verhaeltnis 6/8/8, 6 Unterseiten, 19/19 verlustfreie Migrationen, 43 Katalogdokumente und 50 Jira-Tickets.",
-      "lastCommit": "4557d93c4b89697c13c7345b39c167f09f441d03",
-      "mainBlocker": "Kein offener fachlicher Producer- oder Consumerblocker. Offen sind nur die kontrollierte Integration in den stabilen Producerbranch und die spaetere Veroeffentlichung.",
-      "nextDeliveryBlock": "Den belegten Drei-Space-Commit unabhaengig kontrollpruefen und erst danach in den stabilen Producerbranch integrieren; keine neue Kundenwahrheit oder Strukturarbeit in diesen Abschlussblock aufnehmen."
+      "largestGap": "Country/Region DE und die freigegebenen Firmendaten des Live-Mandanten UABC-BASIC-DE sind auf Commit 85870b514ef32b80778b824924707e88dd15dc3d, Tree 62954236bdea4c7f2dc1517730a935bd96ab665e, unabhaengig vollstaendig gruen. Der erste Three-Space- und Jira-Generatorlauf bleibt in einer frischen Windows-Kopie byte- und statusidentisch; npm test, OpenSpec, Sprache, Governance, Walkthrough, Browser, Snapshot, Katalog und Referenzen sind bestanden.",
+      "lastCommit": "85870b514ef32b80778b824924707e88dd15dc3d",
+      "mainBlocker": "Kein offener Integrationsblocker fuer den Country-/Company-Fachblock; Twin stellt ihn commitgebunden dar. Die naechste fachliche Luecke ist die noch fehlende exakte Tabellen-/Feldmatrix und kontrollierte Sandbox-Anwendung der ersten CORE-FINANCE-Konfigurationswelle.",
+      "nextDeliveryBlock": "Auf einem neuen WIP-1-OpenSpec-Change die drei Paketgerueste fachlich exakt modellieren und CORE-FINANCE in Playthru/UABC-BASIC-DE nach Preflight, Rollbackplan und offizieller Quellenpruefung kontrolliert definieren, pruefen und soweit freigegeben anwenden. TRADE-MASTER bleibt prepared-not-executed, OPENING-DATA designed-not-executed; keine Buchung, Ledgerimporte, Continia- oder externe Uebermittlung."
     },
     {
       "projectId": "project-twin",
       "overallGoal": "Ein strikt nur-lesendes, handlungsorientiertes Cockpit fuer den neuesten validierten BC-Basic-Branch-Commit.",
-      "largestGap": "Project Twin ist auf Commit 4167d0cb2e3cbc72544190e8c3a40002f800d7cf, Tree 56d09cea800250a717a8ae755ddb262e6d1b9f47, sauber abgeschlossen. Der Branchkanal bleibt dauerhaft auf codex/universaarl-projekt; der BC-Kandidat 4557d93c4b89697c13c7345b39c167f09f441d03 wurde mit Cross-Contract 3/3 und sichtbarer Browserabnahme fuer drei Spaces und Jira geprueft.",
-      "lastCommit": "4167d0cb2e3cbc72544190e8c3a40002f800d7cf",
-      "mainBlocker": "Kein offener lokaler Fach-, Integritaets- oder Darstellungsblocker. Offen sind nur Kontrollpruefung, Zusammenfuehrung und Veroeffentlichung der belegten BC-/Twin-Staende.",
-      "nextDeliveryBlock": "BC- und Twin-Commit unabhaengig gegen Publishergates pruefen, kontrolliert in ihre stabilen Zweige integrieren und erst danach veroeffentlichen. Komfort- und Zusatzhaertung bleiben V1.x."
+      "largestGap": "Project Twin ist auf Commit 381dee9ec83c71f019a3f201cf83ed12138a2d42, Tree 9011e8ed57d1cb00c2583ea5d883779ce92a8b07, gegen BC-Commit 85870b514ef32b80778b824924707e88dd15dc3d unabhaengig gruen. Cross-Contract 21/21, Gesamtcheck 183/183, Build und Deutschgate bestanden; API liefert 50 Tickets, 43 Dokumente, 3 Spaces und 135 Artefakte. Browser zeigt die neue Country-/Company-Evidence, Tickets ohne EUR und eine fehler- sowie warnungsfreie Konsole.",
+      "lastCommit": "381dee9ec83c71f019a3f201cf83ed12138a2d42",
+      "mainBlocker": "Kein offener lokaler Twin-, Cross-Contract- oder Browserblocker fuer den validierten Producerstand 85870b514ef32b80778b824924707e88dd15dc3d. Offen bleiben Portfoliointegration und spaetere kontrollierte Veroeffentlichung.",
+      "nextDeliveryBlock": "BC- und Twin-Staende gegen die Publishergates des Kontrollzentrums bewerten und erst nach ausdruecklicher Freigabe kontrolliert veroeffentlichen. Der fehlende kanonische Ressourcenkatalog fuer echte Lieferdateivorschau bleibt ein eigener fachlicher BC-Folgeblock; Twin erfindet keine Downloads."
     }
   ]
 }

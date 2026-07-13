@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 3,
+  "kind": "portfolio-portability-template",
+  "status": "TEMPLATE_NOT_RELEASE_EVIDENCE",
+  "controlContract": {
+    "validatorCommit": null,
+    "templatePath": "release/portfolio-portability-manifest.template.json",
+    "templateSchemaVersion": 3
+  },
+  "componentDigest": null,
+  "snapshotDigest": null,
+  "components": [],
+  "spectraBinding": {
+    "tag": null,
+    "manifestPath": null,
+    "manifestFileSha256": null,
+    "aggregateDigestAlgorithm": "SHA-256",
+    "aggregatePayloadDigest": null
+  },
+  "platformEvidence": {
+    "windows": { "status": "pending", "evidenceFile": null, "sha256": null, "attestation": { "artifactName": null, "artifactUrl": null, "artifactSha256": null } },
+    "macos": { "status": "pending", "evidenceFile": null, "sha256": null, "attestation": { "artifactName": null, "artifactUrl": null, "artifactSha256": null } }
+  }
+}

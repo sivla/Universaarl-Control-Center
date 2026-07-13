@@ -27,6 +27,182 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\Test-ControlCenterRo
 
 Die Standardpfade stehen in `monitor.config.json`. Für einen anderen Rechner können sie ohne Dateiänderung mit `UNIVERSAARL_BLUEPRINT_PATH` und `UNIVERSAARL_TWIN_PATH` überschrieben werden.
 
+## Gesamtinstallation auf einem neuen Rechner
+
+Diese Anleitung beschreibt den tatsaechlich vorhandenen Repository-Zustand. BC Basic und Project Twin liegen derzeit noch als getrennte Zweige im Repository `sivla/FiBu`. Die geplanten eigenen Repositories werden erst nach einer kontrollierten Migration verwendet; nicht vorhandene Repository-Namen duerfen nicht in Installationsskripten vorweggenommen werden.
+
+### Schnellstart unter Windows
+
+Auf einem neuen Windows-Rechner genuegen zunaechst Git, Node.js 20 und Windows PowerShell. Diesen Block einmal in PowerShell ausfuehren:
+
+```powershell
+git config --global core.longpaths true
+New-Item -ItemType Directory -Force C:\U | Out-Null
+Set-Location C:\U
+
+git clone https://github.com/sivla/BCProjectOS.git "BC Project OS"
+git clone --single-branch --branch codex/universaarl-projekt https://github.com/sivla/FiBu.git "Universaarl Projekt BC Basic"
+git clone --single-branch --branch codex/universaarl-projekt-twin https://github.com/sivla/FiBu.git "Universaarl-Project-Twin"
+git clone https://github.com/sivla/Universaarl-Control-Center.git "Universaarl ai"
+
+Set-Location "C:\U\BC Project OS"
+git switch --detach spectra-v1.1.0-alpha.1
+powershell -NoProfile -ExecutionPolicy Bypass -File automation/Test-ReleaseCandidate.ps1 -Version 1.1.0-alpha.1 -RequirePublished
+
+Set-Location "C:\U\Universaarl-Project-Twin"
+npm ci
+npm run check
+```
+
+Wenn alle Befehle erfolgreich waren, den Twin starten:
+
+```powershell
+Set-Location "C:\U\Universaarl-Project-Twin"
+npm run dev -- --host 127.0.0.1 --port 4173
+```
+
+Danach im Browser `http://127.0.0.1:4173/` oeffnen. Beendet wird der lokale Server mit `Strg+C`.
+
+Optional kann in einem zweiten PowerShell-Fenster das Kontrollzentrum pruefen:
+
+```powershell
+Set-Location "C:\U\Universaarl ai"
+$env:UNIVERSAARL_BCPROJECTOS_PATH = 'C:\U\BC Project OS'
+$env:UNIVERSAARL_BLUEPRINT_PATH = 'C:\U\Universaarl Projekt BC Basic'
+$env:UNIVERSAARL_TWIN_PATH = 'C:\U\Universaarl-Project-Twin'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Invoke-UniversaarlAudit.ps1
+```
+
+Wenn einer dieser Schritte fehlschlaegt, nicht improvisieren: den Fehler anhand der folgenden Detailabschnitte einordnen. macOS bleibt bis zum echten Runnernachweis ein separates offenes Installationsgate.
+
+### Verbindliche Portabilitaetsfreigabe
+
+Ein beliebiger Branchstand ist niemals garantiert portabel. Die Bindung erfolgt deshalb zwingend in zwei Stufen:
+
+1. Der unveraenderliche Kontrollzentrum-Commit enthaelt nur den Validator und `release/portfolio-portability-manifest.template.json`. Diese Datei ist eine Vorlage und niemals Release-Evidence.
+2. Nach Veroeffentlichung dieses Commits wird ausserhalb des Repositorybaums ein finales Manifest als Release-Asset heruntergeladen oder als gebundener Bericht erzeugt. Erst dieses externe Manifest darf den Kontrollzentrum-Commit, die vier Komponenten, das Spectra-Releasemanifest und beide Plattform-Evidence-Dateien binden.
+
+Vor der Uebernahme eines Versionsstands muss der externe Assetpfad explizit angegeben werden:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-UniversaarlPortableRelease.ps1 -ManifestPath C:\release-evidence\portfolio-final.json
+```
+
+Nur die exakte Ausgabe `PORTABLE_RELEASE_READY` ist eine Portabilitaetsfreigabe. `BLOCKED`, `PENDING` oder ein fehlender Nachweis bedeutet: Diesen Stand nicht auf einem anderen System ausrollen. Der Pruefer klont alle vier Repositories mit isoliertem Git-Home und ohne Credential Helper, verifiziert Commit und Tree, prueft die SHA-256 der Spectra-Manifestdatei getrennt vom neu aus allen manifestgelisteten Releaseblobs berechneten Aggregatdigest und verlangt fuer Windows und macOS denselben unveraenderlichen Snapshotdigest. Fresh Clone, Installation, Start, gitfreie Laufzeit, Pilotanzeige, Filesystem-/HTTP-Paritaet, Onboarding und Isolation muessen als exakt vorgeschriebene Command-/Artefaktrecords mit Provenienz vorliegen; freie Booleans werden nicht akzeptiert.
+
+Der gebundene Validatorcommit ist selbst ein Trust Anchor: Der Kontrollarbeitsbaum und Index muessen sauber sein, und Validator sowie Vorlage muessen bytegenau ihren Blobs in diesem Commit entsprechen. Fuer Plattformnachweise werden der konkrete oeffentliche GitHub-Actions-Run, Repository, Workflowpfad, Commit, erfolgreicher Plattformjob, Runnerlabel sowie das anonym heruntergeladene Attestierungsarchiv samt GitHub- und Download-SHA-256 geprueft. Die Archivmetadaten liegen dabei ausserhalb der enthaltenen Evidence-Datei im jeweiligen Plattformzeiger des finalen Manifests, damit keine selbstreferenzielle Digestbindung entsteht. Das Archiv muss exakt die byteidentische Plattform-Evidence und ihre acht Record-Artefakte enthalten; fehlende, doppelte, absolute, traversierende, uebergrosse, verlinkte oder digestabweichende Member werden abgelehnt. Records werden in der Produktionspruefung nur aus dem sicher entpackten Archiv validiert. Ein Arbeits-Mac-Nachweis, eine nicht anonym abrufbare Attestation oder ein nur lokal nachgebautes Fixture bleibt `PENDING`.
+
+### Voraussetzungen
+
+- Git ab Version 2.40;
+- Node.js `20.19.x` oder ab `22.12.x` sowie das mitgelieferte `npm`;
+- Windows PowerShell 5.1 oder PowerShell 7 auf Windows;
+- PowerShell 7.4 oder neuer (`pwsh`) auf macOS;
+- .NET SDK 6 fuer den Prozesshelfer des Kontrollzentrums;
+- Anonymer Lesezugriff auf alle vier im finalen Manifest gebundenen oeffentlichen Repositories.
+
+Passwoerter, Tokens und andere Secrets gehoeren nicht in die Repositories. Lokale Zugangsdaten werden spaeter ausschliesslich ueber die Laufzeitumgebung oder ignorierte lokale Konfiguration bereitgestellt. Die folgenden PowerShell-Beispiele verwenden auf Windows `powershell`. Auf macOS lautet der ausfuehrbare Name `pwsh`; macOS darf jedoch erst nach den unten genannten offenen Plattformgates als installationsbereit gelten.
+
+### 1. Verzeichnisstruktur anlegen
+
+Alle vier Checkouts liegen nebeneinander. Unter Windows wird wegen langer versionierter Projektpfade ein kurzer Root wie `C:\U` verwendet. Git for Windows muss lange Pfade erlauben:
+
+```powershell
+git config --global core.longpaths true
+mkdir C:\U
+cd C:\U
+```
+
+Unter macOS kann beispielsweise `~/universaarl` verwendet werden:
+
+```powershell
+mkdir -p ~/universaarl
+cd ~/universaarl
+```
+
+```text
+C:/U/ oder ~/universaarl/
+|-- BC Project OS/
+|-- Universaarl Projekt BC Basic/
+|-- Universaarl-Project-Twin/
+`-- Universaarl ai/
+```
+
+### 2. Repositories klonen
+
+```powershell
+git clone https://github.com/sivla/BCProjectOS.git "BC Project OS"
+git clone --single-branch --branch codex/universaarl-projekt https://github.com/sivla/FiBu.git "Universaarl Projekt BC Basic"
+git clone --single-branch --branch codex/universaarl-projekt-twin https://github.com/sivla/FiBu.git "Universaarl-Project-Twin"
+git clone https://github.com/sivla/Universaarl-Control-Center.git "Universaarl ai"
+```
+
+Spectra wird fuer eine reproduzierbare Installation nicht von einem beliebigen Arbeitszweig verwendet, sondern auf den veroeffentlichten installierbaren Tag gestellt:
+
+```powershell
+cd "BC Project OS"
+git switch --detach spectra-v1.1.0-alpha.1
+cd ..
+```
+
+### 3. Den veroeffentlichten Spectra-Release pruefen
+
+Der aktuell veroeffentlichte Stand wird direkt am ausgecheckten Tag geprueft:
+
+```powershell
+cd "BC Project OS"
+powershell -NoProfile -ExecutionPolicy Bypass -File automation/Test-ReleaseCandidate.ps1 -Version 1.1.0-alpha.1 -RequirePublished
+cd ..
+```
+
+Schlaegt die Pruefung fehl, wird nicht mit der Installation fortgefahren. Der veroeffentlichte Pruefer startet intern noch Windows PowerShell und ist deshalb fuer diese Version nur unter Windows freigegeben. Der neue Bootstrap mit lokalem Projektregister, `doctor` und Snapshot-Katalog ist noch nicht Bestandteil von `spectra-v1.1.0-alpha.1`. Er darf erst als Installationsweg verwendet werden, nachdem ein entsprechender portabler Spectra-Release veroeffentlicht und unabhaengig auf macOS geprueft wurde.
+
+### 4. Project Twin installieren und starten
+
+```powershell
+cd "Universaarl-Project-Twin"
+npm ci
+npm run check
+npm run dev -- --host 127.0.0.1 --port 4173
+```
+
+Danach ist der Twin unter `http://127.0.0.1:4173/` erreichbar und wird mit `Strg+C` beendet. Der Remote-Zweig enthaelt den komfortablen Starter noch nicht. Die Befehle `npm run twin:bootstrap`, `npm run twin:doctor`, `npm run twin:start`, `npm run twin:status` und `npm run twin:stop` liegen derzeit nur als lokaler, noch nicht veroeffentlichter Kandidat vor und duerfen in einer Fresh-Clone-Installation noch nicht vorausgesetzt werden. Bis der Snapshot-Katalogvertrag veroeffentlicht ist, verwendet der aktuelle Stand noch den benachbarten BC-Basic-Checkout. Diese Git-Laufzeitbindung ist ein dokumentierter Uebergangszustand und nicht das Zielmodell.
+
+### 5. Kontrollzentrum vorbereiten und pruefen
+
+```powershell
+cd "../Universaarl ai"
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Invoke-UniversaarlAudit.ps1
+```
+
+Der neue `Initialize-UniversaarlControlCenter.ps1` mit `doctor` und Bootstrap ist im lokalen Portabilitaetskandidaten implementiert und commitgebunden geprueft, aber noch nicht auf dem Remote-Standardzweig veroeffentlicht. Er darf in einer Fresh-Clone-Anleitung erst nach dieser Veroeffentlichung vorausgesetzt werden.
+
+Fuer die vollstaendige commitgebundene Pruefung:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Invoke-UniversaarlAudit.ps1 -RunValidations
+```
+
+### 6. Installation abnehmen
+
+Eine Installation ist erst abgenommen, wenn:
+
+1. alle vier Arbeitsbaeume sauber sind;
+2. Spectra an einen echten annotierten Release-Tag, Commit, Manifest und Digest gebunden ist;
+3. `twin:doctor` und `twin:status` erfolgreich sind;
+4. der Twin ausschliesslich den validierten BC-Basic-Stand anzeigt;
+5. die Kontrollzentrum-Pruefung keine kritischen Befunde meldet;
+6. auf macOS ein echter Runnerlauf statt nur synthetischer Pfadtests vorliegt.
+
+### Aktuell noch offene Installationsgates
+
+- Die portablen Spectra-Snapshot-/Katalogerweiterungen sind noch kein veroeffentlichter Release.
+- BC Basic und Project Twin werden noch aus zwei Zweigen des gemeinsamen `FiBu`-Repositories geklont.
+- Die endgueltige Twin-Laufzeit ueber `current.json` und immutable Snapshot-Releases ist noch nicht veroeffentlicht.
+- Echte macOS-Runner-Evidence bleibt `PENDING_MACOS_RUNNER_EVIDENCE`.
+
+Diese Punkte muessen offen ausgewiesen werden. Sie duerfen weder durch lokale Arbeitsstaende noch durch erfundene Versionsnummern als bestanden dargestellt werden.
+
 ## Frisches System vorbereiten
 
 Der Doctor prueft die lokale Werkzeugkette und Pflichtdateien, ohne Zielprojekte oder Zugangsdaten zu lesen. Der Bootstrap baut zusaetzlich nur den ignorierten Prozesshelfer unter `.work/`:

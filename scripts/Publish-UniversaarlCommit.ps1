@@ -25,6 +25,7 @@ $AuditPath = Join-Path $PSScriptRoot 'Invoke-UniversaarlAudit.ps1'
 $GoalPath = Join-Path $PSScriptRoot 'Invoke-UniversaarlGoalReview.ps1'
 $ControlGermanPath = Join-Path $PSScriptRoot 'Test-UniversaarlGermanSurface.ps1'
 $Blockers = [Collections.Generic.List[string]]::new()
+$PowerShell = Resolve-UniversaarlTool -Names @('pwsh', 'powershell.exe') -Description 'PowerShell'
 
 function Add-Blocker { param([Parameter(Mandatory)][string]$Message) $Blockers.Add($Message) }
 
@@ -50,7 +51,7 @@ function Test-ConfiguredRemote {
 }
 
 function New-PublisherTemporaryRoot {
-    $tempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    $tempBase = Get-UniversaarlNormalizedPath -Path ([IO.Path]::GetTempPath())
     # Die Laufkennung bleibt im gebundenen Bericht. Im Dateisystem genuegt eine
     # GUID; der kuerzere Name haelt tiefe, gueltige Repositorypfade unter der
     # klassischen Windows-Pfadgrenze.
@@ -61,9 +62,9 @@ function New-PublisherTemporaryRoot {
 
 function Remove-PublisherTemporaryRoot {
     param([Parameter(Mandatory)][string]$Root)
-    $tempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    $tempBase = Get-UniversaarlNormalizedPath -Path ([IO.Path]::GetTempPath())
     $resolved = [IO.Path]::GetFullPath($Root)
-    if (-not $resolved.StartsWith($tempBase + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or -not (Split-Path -Leaf $resolved).StartsWith('universaarl-publish-')) { throw 'Unsichere temporaere Veroeffentlichungswurzel.' }
+    if (-not (Test-UniversaarlPathWithinRoot -Root $tempBase -Path $resolved) -or -not (Split-Path -Leaf $resolved).StartsWith('universaarl-publish-')) { throw 'Unsichere temporaere Veroeffentlichungswurzel.' }
     if (Test-Path -LiteralPath $resolved) {
         $item = Get-Item -LiteralPath $resolved -Force -ErrorAction SilentlyContinue
         if ($null -ne $item -and (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)) { Remove-Item -LiteralPath $resolved -Force -ErrorAction SilentlyContinue }
@@ -117,7 +118,7 @@ function Assert-BoundProjectStates {
 }
 
 Write-Host "Pruefe Veroeffentlichungsbedingungen fuer '$Project' im Lauf '$RunId' ..."
-$auditOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $AuditPath -RunValidations -RunId $RunId 2>&1)
+$auditOutput = @(& $PowerShell -NoProfile -ExecutionPolicy Bypass -File $AuditPath -RunValidations -RunId $RunId 2>&1)
 $auditExitCode = $LASTEXITCODE
 $auditOutput | ForEach-Object { Write-Host $_ }
 if (-not (Test-UniversaarlBoundReportExitCode -ExitCode $auditExitCode)) { Add-Blocker "Der aktuelle technische Lauf ist mit unerwartetem Rueckgabecode $auditExitCode fehlgeschlagen." }
@@ -129,7 +130,7 @@ if ($Blockers.Count -eq 0) {
     catch { Add-Blocker "Der technische Laufbericht ist nicht verwendbar: $($_.Exception.Message)" }
 }
 
-$goalOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $GoalPath -RunId $RunId 2>&1)
+$goalOutput = @(& $PowerShell -NoProfile -ExecutionPolicy Bypass -File $GoalPath -RunId $RunId 2>&1)
 $goalExitCode = $LASTEXITCODE
 $goalOutput | ForEach-Object { Write-Host $_ }
 if (-not (Test-UniversaarlBoundReportExitCode -ExitCode $goalExitCode)) { Add-Blocker "Der aktuelle Zielpruefungslauf ist mit unerwartetem Rueckgabecode $goalExitCode fehlgeschlagen." }
@@ -141,7 +142,7 @@ if (Test-Path -LiteralPath $GoalReportPath -PathType Leaf) {
     catch { Add-Blocker "Der Zielbericht ist nicht verwendbar: $($_.Exception.Message)" }
 }
 
-$languageOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $ControlGermanPath -RunId $RunId 2>&1)
+$languageOutput = @(& $PowerShell -NoProfile -ExecutionPolicy Bypass -File $ControlGermanPath -RunId $RunId 2>&1)
 $languageExitCode = $LASTEXITCODE
 $languageOutput | ForEach-Object { Write-Host $_ }
 if ($languageExitCode -ne 0) { Add-Blocker "Die ergaenzende Deutsch-Pruefung des Kontrollzentrums endete mit Rueckgabecode $languageExitCode." }

@@ -5,6 +5,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ControlRoot = [IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 . (Join-Path $ControlRoot 'scripts\Universaarl-Control.Common.ps1')
+$TestPowerShell = (Get-Process -Id $PID).Path
 $TempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar)
 $TestRoot = Join-Path $TempBase "universaarl-control-tests-$([Guid]::NewGuid().ToString('N'))"
 New-Item -ItemType Directory -Path $TestRoot -Force | Out-Null
@@ -536,7 +537,7 @@ try {
     $runner = Initialize-UniversaarlProcessRunner -ControlRoot $ControlRoot -SandboxRoot $runnerSandbox
     $runnerScript = Join-Path $runnerSandbox 'ausgabe.mjs'
     [IO.File]::WriteAllText($runnerScript, "console.log('ghp_abcdefghijklmnopqrstuvwxyz123456'); console.log('PASSWORD=fixture-password'); console.log('A'.repeat(200000));", [Text.UTF8Encoding]::new($false))
-    $node = (Get-Command node.exe).Source
+    $node = Resolve-UniversaarlTool -Names @('node', 'node.exe') -Description 'Node.js'
     $runnerResult = Invoke-UniversaarlSanitizedProcess -Runner $runner -FilePath $node -Arguments @($runnerScript) -WorkingDirectory $runnerSandbox -SandboxRoot $runnerSandbox -LogPath (Join-Path $runnerSandbox 'ausgabe.log') -LogRoot $runnerSandbox -TimeoutSeconds 30
     Assert-True -Condition ($runnerResult.output -match '<GEHEIMNIS>' -and $runnerResult.output -notmatch 'fixture-password' -and $runnerResult.outputTruncated) -Message 'Prozessausgabe wurde nicht begrenzt und redigiert.'
 
@@ -697,13 +698,13 @@ try {
     $oldExternalPreference = $ErrorActionPreference
     $ErrorActionPreference = 'SilentlyContinue'
     try {
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ControlRoot 'scripts\Invoke-UniversaarlGoalReview.ps1') -RunId 'fixture-external-report-root' -ConfigPath $goalConfigPath -GoalConfigPath $goalDefinitionPath -ReportRoot $externalReportRoot *> $null
+        & $TestPowerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ControlRoot 'scripts\Invoke-UniversaarlGoalReview.ps1') -RunId 'fixture-external-report-root' -ConfigPath $goalConfigPath -GoalConfigPath $goalDefinitionPath -ReportRoot $externalReportRoot *> $null
         $externalReportExit = $LASTEXITCODE
     }
     finally { $ErrorActionPreference = $oldExternalPreference }
     Assert-True -Condition ($externalReportExit -ne 0 -and -not (Test-Path -LiteralPath $externalReportRoot)) -Message 'Externes Zielberichtverzeichnis wurde nicht vor jedem Schreibzugriff abgelehnt.'
     $goalRunId = 'fixture-goal-fail-closed'
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ControlRoot 'scripts\Invoke-UniversaarlGoalReview.ps1') -RunId $goalRunId -ConfigPath $goalConfigPath -GoalConfigPath $goalDefinitionPath -ReportRoot $goalReports | Out-Null
+    & $TestPowerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ControlRoot 'scripts\Invoke-UniversaarlGoalReview.ps1') -RunId $goalRunId -ConfigPath $goalConfigPath -GoalConfigPath $goalDefinitionPath -ReportRoot $goalReports | Out-Null
     $goalExit = $LASTEXITCODE
     $goalReportPath = Join-Path $goalReports "goal-runs\$goalRunId.json"
     $goalReport = Read-UniversaarlBoundReport -Path $goalReportPath -RunId $goalRunId -Kind goal -TrustedRoot $goalReports
@@ -713,7 +714,7 @@ try {
     Assert-True -Condition ($goalMarkdown -match 'Nachweisabdeckung' -and $goalMarkdown -match 'Blueprint-Commit:' -and $goalMarkdown -match 'Twin-Commit:') -Message 'Zielbericht-Markdown nennt Nachweisabdeckung oder beide SHA-Felder nicht.'
 
     $auditRunId = 'fixture-audit-bound-inputs'
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ControlRoot 'scripts\Invoke-UniversaarlAudit.ps1') -RunId $auditRunId -ConfigPath $goalConfigPath -ReportRoot $goalReports | Out-Null
+    & $TestPowerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ControlRoot 'scripts\Invoke-UniversaarlAudit.ps1') -RunId $auditRunId -ConfigPath $goalConfigPath -ReportRoot $goalReports | Out-Null
     $auditReportPath = Join-Path $goalReports "runs\$auditRunId.json"
     $auditReport = Read-UniversaarlBoundReport -Path $auditReportPath -RunId $auditRunId -Kind audit -TrustedRoot $goalReports
     Assert-True -Condition ([string]$auditReport.inputShas.blueprint -eq $goalBlueprint.sha -and [string]$auditReport.inputShas.'project-twin' -eq $goalTwin.sha) -Message 'Auditbericht ist nicht an beide vollen Eingabe-SHAs gebunden.'
@@ -736,10 +737,10 @@ try {
         $ErrorActionPreference = 'SilentlyContinue'
         try {
             $unknownGoalRunId = 'fixture-goal-unknown-inputs'
-            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ControlRoot 'scripts\Invoke-UniversaarlGoalReview.ps1') -RunId $unknownGoalRunId -ConfigPath $unknownConfigPath -GoalConfigPath $goalDefinitionPath -ReportRoot $goalReports *> $null
+            & $TestPowerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ControlRoot 'scripts\Invoke-UniversaarlGoalReview.ps1') -RunId $unknownGoalRunId -ConfigPath $unknownConfigPath -GoalConfigPath $goalDefinitionPath -ReportRoot $goalReports *> $null
             $unknownGoalExit = $LASTEXITCODE
             $unknownAuditRunId = 'fixture-audit-unknown-inputs'
-            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ControlRoot 'scripts\Invoke-UniversaarlAudit.ps1') -RunId $unknownAuditRunId -ConfigPath $unknownConfigPath -ReportRoot $goalReports *> $null
+            & $TestPowerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ControlRoot 'scripts\Invoke-UniversaarlAudit.ps1') -RunId $unknownAuditRunId -ConfigPath $unknownConfigPath -ReportRoot $goalReports *> $null
             $unknownAuditExit = $LASTEXITCODE
         }
         finally { $ErrorActionPreference = $oldUnknownPreference }

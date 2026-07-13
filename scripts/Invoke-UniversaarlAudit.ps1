@@ -301,14 +301,15 @@ function Get-SpectraBindingObservation {
 }
 
 function Get-NpmRuntime {
-    $node = Get-Command node.exe -ErrorAction SilentlyContinue
-    if ($null -eq $node) { $node = Get-Command node -ErrorAction SilentlyContinue }
-    $npm = Get-Command npm.cmd -ErrorAction SilentlyContinue
-    if ($null -eq $npm) { $npm = Get-Command npm -ErrorAction SilentlyContinue }
-    if ($null -eq $node -or $null -eq $npm) { throw 'Node.js oder npm wurde nicht gefunden.' }
-    $npmCli = Join-Path (Split-Path -Parent $npm.Source) 'node_modules\npm\bin\npm-cli.js'
+    $node = Resolve-UniversaarlTool -Names @('node', 'node.exe') -Description 'Node.js'
+    if (-not (Test-UniversaarlIsWindows)) {
+        $npm = Resolve-UniversaarlTool -Names @('npm') -Description 'npm'
+        return [pscustomobject]@{ executable = $npm; prefix = @() }
+    }
+    $npm = Resolve-UniversaarlTool -Names @('npm.cmd') -Description 'npm'
+    $npmCli = Join-Path (Split-Path -Parent $npm) 'node_modules\npm\bin\npm-cli.js'
     if (-not (Test-Path -LiteralPath $npmCli -PathType Leaf)) { throw 'npm-cli.js wurde nicht gefunden.' }
-    [pscustomobject]@{ node = $node.Source; npmCli = $npmCli }
+    [pscustomobject]@{ executable = $node; prefix = @($npmCli) }
 }
 
 function Invoke-ProjectValidation {
@@ -325,16 +326,16 @@ function Invoke-ProjectValidation {
     $validationLog = Join-Path $LogRoot "$RunId-$($Project.id)-pruefung.log"
     $languageLog = Join-Path $LogRoot "$RunId-$($Project.id)-deutsch.log"
     $sensitiveRoots = @($SnapshotPath, $SandboxRoot)
-    $install = Invoke-UniversaarlSanitizedProcess -Runner $Runner -FilePath $runtime.node -Arguments @($runtime.npmCli, 'ci', '--ignore-scripts', '--no-audit', '--no-fund') -WorkingDirectory $SnapshotPath -SandboxRoot $SandboxRoot -LogPath $installLog -LogRoot $LogRoot -AdditionalEnvironment $AdditionalEnvironment -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots $sensitiveRoots
+    $install = Invoke-UniversaarlSanitizedProcess -Runner $Runner -FilePath $runtime.executable -Arguments (@($runtime.prefix) + @('ci', '--ignore-scripts', '--no-audit', '--no-fund')) -WorkingDirectory $SnapshotPath -SandboxRoot $SandboxRoot -LogPath $installLog -LogRoot $LogRoot -AdditionalEnvironment $AdditionalEnvironment -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots $sensitiveRoots
     if ($install.exitCode -ne 0) { return [pscustomobject]@{ validation = 'failed'; validationExitCode = $install.exitCode; german = 'not-run'; germanExitCode = $null; reason = '`npm ci` ist in der bereinigten Wegwerfkopie fehlgeschlagen.' } }
-    $validation = Invoke-UniversaarlSanitizedProcess -Runner $Runner -FilePath $runtime.node -Arguments (@($runtime.npmCli) + @($Project.validationArguments)) -WorkingDirectory $SnapshotPath -SandboxRoot $SandboxRoot -LogPath $validationLog -LogRoot $LogRoot -AdditionalEnvironment $AdditionalEnvironment -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots $sensitiveRoots
+    $validation = Invoke-UniversaarlSanitizedProcess -Runner $Runner -FilePath $runtime.executable -Arguments (@($runtime.prefix) + @($Project.validationArguments)) -WorkingDirectory $SnapshotPath -SandboxRoot $SandboxRoot -LogPath $validationLog -LogRoot $LogRoot -AdditionalEnvironment $AdditionalEnvironment -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots $sensitiveRoots
     if ($validation.exitCode -ne 0) { return [pscustomobject]@{ validation = 'failed'; validationExitCode = $validation.exitCode; german = 'not-run'; germanExitCode = $null; reason = if ($validation.timedOut) { 'Zeitlimit der technischen Pruefung ueberschritten.' } else { 'Die technische Pruefung ist fehlgeschlagen.' } } }
 
     $languageEnvironment = @{} + $AdditionalEnvironment
     $languageEnvironment['UNIVERSAARL_EXPECTED_COMMIT'] = $Commit
     $languageEnvironment['UNIVERSAARL_PROJECT_ID'] = [string]$Project.id
     $germanScript = [string]$Project.germanCheck.npmScript
-    $language = Invoke-UniversaarlSanitizedProcess -Runner $Runner -FilePath $runtime.node -Arguments @($runtime.npmCli, '--silent', 'run', $germanScript) -WorkingDirectory $SnapshotPath -SandboxRoot $SandboxRoot -LogPath $languageLog -LogRoot $LogRoot -AdditionalEnvironment $languageEnvironment -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots $sensitiveRoots
+    $language = Invoke-UniversaarlSanitizedProcess -Runner $Runner -FilePath $runtime.executable -Arguments (@($runtime.prefix) + @('--silent', 'run', $germanScript)) -WorkingDirectory $SnapshotPath -SandboxRoot $SandboxRoot -LogPath $languageLog -LogRoot $LogRoot -AdditionalEnvironment $languageEnvironment -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots $sensitiveRoots
     if ($language.exitCode -ne 0 -or $language.outputTruncated) { return [pscustomobject]@{ validation = 'passed'; validationExitCode = 0; german = 'failed'; germanExitCode = $language.exitCode; reason = 'Der projektspezifische Deutsch-Pruefer ist fehlgeschlagen oder lieferte zu viel Ausgabe.' } }
     try {
         $valid = Test-UniversaarlGermanEvidencePayload -Json $language.output -ProjectId ([string]$Project.id) -Commit $Commit -SchemaVersion ([int]$Project.germanCheck.resultSchemaVersion)

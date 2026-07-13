@@ -13,6 +13,44 @@ if ($null -eq (Get-Variable -Scope Script -Name UniversaarlDirectoryLockRegistry
 
 . (Join-Path $PSScriptRoot 'Universaarl-Contract.Validator.ps1')
 
+function Test-UniversaarlIsWindows { $env:OS -eq 'Windows_NT' }
+
+function Get-UniversaarlPathComparison {
+    if (Test-UniversaarlIsWindows) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+}
+
+function Get-UniversaarlNormalizedPath {
+    param([Parameter(Mandatory)][string]$Path)
+    $full = [IO.Path]::GetFullPath($Path)
+    $root = [IO.Path]::GetPathRoot($full)
+    if ([string]::Equals($full, $root, (Get-UniversaarlPathComparison))) { return $full }
+    $full.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+}
+
+function Test-UniversaarlPathWithinRoot {
+    param([Parameter(Mandatory)][string]$Root, [Parameter(Mandatory)][string]$Path, [switch]$AllowRoot)
+    $normalizedRoot = Get-UniversaarlNormalizedPath -Path $Root
+    $normalizedPath = Get-UniversaarlNormalizedPath -Path $Path
+    $comparison = Get-UniversaarlPathComparison
+    if ([string]::Equals($normalizedPath, $normalizedRoot, $comparison)) { return [bool]$AllowRoot }
+    $prefix = if ($normalizedRoot.EndsWith([IO.Path]::DirectorySeparatorChar) -or $normalizedRoot.EndsWith([IO.Path]::AltDirectorySeparatorChar)) { $normalizedRoot } else { $normalizedRoot + [IO.Path]::DirectorySeparatorChar }
+    $normalizedPath.StartsWith($prefix, $comparison)
+}
+
+function Test-UniversaarlPathEqual {
+    param([Parameter(Mandatory)][string]$Left, [Parameter(Mandatory)][string]$Right)
+    [string]::Equals((Get-UniversaarlNormalizedPath -Path $Left), (Get-UniversaarlNormalizedPath -Path $Right), (Get-UniversaarlPathComparison))
+}
+
+function Resolve-UniversaarlTool {
+    param([Parameter(Mandatory)][string[]]$Names, [Parameter(Mandatory)][string]$Description)
+    foreach ($name in $Names) {
+        $command = Get-Command $name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $command -and [IO.Path]::IsPathRooted([string]$command.Source)) { return [IO.Path]::GetFullPath([string]$command.Source) }
+    }
+    throw "$Description fehlt. Geprueft: $($Names -join ', ')."
+}
+
 if ($env:OS -eq 'Windows_NT' -and $null -eq ('Universaarl.NativeFile' -as [type])) {
     Add-Type -TypeDefinition @'
 using System;
@@ -441,18 +479,18 @@ function Assert-SafeRepositoryRelativePath {
 
 function Assert-UniversaarlNoReparseComponents {
     param([Parameter(Mandatory)][string]$Root, [Parameter(Mandatory)][string]$FullPath)
-    $normalizedRoot = [IO.Path]::GetFullPath($Root).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    $normalizedRoot = Get-UniversaarlNormalizedPath -Path $Root
     $normalizedPath = [IO.Path]::GetFullPath($FullPath)
     $rootItem = Get-Item -LiteralPath $normalizedRoot -Force -ErrorAction Stop
-    if (($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "Freigegebene Wurzel ist ein Reparse-Punkt: $normalizedRoot" }
-    if ($normalizedPath -eq $normalizedRoot) { return }
-    if (-not $normalizedPath.StartsWith($normalizedRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Pfad liegt ausserhalb der freigegebenen Wurzel.' }
+    if (($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or $null -ne $rootItem.PSObject.Properties['LinkType'] -and -not [string]::IsNullOrWhiteSpace([string]$rootItem.LinkType)) { throw "Freigegebene Wurzel ist ein Reparse-Punkt: $normalizedRoot" }
+    if (Test-UniversaarlPathEqual -Left $normalizedPath -Right $normalizedRoot) { return }
+    if (-not (Test-UniversaarlPathWithinRoot -Root $normalizedRoot -Path $normalizedPath)) { throw 'Pfad liegt ausserhalb der freigegebenen Wurzel.' }
     $relative = $normalizedPath.Substring($normalizedRoot.Length).TrimStart([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
     $current = $normalizedRoot
     foreach ($segment in $relative -split '[\\/]') {
         $current = Join-Path $current $segment
         $item = Get-Item -LiteralPath $current -Force -ErrorAction Stop
-        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw "Reparse-Punkt ist nicht zulaessig: $current" }
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or $null -ne $item.PSObject.Properties['LinkType'] -and -not [string]::IsNullOrWhiteSpace([string]$item.LinkType)) { throw "Reparse-Punkt ist nicht zulaessig: $current" }
     }
 }
 
@@ -497,8 +535,15 @@ function Close-UniversaarlDirectoryLock {
 
 function Open-UniversaarlLockedDirectoryChain {
     param([Parameter(Mandatory)][string]$Directory, [switch]$Create)
-    if ($env:OS -ne 'Windows_NT') { throw 'Gesperrte Verzeichnisketten sind auf diesem Betriebssystem nicht verfuegbar.' }
-    $target = [IO.Path]::GetFullPath($Directory).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    if (-not (Test-UniversaarlIsWindows)) {
+        $target = Get-UniversaarlNormalizedPath -Path $Directory
+        if ($Create -and -not (Test-Path -LiteralPath $target)) { $null = [IO.Directory]::CreateDirectory($target) }
+        if (-not (Test-Path -LiteralPath $target -PathType Container)) { throw "Verzeichnis fehlt: $target" }
+        $root = [IO.Path]::GetPathRoot($target)
+        Assert-UniversaarlNoReparseComponents -Root $root -FullPath $target
+        return [pscustomobject]@{ path = $target; unixValidated = $true }
+    }
+    $target = Get-UniversaarlNormalizedPath -Path $Directory
     $volumeRoot = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath($Directory))
     if ([string]::IsNullOrWhiteSpace($volumeRoot)) { throw 'Verzeichnis besitzt keine sichere Volume-Wurzel.' }
     $relative = [IO.Path]::GetFullPath($Directory).Substring($volumeRoot.Length).Trim([char[]]@('\', '/'))
@@ -514,7 +559,7 @@ function Open-UniversaarlLockedDirectoryChain {
                 if (-not $Create) { throw "Verzeichniskomponente fehlt: $path" }
                 $null = [IO.Directory]::CreateDirectory($path)
             }
-            $pathComparable = [IO.Path]::GetFullPath($path).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+            $pathComparable = Get-UniversaarlNormalizedPath -Path $path
             $key = $pathComparable.ToLowerInvariant()
             if ($script:UniversaarlDirectoryLockRegistry.ContainsKey($key)) {
                 $record = $script:UniversaarlDirectoryLockRegistry[$key]
@@ -550,8 +595,8 @@ function Open-UniversaarlLockedDirectoryChain {
             if (-not [Universaarl.NativeFile]::GetFileInformationByHandleEx($handle, 9, [ref]$info, [uint32]$infoSize)) { $handle.Dispose(); throw "Attribute der gesperrten Verzeichniskomponente sind nicht lesbar: $path" }
             if (($info.FileAttributes -band [Universaarl.NativeFile]::FileAttributeDirectory) -eq 0 -or ($info.FileAttributes -band [Universaarl.NativeFile]::FileAttributeReparsePoint) -ne 0) { $handle.Dispose(); throw "Verzeichniskomponente ist kein regulaeres reparse-freies Verzeichnis: $path" }
             $final = Get-UniversaarlFinalPathFromHandle -Handle $handle
-            $finalComparable = $final.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
-            if (-not [string]::Equals($finalComparable, $pathComparable, [StringComparison]::OrdinalIgnoreCase)) { $handle.Dispose(); throw "Verzeichniskomponente wurde auf einen anderen Pfad umgeleitet: $path" }
+            $finalComparable = Get-UniversaarlNormalizedPath -Path $final
+            if (-not (Test-UniversaarlPathEqual -Left $finalComparable -Right $pathComparable)) { $handle.Dispose(); throw "Verzeichniskomponente wurde auf einen anderen Pfad umgeleitet: $path" }
             if ($pathComparable -eq $target -and -not $deleteProtected) { $handle.Dispose(); throw 'Zielverzeichnis kann nicht mit einem umbenennungssicheren Loeschhandle gesperrt werden.' }
             if ($deleteProtected) { $deleteProtectionStarted = $true }
             $script:UniversaarlDirectoryLockRegistry[$key] = [pscustomobject]@{ handle = $handle; referenceCount = 1; deleteProtected = $deleteProtected }
@@ -588,15 +633,15 @@ function Read-UniversaarlRegularUtf8File {
         [Parameter(Mandatory)][int64]$MaximumBytes
     )
     if ($MaximumBytes -lt 0) { throw 'Die Dateigroessengrenze ist ungueltig.' }
-    $normalizedRoot = [IO.Path]::GetFullPath($Root).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    $normalizedRoot = Get-UniversaarlNormalizedPath -Path $Root
     $normalizedPath = [IO.Path]::GetFullPath($Path)
-    if (-not $normalizedPath.StartsWith($normalizedRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Datei liegt ausserhalb der freigegebenen Wurzel.' }
+    if (-not (Test-UniversaarlPathWithinRoot -Root $normalizedRoot -Path $normalizedPath)) { throw 'Datei liegt ausserhalb der freigegebenen Wurzel.' }
     $directoryLock = Open-UniversaarlLockedDirectoryChain -Directory (Split-Path -Parent $normalizedPath)
     $stream = $null
     try {
         $stream = [IO.File]::Open($normalizedPath, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read)
-        $finalPath = Get-UniversaarlFinalPathFromStream -Stream $stream
-        if (-not [string]::Equals($finalPath, $normalizedPath, [StringComparison]::OrdinalIgnoreCase)) { throw 'Der geoeffnete Dateihandle verweist nicht auf die erwartete Datei.' }
+        $finalPath = if (Test-UniversaarlIsWindows) { Get-UniversaarlFinalPathFromStream -Stream $stream } else { Assert-UniversaarlNoReparseComponents -Root ([IO.Path]::GetPathRoot($normalizedPath)) -FullPath $normalizedPath; [IO.Path]::GetFullPath($stream.Name) }
+        if (-not (Test-UniversaarlPathEqual -Left $finalPath -Right $normalizedPath)) { throw 'Der geoeffnete Dateihandle verweist nicht auf die erwartete Datei.' }
         if ($stream.Length -gt $MaximumBytes) { throw "Datei ueberschreitet die Groessengrenze von $MaximumBytes Byte." }
         $memory = [IO.MemoryStream]::new()
         try {
@@ -624,9 +669,9 @@ function Initialize-UniversaarlSafeDirectory {
         [Parameter(Mandatory)][string]$TrustedRoot,
         [Parameter(Mandatory)][string]$Directory
     )
-    $root = [IO.Path]::GetFullPath($TrustedRoot).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
-    $target = [IO.Path]::GetFullPath($Directory).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
-    if ($target -ne $root -and -not $target.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Ausgabeverzeichnis liegt ausserhalb der vertrauenswuerdigen Wurzel.' }
+    $root = Get-UniversaarlNormalizedPath -Path $TrustedRoot
+    $target = Get-UniversaarlNormalizedPath -Path $Directory
+    if (-not (Test-UniversaarlPathWithinRoot -Root $root -Path $target -AllowRoot)) { throw 'Ausgabeverzeichnis liegt ausserhalb der vertrauenswuerdigen Wurzel.' }
     $lock = Open-UniversaarlLockedDirectoryChain -Directory $target -Create
     try { $target }
     finally { Close-UniversaarlDirectoryLock -Lock $lock }
@@ -639,9 +684,9 @@ function Write-UniversaarlNewUtf8File {
         [Parameter(Mandatory)][AllowEmptyString()][string]$Text,
         [int64]$MaximumBytes = 8388608
     )
-    $root = [IO.Path]::GetFullPath($TrustedRoot).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    $root = Get-UniversaarlNormalizedPath -Path $TrustedRoot
     $full = [IO.Path]::GetFullPath($Path)
-    if (-not $full.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Ausgabedatei liegt ausserhalb der vertrauenswuerdigen Wurzel.' }
+    if (-not (Test-UniversaarlPathWithinRoot -Root $root -Path $full)) { throw 'Ausgabedatei liegt ausserhalb der vertrauenswuerdigen Wurzel.' }
     $parent = Split-Path -Parent $full
     $bytes = [Text.UTF8Encoding]::new($false).GetBytes([string]$Text)
     if ($bytes.LongLength -gt $MaximumBytes) { throw "Ausgabedatei ueberschreitet die Groessengrenze von $MaximumBytes Byte." }
@@ -649,8 +694,8 @@ function Write-UniversaarlNewUtf8File {
     $stream = $null
     try {
         $stream = [IO.File]::Open($full, [IO.FileMode]::CreateNew, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
-        $finalPath = Get-UniversaarlFinalPathFromStream -Stream $stream
-        if (-not [string]::Equals($finalPath, $full, [StringComparison]::OrdinalIgnoreCase)) { throw 'Geoeffneter Ausgabehandle verweist nicht auf die erwartete Datei.' }
+        $finalPath = if (Test-UniversaarlIsWindows) { Get-UniversaarlFinalPathFromStream -Stream $stream } else { Assert-UniversaarlNoReparseComponents -Root ([IO.Path]::GetPathRoot($full)) -FullPath $full; [IO.Path]::GetFullPath($stream.Name) }
+        if (-not (Test-UniversaarlPathEqual -Left $finalPath -Right $full)) { throw 'Geoeffneter Ausgabehandle verweist nicht auf die erwartete Datei.' }
         $stream.Write($bytes, 0, $bytes.Length)
         Assert-UniversaarlStreamBytes -Stream $stream -Expected $bytes
     }
@@ -668,9 +713,9 @@ function Write-UniversaarlAtomicUtf8File {
         [Parameter(Mandatory)][AllowEmptyString()][string]$Text,
         [int64]$MaximumBytes = 8388608
     )
-    $root = [IO.Path]::GetFullPath($TrustedRoot).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    $root = Get-UniversaarlNormalizedPath -Path $TrustedRoot
     $full = [IO.Path]::GetFullPath($Path)
-    if (-not $full.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Atomare Ausgabedatei liegt ausserhalb der vertrauenswuerdigen Wurzel.' }
+    if (-not (Test-UniversaarlPathWithinRoot -Root $root -Path $full)) { throw 'Atomare Ausgabedatei liegt ausserhalb der vertrauenswuerdigen Wurzel.' }
     $parent = Split-Path -Parent $full
     $temporary = Join-Path $parent ('.universaarl-{0}.tmp' -f [Guid]::NewGuid().ToString('N'))
     $bytes = [Text.UTF8Encoding]::new($false).GetBytes([string]$Text)
@@ -678,6 +723,20 @@ function Write-UniversaarlAtomicUtf8File {
     $directoryLock = Open-UniversaarlLockedDirectoryChain -Directory $parent
     $stream = $null
     try {
+        if (-not (Test-UniversaarlIsWindows)) {
+            $stream = [IO.File]::Open($temporary, [IO.FileMode]::CreateNew, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+            Assert-UniversaarlNoReparseComponents -Root ([IO.Path]::GetPathRoot($temporary)) -FullPath $temporary
+            $stream.Write($bytes, 0, $bytes.Length)
+            Assert-UniversaarlStreamBytes -Stream $stream -Expected $bytes
+            $stream.Dispose(); $stream = $null
+            if (Test-Path -LiteralPath $full) {
+                Assert-UniversaarlNoReparseComponents -Root ([IO.Path]::GetPathRoot($full)) -FullPath $full
+                [IO.File]::Replace($temporary, $full, $null)
+            }
+            else { [IO.File]::Move($temporary, $full) }
+            Assert-UniversaarlNoReparseComponents -Root ([IO.Path]::GetPathRoot($full)) -FullPath $full
+            return $full
+        }
         $temporaryHandle = [Universaarl.NativeFile]::CreateFile($temporary, [uint32]3221291008, 0, [IntPtr]::Zero, 1, 0x00000080, [IntPtr]::Zero)
         if ($null -eq $temporaryHandle -or $temporaryHandle.IsInvalid) { if ($null -ne $temporaryHandle) { $temporaryHandle.Dispose() }; throw 'Exklusiver temporaerer Ausgabehandle konnte nicht erstellt werden.' }
         $stream = [IO.FileStream]::new($temporaryHandle, [IO.FileAccess]::ReadWrite)
@@ -785,9 +844,9 @@ function Read-UniversaarlWorkingText {
         $fingerprint = Get-UniversaarlRepositoryFingerprint -Repository $Repository
         if ($fingerprint.dirty) { throw 'Die Arbeitskopie ist nicht sauber; die Datei wird nicht gelesen.' }
     }
-    $root = [IO.Path]::GetFullPath($Repository).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    $root = Get-UniversaarlNormalizedPath -Path $Repository
     $full = [IO.Path]::GetFullPath((Join-Path $root $safePath))
-    if (-not $full.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Arbeitskopiedatei liegt ausserhalb des Repositories.' }
+    if (-not (Test-UniversaarlPathWithinRoot -Root $root -Path $full)) { throw 'Arbeitskopiedatei liegt ausserhalb des Repositories.' }
     Assert-UniversaarlNoReparseComponents -Root $root -FullPath $full
     Read-UniversaarlRegularUtf8File -Root $root -Path $full -MaximumBytes $MaximumBytes
 }
@@ -931,16 +990,16 @@ function Assert-UniversaarlCleanPushRepositoryConfiguration {
     $unexpected = @($names | Where-Object { $allowed -notcontains $_ })
     if ($unexpected.Count -gt 0) { throw "Push-Kopie enthaelt nicht positivgelistete Git-Konfiguration: $($unexpected -join ', ')" }
     foreach ($group in @($names | Group-Object)) { if ($group.Count -ne 1) { throw "Git-Konfigurationsschluessel ist nicht eindeutig: $($group.Name)" } }
-    $trustedRoot = [IO.Path]::GetFullPath($TrustedSandboxRoot).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
-    $expectedHooks = [IO.Path]::GetFullPath($ExpectedHooksPath).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
-    if (-not $expectedHooks.StartsWith($trustedRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Git-Hook-Pfad liegt nicht innerhalb der kontrollierten Publisher-Wegwerfkopie.' }
+    $trustedRoot = Get-UniversaarlNormalizedPath -Path $TrustedSandboxRoot
+    $expectedHooks = Get-UniversaarlNormalizedPath -Path $ExpectedHooksPath
+    if (-not (Test-UniversaarlPathWithinRoot -Root $trustedRoot -Path $expectedHooks)) { throw 'Git-Hook-Pfad liegt nicht innerhalb der kontrollierten Publisher-Wegwerfkopie.' }
     $hookDirectoryLock = Open-UniversaarlLockedDirectoryChain -Directory $expectedHooks
     try {
         if (@(Get-ChildItem -LiteralPath $expectedHooks -Force -ErrorAction Stop).Count -ne 0) { throw 'Kontrollierter Git-Hook-Pfad der Push-Kopie ist nicht leer.' }
     }
     finally { Close-UniversaarlDirectoryLock -Lock $hookDirectoryLock }
     $hooks = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -UseExplicitRepositoryPaths -Arguments @('config', '--local', '--get-all', 'core.hooksPath')
-    if ($hooks.exitCode -ne 0 -or @($hooks.output -split "`n" | Where-Object { $_ }).Count -ne 1 -or -not [string]::Equals([IO.Path]::GetFullPath($hooks.output), $expectedHooks, [StringComparison]::OrdinalIgnoreCase)) { throw 'Git-Hook-Pfad der Push-Kopie stimmt nicht exakt mit dem kontrollierten leeren Publisher-Pfad ueberein.' }
+    if ($hooks.exitCode -ne 0 -or @($hooks.output -split "`n" | Where-Object { $_ }).Count -ne 1 -or -not (Test-UniversaarlPathEqual -Left ([IO.Path]::GetFullPath($hooks.output)) -Right $expectedHooks)) { throw 'Git-Hook-Pfad der Push-Kopie stimmt nicht exakt mit dem kontrollierten leeren Publisher-Pfad ueberein.' }
     $bare = Invoke-UniversaarlIsolatedGit -GitHome $GitHome -Repository $Repository -UseExplicitRepositoryPaths -Arguments @('config', '--local', '--get', 'core.bare')
     if ($bare.exitCode -ne 0 -or $bare.output -ne 'false') { throw 'Kernkonfiguration der Push-Kopie entspricht nicht der exakten nicht-baren Commitkopie.' }
     if ($RequireCredentialManager) {
@@ -1188,9 +1247,7 @@ function Initialize-UniversaarlProcessRunner {
         [Parameter(Mandatory)][string]$ControlRoot,
         [Parameter(Mandatory)][string]$SandboxRoot
     )
-    $dotnet = Get-Command dotnet.exe -ErrorAction SilentlyContinue
-    if ($null -eq $dotnet) { $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue }
-    if ($null -eq $dotnet) { throw 'Die .NET-6-Werkzeugkette fuer den sicheren Prozesshelfer fehlt.' }
+    $dotnet = Resolve-UniversaarlTool -Names @('dotnet', 'dotnet.exe') -Description 'Die .NET-6-Werkzeugkette fuer den sicheren Prozesshelfer'
     $project = Join-Path $ControlRoot 'tools\Universaarl.ProcessRunner\Universaarl.ProcessRunner.csproj'
     if (-not (Test-Path -LiteralPath $project -PathType Leaf)) { throw 'Der sichere Prozesshelfer fehlt.' }
     $output = Join-Path $SandboxRoot 'prozesshelfer'
@@ -1202,7 +1259,7 @@ function Initialize-UniversaarlProcessRunner {
     [Environment]::SetEnvironmentVariable('DOTNET_NOLOGO', '1')
     try {
         $intermediateArgument = $intermediate.Replace('\', '/') + '/'
-        $buildOutput = @(& $dotnet.Source build $project '--configuration' 'Release' '--output' $output '--nologo' '--verbosity' 'quiet' "-p:BaseIntermediateOutputPath=$intermediateArgument" "-p:MSBuildProjectExtensionsPath=$intermediateArgument" 2>&1)
+        $buildOutput = @(& $dotnet build $project '--configuration' 'Release' '--output' $output '--nologo' '--verbosity' 'quiet' "-p:BaseIntermediateOutputPath=$intermediateArgument" "-p:MSBuildProjectExtensionsPath=$intermediateArgument" 2>&1)
         if ($LASTEXITCODE -ne 0) { throw "Der sichere Prozesshelfer konnte nicht erstellt werden: $((($buildOutput | ForEach-Object { [string]$_ }) -join ' ').Trim())" }
     }
     finally {
@@ -1211,7 +1268,7 @@ function Initialize-UniversaarlProcessRunner {
     }
     $dll = Join-Path $output 'Universaarl.ProcessRunner.dll'
     if (-not (Test-Path -LiteralPath $dll -PathType Leaf)) { throw 'Der erstellte Prozesshelfer ist nicht auffindbar.' }
-    [pscustomobject]@{ dotnet = $dotnet.Source; dll = $dll }
+    [pscustomobject]@{ dotnet = $dotnet; dll = $dll }
 }
 
 function Invoke-UniversaarlSanitizedProcess {
@@ -1229,8 +1286,8 @@ function Invoke-UniversaarlSanitizedProcess {
     )
     $isolatedHome = Join-Path $SandboxRoot 'home'
     $cache = Join-Path $SandboxRoot 'npm-cache'
-    $appData = Join-Path $isolatedHome 'AppData\Roaming'
-    $localAppData = Join-Path $isolatedHome 'AppData\Local'
+    $appData = if (Test-UniversaarlIsWindows) { Join-Path $isolatedHome 'AppData\Roaming' } else { Join-Path $isolatedHome '.config' }
+    $localAppData = if (Test-UniversaarlIsWindows) { Join-Path $isolatedHome 'AppData\Local' } else { Join-Path $isolatedHome '.local/share' }
     $sandboxParent = Split-Path -Parent ([IO.Path]::GetFullPath($SandboxRoot))
     $null = Initialize-UniversaarlSafeDirectory -TrustedRoot $sandboxParent -Directory $SandboxRoot
     foreach ($directory in @($isolatedHome, $cache, $appData, $localAppData)) { $null = Initialize-UniversaarlSafeDirectory -TrustedRoot $SandboxRoot -Directory $directory }
@@ -1241,7 +1298,7 @@ function Invoke-UniversaarlSanitizedProcess {
     try {
         $logStream = [IO.File]::Open([IO.Path]::GetFullPath($LogPath), [IO.FileMode]::CreateNew, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
         $logFinalPath = Get-UniversaarlFinalPathFromStream -Stream $logStream
-        if (-not [string]::Equals($logFinalPath, [IO.Path]::GetFullPath($LogPath), [StringComparison]::OrdinalIgnoreCase)) { throw 'Geoeffneter Protokollhandle verweist nicht auf die erwartete Protokolldatei.' }
+        if (-not (Test-UniversaarlPathEqual -Left $logFinalPath -Right ([IO.Path]::GetFullPath($LogPath)))) { throw 'Geoeffneter Protokollhandle verweist nicht auf die erwartete Protokolldatei.' }
     }
     catch {
         if ($null -ne $logStream) { $logStream.Dispose() }
@@ -1250,9 +1307,6 @@ function Invoke-UniversaarlSanitizedProcess {
     }
     $environment = @{
         PATH = [Environment]::GetEnvironmentVariable('PATH')
-        PATHEXT = [Environment]::GetEnvironmentVariable('PATHEXT')
-        SystemRoot = [Environment]::GetEnvironmentVariable('SystemRoot')
-        ComSpec = [Environment]::GetEnvironmentVariable('ComSpec')
         TEMP = $SandboxRoot
         TMP = $SandboxRoot
         HOME = $isolatedHome
@@ -1271,6 +1325,11 @@ function Invoke-UniversaarlSanitizedProcess {
         npm_config_audit = 'false'
         npm_config_fund = 'false'
         npm_config_update_notifier = 'false'
+    }
+    if (Test-UniversaarlIsWindows) {
+        $environment['PATHEXT'] = [Environment]::GetEnvironmentVariable('PATHEXT')
+        $environment['SystemRoot'] = [Environment]::GetEnvironmentVariable('SystemRoot')
+        $environment['ComSpec'] = [Environment]::GetEnvironmentVariable('ComSpec')
     }
     foreach ($entry in $AdditionalEnvironment.GetEnumerator()) { $environment[[string]$entry.Key] = [string]$entry.Value }
     $request = [pscustomobject]@{
@@ -1293,7 +1352,9 @@ function Invoke-UniversaarlSanitizedProcess {
             if ($helperArgument.IndexOf('"') -ge 0) { throw 'Ein Pfadargument fuer den Prozesshelfer ist ungueltig.' }
         }
         $helperArguments = ((@([string]$Runner.dll, $requestPath, $resultPath) | ForEach-Object { '"' + $_ + '"' }) -join ' ')
-        $runnerProcess = Start-Process -FilePath ([string]$Runner.dotnet) -ArgumentList $helperArguments -RedirectStandardOutput $runnerStdoutPath -RedirectStandardError $runnerStderrPath -WindowStyle Hidden -PassThru
+        $startParameters = @{ FilePath = [string]$Runner.dotnet; ArgumentList = $helperArguments; RedirectStandardOutput = $runnerStdoutPath; RedirectStandardError = $runnerStderrPath; PassThru = $true }
+        if (Test-UniversaarlIsWindows) { $startParameters.WindowStyle = 'Hidden' }
+        $runnerProcess = Start-Process @startParameters
         $waitMilliseconds = [int][Math]::Min(3660000, ([int64]$TimeoutSeconds + 30) * 1000)
         if (-not $runnerProcess.WaitForExit($waitMilliseconds)) {
             try { $runnerProcess.Kill() } catch { }

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -264,9 +265,6 @@ internal static class Program
 
         try
         {
-            if (!OperatingSystem.IsWindows())
-                throw new PlatformNotSupportedException("Der sichere Prozesshelfer benoetigt Windows-Jobobjekte.");
-
             var requestInfo = new FileInfo(args[0]);
             if (!requestInfo.Exists || requestInfo.Length > 1_048_576)
                 throw new InvalidOperationException("Prozessanforderung fehlt oder ist zu gross.");
@@ -290,7 +288,9 @@ internal static class Program
                 4096,
                 FileOptions.Asynchronous);
 
-            var result = await RunWindowsProcessAsync(request);
+            var result = OperatingSystem.IsWindows()
+                ? await RunWindowsProcessAsync(request)
+                : await RunUnixProcessAsync(request);
             await JsonSerializer.SerializeAsync(resultStream, result);
             await resultStream.FlushAsync();
             resultStream.Flush(flushToDisk: true);
@@ -300,6 +300,88 @@ internal static class Program
         {
             Console.Error.WriteLine($"Prozesshelfer fehlgeschlagen: {error.Message}");
             return 3;
+        }
+    }
+
+    private static async Task<ProcessResult> RunUnixProcessAsync(ProcessRequest request)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = request.FilePath,
+            WorkingDirectory = request.WorkingDirectory,
+            UseShellExecute = false,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+        foreach (var argument in request.Arguments)
+            startInfo.ArgumentList.Add(argument);
+        startInfo.Environment.Clear();
+        foreach (var entry in request.Environment)
+            startInfo.Environment[entry.Key] = entry.Value;
+
+        using var process = new Process { StartInfo = startInfo };
+        if (!process.Start())
+            throw new InvalidOperationException("Der Zielprozess konnte nicht gestartet werden.");
+        process.StandardInput.Close();
+
+        using var outputCancellation = new CancellationTokenSource();
+        var stdoutTask = ReadBoundedAsync(process.StandardOutput, request.MaximumOutputCharacters, outputCancellation.Token);
+        var stderrTask = ReadBoundedAsync(process.StandardError, request.MaximumOutputCharacters, outputCancellation.Token);
+        var waitTask = process.WaitForExitAsync();
+        var completed = await Task.WhenAny(waitTask, Task.Delay(request.TimeoutMilliseconds));
+        var timedOut = completed != waitTask;
+        if (timedOut)
+        {
+            KillUnixProcessTree(process);
+            if (await Task.WhenAny(waitTask, Task.Delay(5_000)) != waitTask)
+                throw new InvalidOperationException("Der Unix-Prozessbaum konnte nach dem Zeitlimit nicht beendet werden.");
+        }
+        await waitTask;
+
+        var drainTask = Task.WhenAll(stdoutTask, stderrTask);
+        if (await Task.WhenAny(drainTask, Task.Delay(5_000)) != drainTask)
+        {
+            timedOut = true;
+            KillUnixProcessTree(process);
+            outputCancellation.Cancel();
+            if (await Task.WhenAny(drainTask, Task.Delay(2_000)) != drainTask)
+            {
+                return new ProcessResult
+                {
+                    ExitCode = 124,
+                    TimedOut = true,
+                    OutputTruncated = true,
+                    StandardOutput = "<AUSGABE WEGEN OFFENER KINDPROZESS-PIPE GEKUERZT>",
+                    StandardError = "",
+                };
+            }
+        }
+
+        var stdout = await stdoutTask;
+        var stderr = await stderrTask;
+        return new ProcessResult
+        {
+            ExitCode = timedOut ? 124 : process.ExitCode,
+            TimedOut = timedOut,
+            OutputTruncated = stdout.Truncated || stderr.Truncated,
+            StandardOutput = Redact(stdout.Text, request.SensitiveRoots),
+            StandardError = Redact(stderr.Text, request.SensitiveRoots),
+        };
+    }
+
+    private static void KillUnixProcessTree(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException) { }
+        catch (PlatformNotSupportedException error)
+        {
+            throw new InvalidOperationException("Der Unix-Prozessbaum kann auf dieser Laufzeit nicht sicher begrenzt werden.", error);
         }
     }
 

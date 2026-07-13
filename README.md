@@ -27,6 +27,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tests\Test-ControlCenterRo
 
 Die Standardpfade stehen in `monitor.config.json`. Für einen anderen Rechner können sie ohne Dateiänderung mit `UNIVERSAARL_BLUEPRINT_PATH` und `UNIVERSAARL_TWIN_PATH` überschrieben werden.
 
+## Frisches System vorbereiten
+
+Der Doctor prueft die lokale Werkzeugkette und Pflichtdateien, ohne Zielprojekte oder Zugangsdaten zu lesen. Der Bootstrap baut zusaetzlich nur den ignorierten Prozesshelfer unter `.work/`:
+
+```powershell
+./scripts/Initialize-UniversaarlControlCenter.ps1 -Json
+./scripts/Initialize-UniversaarlControlCenter.ps1 -Bootstrap
+```
+
+Vorausgesetzt werden Git 2.40, Node.js 20, .NET SDK 6 und unter macOS PowerShell 7.4. Auf Windows bleibt PowerShell 5.1 zulaessig. Die portable Implementierung ist lokal unter Windows und synthetisch fuer Unix pruefbar; echte macOS-Releasebereitschaft bleibt bis zu einem bestandenen macOS-Runnerlauf `PENDING_MACOS_RUNNER_EVIDENCE`.
+
 ## Prüfung starten
 
 Die schnelle Prüfung liest nur Metadaten, Manifeste und Git-Zustand:

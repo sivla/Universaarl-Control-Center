@@ -24,7 +24,7 @@ foreach ($relative in @(
     'README.md', 'AGENTS.md', 'project-goals.json', 'monitor.config.json',
     'scripts\Invoke-UniversaarlAudit.ps1', 'scripts\Invoke-UniversaarlGoalReview.ps1',
     'scripts\Publish-UniversaarlCommit.ps1', 'scripts\Invoke-TwinContractSmoke.mjs',
-    'scripts\Universaarl-Control.Common.ps1',
+    'scripts\Universaarl-Control.Common.ps1', 'scripts\Initialize-UniversaarlControlCenter.ps1',
     'tools\Universaarl.ProcessRunner\Program.cs'
 )) { Add-ControlFile (Join-Path $Root $relative) }
 

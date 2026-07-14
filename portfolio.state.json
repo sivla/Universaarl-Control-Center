@@ -8,26 +8,26 @@
     {
       "projectId": "spectra",
       "overallGoal": "Ein kundenunabhaengiges, ausrollbares Projekt-, Support-, Wissens- und Informationsbetriebssystem mit kontrollierter Jira-/Confluence-Adoption.",
-      "largestGap": "Spectra ist im eigenen oeffentlichen Repository auf Commit 717cf27697b4ea04fbc50f653da84762fd5ef050 und Tree c6a6fc5dab606b6d870af2053e355c2efed9762f als portable Einzelprojekt-Plattform vorbereitet. Der echte unveraenderliche Release spectra-v1.2.0-alpha.12 bleibt die von der BC-Basic-Kundeninstanz gebundene Produktversion; der neuere Arbeitsstand wird nicht als neuer Release ausgegeben.",
+      "largestGap": "Spectra ist auf Commit 717cf27697b4ea04fbc50f653da84762fd5ef050 als portable Einzelprojekt-Plattform vorbereitet, aber das verbindliche Hauptziel spectra-v1.0.0 ist noch nicht erreicht. Der einzige aktuell gebundene echte Release ist spectra-v1.2.0-alpha.12; der neuere Arbeitsstand besitzt noch keinen eigenen unveraenderlichen Release-Nachweis und die vollstaendige 1.0-Gap-Matrix ist noch nicht abgearbeitet.",
       "lastCommit": "717cf27697b4ea04fbc50f653da84762fd5ef050",
-      "mainBlocker": "Fuer den aktuellen Portfoliostand besteht kein Release-Bindungsblocker. Weitere Spectra-Produktentwicklung bleibt ein eigener Produktauftrag und darf die gebundene Kundeninstanz nicht ungeprueft veraendern.",
-      "nextDeliveryBlock": "Nach Abschluss der Repositorymigration Spectra ausschliesslich im BCProjectOS-Projekt weiterentwickeln; wiederverwendbare Universaarl-Erkenntnisse nur anonymisiert und als nicht uebernommene blueprint-candidates zufuehren."
+      "mainBlocker": "Der vorhandene Arbeitsstand beweist Plattform- und Onboarding-Bereitschaft, aber weder den vollstaendigen BC-Basic-Lebenszyklus noch den Releaseabschluss 1.0.0. Ein Arbeitscommit darf nicht als Release oder Produktabschluss umgedeutet werden.",
+      "nextDeliveryBlock": "Im BCProjectOS-Projekt die aktuelle 1.0-Gap-Matrix commitgebunden aktualisieren und genau den groessten fehlenden Releaseblock als einzigen WIP-1-OpenSpec-Zyklus bis Candidate, unabhaengigem Gate und echtem Folgerelease ausfuehren."
     },
     {
       "projectId": "blueprint",
       "overallGoal": "Ein verkaufbares und lean wiederholbares BC-Basic-Standardprodukt, das den Kunden fachlich, organisatorisch und operativ bis zur sicheren taeglichen Nutzung befaehigt.",
-      "largestGap": "Die Kundeninstanz ist im eigenen oeffentlichen Repository auf Commit 40248b7c042753cf03a4eed8c4b9adc5920f6a6a und Tree df1edd9eed8186e80853c068ae3b9c0dcd08fb65 veroeffentlicht. Snapshot UABC-PORTABLE-PILOT-0005 bindet 173 Dateien, davon 170 Projektquellen, mit Manifestdigest b0202e3969958aca151121ef53338d5b489a0876250c2b5322ce0dfbbf3b7305 und bleibt fachliche Source of Truth.",
+      "largestGap": "Die Kundeninstanz ist auf Commit 40248b7c042753cf03a4eed8c4b9adc5920f6a6a und Snapshot UABC-PORTABLE-PILOT-0005 sauber gebunden und fuer Kundenarbeit vorbereitet. Die vollstaendige synthetische Projektgeschichte ist jedoch noch nicht abgeschlossen: Angebot, Tickets, Worklogs, BC-Playthroughs, SIT/UAT, Cutover-GO_SIMULATION, Go-live, Hypercare, Restart, erster Abschluss, UStVA-Vorschau und Handover muessen noch als zusammenhaengende Simulation bis zum Abschluss belegt werden.",
       "lastCommit": "40248b7c042753cf03a4eed8c4b9adc5920f6a6a",
-      "mainBlocker": "Die Repository- und Snapshotmigration ist abgeschlossen. Fachlich bleiben reale BC-Einrichtung, Readback, Kundenentscheidungen, UAT, Cutover, erster Abschluss und Umsatzsteuervoranmeldung ehrlich offen, bis sie im Kundenprojekt ausgefuehrt und belegt werden.",
-      "nextDeliveryBlock": "Nach dem Kontrollzentrum-Endgate die BC-Basic-Projektumsetzung im eigenen Projekt fortsetzen: Standard-CRONUS-Ausgangspunkt, Finanz- und Grundeinrichtung, Einkauf, Verkauf, einfaches Lager, Tests, Schulungen, Cutover, Hypercare, erster Abschluss und Umsatzsteuervoranmeldung realitaetsnah und ticketgebunden durchspielen."
+      "mainBlocker": "Der vorherige Zielstatus hat reale Kundenevidence faelschlich zum Abschlussblocker der Simulation gemacht. Reale Tenant-, Kunden- und Steuerfreigaben blockieren nur einen echten Go-live; die repositorybasierte Simulation muss ihre eigenen synthetischen Gates jetzt vollstaendig schliessen.",
+      "nextDeliveryBlock": "Im BC-Basic-Projekt als groessten Lieferblock die gesamte konsistente Referenzsimulation vom versionierten Angebot bis zum letzten Hypercaretag und Support-Handover ausfuehren, alle UABC-Tickets mit Historie, Evidence und Abschlusskommentar vervollstaendigen und einen neuen validierten Snapshot erzeugen."
     },
     {
       "projectId": "project-twin",
       "overallGoal": "Ein strikt nur-lesendes, handlungsorientiertes Cockpit fuer den neuesten validierten BC-Basic-Branch-Commit.",
-      "largestGap": "Project Twin ist im eigenen oeffentlichen Repository auf Commit 1be30598bb669186c67a43d3864c42164dda7862 und Tree 4e1a24d847e2c3c1394797bdb9457a77b7bd6091 veroeffentlicht. Er liest Snapshot UABC-PORTABLE-PILOT-0005 ausschliesslich ueber den validierten Katalog, trennt Dokumentseiten korrekt von anderen positivgelisteten Markdown-Artefakten und bestand 258 Tests, Produktionsbuild sowie den Browser-Smoke fuer Cockpit, Tickets und Projektdokumentation auf Desktop und Mobil ohne Konsolenfehler oder Warnungen.",
+      "largestGap": "Project Twin liest Snapshot UABC-PORTABLE-PILOT-0005 auf Commit 1be30598bb669186c67a43d3864c42164dda7862 sicher und read-only. Er kann aber noch nicht die abgeschlossene Projektgeschichte zeigen, weil der Producer-Snapshot diese noch nicht enthaelt; ausserdem fehlt fuer den finalen Stand noch ein echter fail-closed-Browsernachweis neben Desktop- und Mobilansicht.",
       "lastCommit": "1be30598bb669186c67a43d3864c42164dda7862",
-      "mainBlocker": "Es besteht kein Consumer- oder Repositorydefekt. Die ausdrueckliche menschliche MVP-Freigabe und die spaetere OpenSpec-Archivierung bleiben ehrlich offene, nicht technische Folgeziele.",
-      "nextDeliveryBlock": "Twin nur im eigenen Projekt weiterentwickeln und ausschliesslich neue validierte BC-Basic-Snapshots darstellen; keine eigene Fachdatenhaltung und kein Rueckschreiben einfuehren."
+      "mainBlocker": "Der Twin ist technisch arbeitsbereit, sein fachlicher Endzustand ist aber producerabhaengig. Er darf weder die fehlende Abschlusshistorie erfinden noch den aktuellen Teilstand als vollstaendigen Projektabschluss darstellen.",
+      "nextDeliveryBlock": "Nach der validierten BC-Basic-Uebergabe den Twin im eigenen Projekt auf genau den neuen Snapshot binden, Angebot, Seitenbaum, Tickets, BC-Sitzungen, Tests, Gates, Hypercare und Handover sichtbar machen und Desktop-, Mobil- sowie einen echten fail-closed-Browserfall belegen."
     }
   ]
 }

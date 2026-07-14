@@ -15,6 +15,6 @@
 - [x] Plattform-Evidence auf gemeinsame Snapshotbindung sowie feste Command-/Artefaktrecords statt freier Booleans umstellen.
 - [x] GitHub-Actions-Provenienz und heruntergeladenes Attestierungsartefakt fail-closed verifizieren; nicht online belegbare Fixtures bleiben PENDING.
 - [x] Attestierungs-ZIP traversal-/symlink-sicher entpacken und Plattform-Evidence sowie alle acht Record-Artefakte bytegenau daran binden.
-- [ ] Finale Komponenten-SHAs, Snapshot-Gates und echte Windows-/macOS-Evidence binden.
-- [ ] Vier getrennte oeffentliche Repositories und deren anonymen Fresh-Clone-Nachweis binden.
-- [ ] Pilotanzeige ohne Git-Laufzeit sowie isoliertes Neu-Projekt-Onboarding auf Windows und macOS nachweisen.
+- [x] Finale Komponenten-SHAs, Snapshot-Gates und echte Windows-/macOS-Evidence binden.
+- [x] Vier getrennte oeffentliche Repositories und deren anonymen Fresh-Clone-Nachweis binden.
+- [x] Pilotanzeige ohne Git-Laufzeit sowie isoliertes Neu-Projekt-Onboarding auf Windows und macOS nachweisen.

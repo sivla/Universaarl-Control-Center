@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "kind": "universaarl-public-repository-migration",
+  "status": "VERIFIED_PUBLIC_REPOSITORY_MIGRATION",
+  "generatedAt": "2026-07-14T04:49:31.5833959Z",
+  "architecture": "BCProjectOS/Spectra -> Universaarl BC Basic -> validierter portabler Snapshot -> read-only Project Twin; Universaarl Control Center prueft ausserhalb der Datenkette",
+  "controlContract": {
+    "repository": "https://github.com/sivla/Universaarl-Control-Center.git",
+    "branch": "codex/verify-spectra-snapshot-chain",
+    "validatorCommit": "69fd5ed819450ed9bc36beb63ebbc145631b005e",
+    "validatorTree": "6fd9b4e52a04ecd8c34452d072960821632208a3"
+  },
+  "repositories": [
+    {
+      "projectId": "spectra",
+      "repository": "https://github.com/sivla/BCProjectOS.git",
+      "visibility": "PUBLIC",
+      "defaultBranch": "main",
+      "mainCommit": "6b3d9a1bfaf6cd806218a802fdde8f1a4cfa55a1",
+      "workingBranch": "codex/spectra-portable-bootstrap-registry",
+      "workingCommit": "6b3d9a1bfaf6cd806218a802fdde8f1a4cfa55a1",
+      "tree": "e6beb8bc570927c35eb48c415024aaf486007324",
+      "anonymousFreshClone": "passed"
+    },
+    {
+      "projectId": "blueprint",
+      "repository": "https://github.com/sivla/Universaarl-BC-Basic.git",
+      "visibility": "PUBLIC",
+      "defaultBranch": "main",
+      "mainCommit": "281d2bab4fadce74c7756cc42a14dbf0a6a9eb45",
+      "workingBranch": "codex/universaarl-projekt",
+      "workingCommit": "281d2bab4fadce74c7756cc42a14dbf0a6a9eb45",
+      "tree": "b4c2170eaf3b6165fe283b15fdd688a34df8cdc4",
+      "anonymousFreshClone": "passed"
+    },
+    {
+      "projectId": "project-twin",
+      "repository": "https://github.com/sivla/Universaarl-Project-Twin.git",
+      "visibility": "PUBLIC",
+      "defaultBranch": "main",
+      "mainCommit": "cae38797e4cdee0cd53e59ff2b7e84446a2d9363",
+      "workingBranch": "codex/universaarl-projekt-twin",
+      "workingCommit": "cae38797e4cdee0cd53e59ff2b7e84446a2d9363",
+      "tree": "db5ea843dd1e7264b3d968ce2685be7642c9b16a",
+      "anonymousFreshClone": "passed"
+    },
+    {
+      "projectId": "control-center",
+      "repository": "https://github.com/sivla/Universaarl-Control-Center.git",
+      "visibility": "PUBLIC",
+      "defaultBranch": "main",
+      "validatedWorkingBranch": "codex/verify-spectra-snapshot-chain",
+      "validatedWorkingCommit": "69fd5ed819450ed9bc36beb63ebbc145631b005e",
+      "validatedTree": "6fd9b4e52a04ecd8c34452d072960821632208a3",
+      "anonymousFreshClone": "passed"
+    }
+  ],
+  "spectra": {
+    "releaseTag": "spectra-v1.2.0-alpha.12",
+    "annotatedTagObject": "80563e5823a042a95582c88cb41aaf6306a9cfce",
+    "tagCommit": "6b3d9a1bfaf6cd806218a802fdde8f1a4cfa55a1",
+    "payloadBundleSha256": "b637a82c381d7744f08949c264393382cb90d7e6b1f67d56afacb6e88a312c7b",
+    "platformEvidenceRun": 29293515568,
+    "status": "passed"
+  },
+  "snapshot": {
+    "releaseId": "UABC-PORTABLE-PILOT-0004",
+    "publisherCommit": "281d2bab4fadce74c7756cc42a14dbf0a6a9eb45",
+    "projectPayloadProvenance": "83a63c0af8775001e4c7f909a46c5b227f3cce3d",
+    "manifestSha256": "38fcef85b101c05aee075a0692e08956a5090796aa2015affd5c687a2503daf3",
+    "sourceInventorySha256": "c4a20b95f3ca7ad35af7b541401a32482c9aadc893fa40a75380bf78a0ad1b6a",
+    "fileCount": 161,
+    "projectSourceCount": 158,
+    "consumerRepository": "https://github.com/sivla/Universaarl-Project-Twin.git",
+    "consumerBranch": "codex/universaarl-projekt-twin",
+    "access": "nur-lesend",
+    "status": "passed"
+  },
+  "projectTwin": {
+    "commit": "cae38797e4cdee0cd53e59ff2b7e84446a2d9363",
+    "tree": "db5ea843dd1e7264b3d968ce2685be7642c9b16a",
+    "focusedTests": "9/9 passed",
+    "fullTests": "248 passed, 1 skipped",
+    "typescript": "passed",
+    "build": "passed",
+    "germanGate": "passed",
+    "productiveGitRuntimeDependency": false,
+    "platformRun": {
+      "id": 29305275477,
+      "url": "https://github.com/sivla/Universaarl-Project-Twin/actions/runs/29305275477",
+      "headCommit": "cae38797e4cdee0cd53e59ff2b7e84446a2d9363",
+      "status": "passed",
+      "windows": {
+        "jobId": 86997269304,
+        "artifactId": 8300017660,
+        "artifactDigest": "sha256:ddab99d50e6a071af315d785b4420d0ccb3103901b7b55e985b1bd49ef9e6415"
+      },
+      "macos14": {
+        "jobId": 86997269246,
+        "artifactId": 8300012839,
+        "artifactDigest": "sha256:0b7e6595ad8f23e5a62cd223191372d816001ef00305683bff1c5d9eaa17d468"
+      }
+    }
+  },
+  "controlEvidence": {
+    "auditRunId": "audit-20260714T043612Z-726ff176dfb34b84a78c4afa7512a26f",
+    "auditStatus": "GELB",
+    "auditCoveragePercent": 100,
+    "blueprintTechnicalValidation": "passed",
+    "projectTwinTechnicalValidation": "passed",
+    "germanSurfaceValidation": "passed",
+    "spectraBinding": "passed",
+    "portableSnapshotRelationship": "passed",
+    "commitBoundCrossSmoke": "passed-with-one-nonblocking-resource-catalog-warning",
+    "goalReviewRunId": "ziel-20260714T044514Z-ebe1f7d3d6644f8281f4fc3b37c8bef9",
+    "goalReviewStatus": "GELB",
+    "goalReviewCoveragePercent": 100,
+    "strategicRelationships": "passed"
+  },
+  "publicSafety": {
+    "fullReachableHistoryReviewedBeforePublication": true,
+    "secretOrCredentialFinding": false,
+    "realEnvironmentContentFinding": false,
+    "unsuitableLargeBlobFinding": false,
+    "historyRewriteUsed": false,
+    "forcePushUsed": false
+  },
+  "legacy": {
+    "repository": "https://github.com/sivla/FiBu.git",
+    "deletedBranches": [
+      "codex/universaarl-projekt",
+      "codex/universaarl-projekt-twin"
+    ],
+    "otherBranchesChanged": false,
+    "status": "removed-after-verified-migration"
+  },
+  "safety": {
+    "worktreesCreated": false,
+    "targetWorktreesClean": true,
+    "targetFingerprintsUnchangedDuringValidation": true,
+    "realEnvironmentFilesRead": false,
+    "crossProjectSourceEditsFromControlCenter": false
+  },
+  "documentedFollowups": [
+    "Die ausdrueckliche menschliche Twin-MVP-Freigabe bleibt offen und wird nicht erfunden.",
+    "Die aktive Twin-OpenSpec-Aenderung wird erst nach eigener Freigabe archiviert.",
+    "Der optionale kanonische Ressourcenkatalog bleibt ein nicht blockierender Folgeauftrag.",
+    "Die eigene Kontrollzentrum-macOS-Releasekandidatur bleibt getrennt von der bestandenen Twin-Plattformmatrix."
+  ]
+}

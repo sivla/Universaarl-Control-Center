@@ -18,7 +18,7 @@
       "overallGoal": "Ein verkaufbares und lean wiederholbares BC-Basic-Standardprodukt, das den Kunden fachlich, organisatorisch und operativ bis zur sicheren taeglichen Nutzung befaehigt.",
       "largestGap": "Die Kundeninstanz ist im eigenen oeffentlichen Repository auf Commit 281d2bab4fadce74c7756cc42a14dbf0a6a9eb45 und Tree b4c2170eaf3b6165fe283b15fdd688a34df8cdc4 veroeffentlicht. Snapshot UABC-PORTABLE-PILOT-0004 bindet 161 Dateien, davon 158 Projektquellen, mit Manifestdigest 38fcef85b101c05aee075a0692e08956a5090796aa2015affd5c687a2503daf3 und bleibt fachliche Source of Truth.",
       "lastCommit": "281d2bab4fadce74c7756cc42a14dbf0a6a9eb45",
-      "mainBlocker": "Die technische Repository- und Snapshotmigration ist nicht mehr der Engpass. Fachlich bleiben reale BC-Einrichtung, Readback, Kundenentscheidungen, UAT, Cutover, erster Abschluss und Umsatzsteuervoranmeldung ehrlich offen, bis sie im Kundenprojekt ausgefuehrt und belegt werden.",
+      "mainBlocker": "Die Repository- und Snapshotmigration ist abgeschlossen. Fachlich bleiben reale BC-Einrichtung, Readback, Kundenentscheidungen, UAT, Cutover, erster Abschluss und Umsatzsteuervoranmeldung ehrlich offen, bis sie im Kundenprojekt ausgefuehrt und belegt werden.",
       "nextDeliveryBlock": "Nach dem Kontrollzentrum-Endgate die BC-Basic-Projektumsetzung im eigenen Projekt fortsetzen: Standard-CRONUS-Ausgangspunkt, Finanz- und Grundeinrichtung, Einkauf, Verkauf, einfaches Lager, Tests, Schulungen, Cutover, Hypercare, erster Abschluss und Umsatzsteuervoranmeldung realitaetsnah und ticketgebunden durchspielen."
     },
     {
@@ -26,8 +26,8 @@
       "overallGoal": "Ein strikt nur-lesendes, handlungsorientiertes Cockpit fuer den neuesten validierten BC-Basic-Branch-Commit.",
       "largestGap": "Project Twin ist im eigenen oeffentlichen Repository auf Commit cae38797e4cdee0cd53e59ff2b7e84446a2d9363 und Tree db5ea843dd1e7264b3d968ce2685be7642c9b16a veroeffentlicht. Er liest Snapshot UABC-PORTABLE-PILOT-0004 ausschliesslich ueber den validierten Katalog, prueft die neue Consumeridentitaet fail-closed und bestand 248 Tests sowie Plattformlauf 29305275477 unter Windows und macOS einschliesslich Browser-Smoke.",
       "lastCommit": "cae38797e4cdee0cd53e59ff2b7e84446a2d9363",
-      "mainBlocker": "Es besteht kein Consumerdefekt. Vor der stabilen main-Freigabe fehlt nur noch das unabhaengige Kontrollzentrum-Endgate der neuen Repositorykette.",
-      "nextDeliveryBlock": "Nach dem Kontrollzentrum-Endgate main normal fast-forward veroeffentlichen; danach Twin nur im eigenen Projekt weiterentwickeln und ausschliesslich validierte BC-Basic-Snapshots darstellen."
+      "mainBlocker": "Es besteht kein Consumer- oder Repositorydefekt. Die ausdrueckliche menschliche MVP-Freigabe und die spaetere OpenSpec-Archivierung bleiben ehrlich offene, nicht technische Folgeziele.",
+      "nextDeliveryBlock": "Twin nur im eigenen Projekt weiterentwickeln und ausschliesslich neue validierte BC-Basic-Snapshots darstellen; keine eigene Fachdatenhaltung und kein Rueckschreiben einfuehren."
     }
   ]
 }

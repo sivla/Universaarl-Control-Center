@@ -8,6 +8,14 @@ function Assert-UniversaarlReadinessExactProperties {
     }
 }
 
+function Assert-UniversaarlReadinessAllowedProperties {
+    param([Parameter(Mandatory)]$Value, [Parameter(Mandatory)][string[]]$Required, [Parameter(Mandatory)][string[]]$Allowed, [Parameter(Mandatory)][string]$Label)
+    $actual = @($Value.PSObject.Properties | ForEach-Object { [string]$_.Name })
+    if (@($Required | Where-Object { $_ -notin $actual }).Count -gt 0 -or @($actual | Where-Object { $_ -notin $Allowed }).Count -gt 0) {
+        throw "$Label besitzt fehlende oder unbekannte Felder."
+    }
+}
+
 function Assert-UniversaarlReadinessContract {
     param([Parameter(Mandatory)]$Contract)
     Assert-UniversaarlReadinessExactProperties -Value $Contract -Names @('schemaVersion','kind','customerOnboardingGatePath','readinessLevels','evidenceKinds','requiredRealCustomerEvidenceKinds','components') -Label 'Produktionsreifevertrag'
@@ -88,7 +96,12 @@ function Assert-UniversaarlReadinessEvidencePath {
 function Assert-UniversaarlComponentProductionReadiness {
     param([Parameter(Mandatory)]$Evidence,[Parameter(Mandatory)]$Component,[Parameter(Mandatory)]$Contract,[Parameter(Mandatory)][string]$Repository,[Parameter(Mandatory)][string]$Commit)
     Assert-FullCommitSha -Commit $Commit
-    Assert-UniversaarlReadinessExactProperties -Value $Evidence -Names @('schemaVersion','kind','projectId','assessments','distribution','deploymentBoundary') -Label "Readiness-Evidence '$($Component.projectId)'"
+    $requiredEvidenceFields = @('schemaVersion','kind','projectId','assessments','distribution','deploymentBoundary')
+    $allowedEvidenceFields = @($requiredEvidenceFields)
+    if ($Component.projectId -ceq 'blueprint') {
+        $allowedEvidenceFields += @('governingChange','truthBoundary','commercial','phases','customerInputs','security','migration','deliveryGates','businessContinuity','knowledgeSpaces','artifacts','ticketTranscriptCoverage','referenceSimulation','sources')
+    }
+    Assert-UniversaarlReadinessAllowedProperties -Value $Evidence -Required $requiredEvidenceFields -Allowed $allowedEvidenceFields -Label "Readiness-Evidence '$($Component.projectId)'"
     if (-not (Test-UniversaarlJsonInteger $Evidence.schemaVersion) -or $Evidence.schemaVersion -ne 1 -or $Evidence.kind -cne 'universaarl-component-production-readiness' -or $Evidence.projectId -cne [string]$Component.projectId) { throw "Readiness-Evidence fuer '$($Component.projectId)' besitzt eine falsche Identitaet." }
     if ($Evidence.deploymentBoundary -cne [string]$Component.deploymentBoundary) { throw "Deploymentgrenze fuer '$($Component.projectId)' widerspricht dem Kontrollvertrag." }
     Assert-UniversaarlReadinessExactProperties -Value $Evidence.assessments -Names @($Contract.readinessLevels) -Label 'Readiness-Bewertungen'
@@ -98,25 +111,27 @@ function Assert-UniversaarlComponentProductionReadiness {
         Assert-UniversaarlReadinessExactProperties -Value $assessment -Names @('status','evidenceMode','evidence','blockers') -Label "Bewertung '$level'"
         $allowedStatuses = if ($level -eq 'customerGoLiveReady') { @('passed','pending','failed','not-applicable','source-dependent') } else { @('passed','pending','failed') }
         if ($assessment.status -notin $allowedStatuses) { throw "Bewertung '$level' besitzt einen unbekannten Status." }
-        if ($assessment.evidenceMode -notin @('technical','simulated','none','real','source')) { throw "Bewertung '$level' besitzt einen unbekannten Evidence-Modus." }
-        $blockers = @($assessment.blockers)
+        if ($assessment.evidenceMode -notin @('technical','simulated','commit-bound','repository','local','none','real','source')) { throw "Bewertung '$level' besitzt einen unbekannten Evidence-Modus." }
+        $blockers = @($assessment.blockers | Where-Object { $null -ne $_ })
         if (@($blockers | Where-Object { $_ -isnot [string] -or [string]::IsNullOrWhiteSpace([string]$_) }).Count -gt 0) { throw "Bewertung '$level' besitzt einen ungueltigen Blocker." }
-        $records = @($assessment.evidence); $seenPaths = @{}; $seenKinds = [Collections.Generic.List[string]]::new()
+        $records = @($assessment.evidence); $seenEvidence = @{}; $seenKinds = [Collections.Generic.List[string]]::new()
         foreach ($record in $records) {
             Assert-UniversaarlReadinessExactProperties -Value $record -Names @('kind','path') -Label "Evidence-Record '$level'"
             if ($record.kind -notin @($Contract.evidenceKinds.$level)) { throw "Evidence-Art '$($record.kind)' ist fuer '$level' nicht erlaubt." }
             $safePath = Assert-UniversaarlReadinessEvidencePath -Path ([string]$record.path) -EvidencePath ([string]$Component.evidencePath)
-            if ($seenPaths.ContainsKey($safePath)) { throw "Evidence-Pfad '$safePath' ist doppelt." }; $seenPaths[$safePath] = $true; $seenKinds.Add([string]$record.kind)
+            $evidenceKey = "$([string]$record.kind)|$safePath"
+            if ($seenEvidence.ContainsKey($evidenceKey)) { throw "Evidence-Art '$($record.kind)' und Pfad '$safePath' sind doppelt." }; $seenEvidence[$evidenceKey] = $true; $seenKinds.Add([string]$record.kind)
             $null = Read-UniversaarlCommitText -Repository $Repository -Commit $Commit -Path $safePath -MaximumBytes 1048576 -Required
         }
         if ($assessment.status -eq 'passed' -and ($records.Count -lt 1 -or $blockers.Count -ne 0)) { throw "Bestandene Bewertung '$level' benoetigt Evidence und darf keine Blocker besitzen." }
         if ($assessment.status -in @('pending','failed') -and $blockers.Count -lt 1) { throw "Offene oder fehlgeschlagene Bewertung '$level' muss mindestens einen konkreten Blocker nennen." }
+        if ($assessment.status -eq 'source-dependent' -and ($records.Count -lt 1 -or $blockers.Count -lt 1)) { throw "Quellabhaengige Bewertung '$level' benoetigt Validierungsevidence und einen konkreten Quellblocker." }
         $assessmentResults[$level] = [pscustomobject]@{ status=[string]$assessment.status; evidenceMode=[string]$assessment.evidenceMode; evidenceCount=$records.Count; blockers=$blockers; evidenceKinds=@($seenKinds) }
     }
     $customer = $Evidence.assessments.customerGoLiveReady
     switch ([string]$Component.customerGoLivePolicy) {
         'not-applicable' { if ($customer.status -cne 'not-applicable' -or $customer.evidenceMode -cne 'none' -or @($customer.evidence).Count -ne 0 -or @($customer.blockers).Count -ne 0) { throw "'$($Component.projectId)' darf keinen eigenen Kunden-Go-live behaupten." } }
-        'source-dependent' { if ($customer.status -cne 'source-dependent' -or $customer.evidenceMode -cne 'source' -or @($customer.evidence).Count -ne 0 -or @($customer.blockers).Count -ne 0) { throw 'Project Twin muss den Kunden-Go-live ausschliesslich als quellabhaengig behandeln.' } }
+        'source-dependent' { if ($customer.status -cne 'source-dependent' -or $customer.evidenceMode -cne 'source' -or @($customer.evidence).Count -lt 1 -or @($customer.blockers).Count -lt 1) { throw 'Project Twin muss den Kunden-Go-live ausschliesslich als belegte Quellabhaengigkeit mit offenem Quellblocker behandeln.' } }
         'real-evidence-only' {
             if ($customer.status -eq 'passed') {
                 if ($customer.evidenceMode -cne 'real') { throw 'Kunden-Go-live darf nur mit realer Evidence bestanden sein.' }
@@ -129,6 +144,12 @@ function Assert-UniversaarlComponentProductionReadiness {
     if ($Evidence.distribution.status -notin @('internal-only','approved','blocked') -or $Evidence.distribution.licenseDecision -notin @('pending','approved','not-required')) { throw 'Distributions- oder Lizenzstatus ist unbekannt.' }
     $distributionEvidence = @($Evidence.distribution.evidence)
     foreach ($record in $distributionEvidence) {
+        if ($record -is [string]) {
+            if ($Evidence.distribution.status -eq 'approved') { throw 'Freigegebene Distribution benoetigt eine typisierte Lizenzentscheidung.' }
+            $safePath = Assert-UniversaarlReadinessEvidencePath -Path ([string]$record) -EvidencePath ([string]$Component.evidencePath)
+            $null = Read-UniversaarlCommitText -Repository $Repository -Commit $Commit -Path $safePath -MaximumBytes 1048576 -Required
+            continue
+        }
         Assert-UniversaarlReadinessExactProperties -Value $record -Names @('kind','path') -Label 'Distributions-Evidence'
         if ($record.kind -cne 'license-decision') { throw 'Distributions-Evidence besitzt eine unbekannte Art.' }
         $safePath = Assert-UniversaarlReadinessEvidencePath -Path ([string]$record.path) -EvidencePath ([string]$Component.evidencePath)

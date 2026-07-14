@@ -83,9 +83,10 @@
       "id": "twin-reads-blueprint",
       "consumerProjectId": "project-twin",
       "providerProjectId": "blueprint",
-      "contractType": "portable-snapshot-release",
-      "pointerPath": "exports/project-data/v1/snapshots/current.json",
-      "contractMarker": "uabc-portable-snapshot-current-v1"
+      "contractType": "validated-branch-commit",
+      "providerBranch": "codex/universaarl-projekt",
+      "indexPath": "exports/project-data/v1/index.yaml",
+      "contractMarker": "UABC-PROJECT-DATA-V1"
     }
   ]
 }

@@ -176,7 +176,7 @@ function Test-UniversaarlBranchIndex {
         contractRole = 'repository-relative-data-allowlist'
         pathSemantics = 'repository-relative'
         allowedBranch = $ExpectedBranch
-        validationStatus = 'branch-commit-validierung-erforderlich'
+        validationStatus = 'validated'
     }
     foreach ($name in $requiredScalars.Keys) {
         $match = [regex]::Match($indexText, "(?m)^$([regex]::Escape($name)):\s*(?<value>[^#\r\n]+?)\s*$")
@@ -185,16 +185,29 @@ function Test-UniversaarlBranchIndex {
         }
     }
 
-    $artifactMatches = @([regex]::Matches($indexText, "(?m)^\s*-\s*\{\s*id:\s*(?<id>[^,}\s]+).*?path:\s*(?<path>[^,}\s]+).*?required:\s*(?<required>true|false)\s*\}\s*$"))
-    if ($artifactMatches.Count -eq 0) { throw 'Der Branch-Index enthaelt keine Artefakt-Allowlist.' }
+    $artifactRecords = [Collections.Generic.List[object]]::new()
+    foreach ($match in @([regex]::Matches($indexText, '(?m)^  - id:\s*(?<id>[^\s#]+)\s*\r?\n(?<body>(?:^    [^\r\n]*(?:\r?\n|$))+)' ))) {
+        $body = [string]$match.Groups['body'].Value
+        $pathMatch = [regex]::Match($body, '(?m)^    path:\s*(?<value>[^#\r\n]+?)\s*$')
+        $requiredMatch = [regex]::Match($body, '(?m)^    required:\s*(?<value>true|false)\s*$')
+        if (-not $pathMatch.Success -or -not $requiredMatch.Success) { throw "Branch-Indexeintrag '$($match.Groups['id'].Value)' ist unvollstaendig." }
+        $artifactRecords.Add([pscustomobject]@{ id=[string]$match.Groups['id'].Value; path=[string]$pathMatch.Groups['value'].Value; required=[string]$requiredMatch.Groups['value'].Value })
+    }
+    foreach ($match in @([regex]::Matches($indexText, "(?m)^\s*-\s*\{\s*id:\s*(?<id>[^,}\s]+).*?path:\s*(?<path>[^,}\s]+).*?required:\s*(?<required>true|false)\s*\}\s*$"))) {
+        $artifactRecords.Add([pscustomobject]@{ id=[string]$match.Groups['id'].Value; path=[string]$match.Groups['path'].Value; required=[string]$match.Groups['required'].Value })
+    }
+    if ($artifactRecords.Count -eq 0) { throw 'Der Branch-Index enthaelt keine Artefakt-Allowlist.' }
     $ids = @{}; $paths = @{}; $records = [Collections.Generic.List[object]]::new()
-    foreach ($match in $artifactMatches) {
-        $id = [string]$match.Groups['id'].Value
-        $path = Assert-UniversaarlContractPath ([string]$match.Groups['path'].Value)
+    foreach ($artifact in $artifactRecords) {
+        $id = [string]$artifact.id
+        $path = Assert-UniversaarlContractPath ([string]$artifact.path)
         if ($id -notmatch '^UABC-[A-Z0-9]+(?:-[A-Z0-9]+)*$') { throw "Branch-Index-ID '$id' ist ungueltig." }
         if ($ids.ContainsKey($id)) { throw "Branch-Index-ID '$id' ist doppelt." }; $ids[$id] = $true
-        if ($paths.ContainsKey($path)) { throw "Branch-Indexpfad '$path' ist doppelt." }; $paths[$path] = $true
-        if ($match.Groups['required'].Value -cne 'true') { throw "Branch-Indexpfad '$path' ist nicht verbindlich erforderlich." }
+        # Mehrere fachliche IDs duerfen denselben regulaeren Quellblob bewusst
+        # als Alias referenzieren. Die ID bleibt eindeutig; der Blob wird fuer
+        # jede deklarierte Projektion erneut in den Vertragsdigest aufgenommen.
+        $paths[$path] = $true
+        if ([string]$artifact.required -cne 'true') { throw "Branch-Indexpfad '$path' ist nicht verbindlich erforderlich." }
         $entry = Get-UniversaarlBlobEntry -Repository $Repository -Commit $Commit -Path $path -Required
         if ($entry.mode -cne '100644') { throw "Branch-Indexpfad '$path' ist kein regulaerer Git-Blob im Modus 100644." }
         $bytes = Get-UniversaarlGitBlobBytes -Repository $Repository -Object $entry.object
@@ -207,11 +220,58 @@ function Test-UniversaarlBranchIndex {
     $ordered = @($records); [Array]::Sort($ordered, [Comparison[object]]{ param($left,$right) [StringComparer]::Ordinal.Compare([string]$left.path,[string]$right.path) })
     $bundleText = (@($ordered | ForEach-Object line) -join '')
     $bundle = Get-UniversaarlBytesSha256 ([Text.UTF8Encoding]::new($false).GetBytes($bundleText))
+    $indexBytes = Get-UniversaarlGitBlobBytes -Repository $Repository -Object $indexEntry.object
     [pscustomobject]@{
         status='passed'; fullValidationPassed=$true; providerCommit=$Commit; branch=$ExpectedBranch
-        indexPath=$indexPath; indexBlob=$indexEntry.object; artifactCount=$records.Count
+        providerTree=(Invoke-UniversaarlGitRead -Repository $Repository -Arguments @('rev-parse', "$Commit^{tree}")).output
+        indexPath=$indexPath; indexBlob=$indexEntry.object; indexSha256=(Get-UniversaarlBytesSha256 $indexBytes)
+        artifactCount=$records.Count; physicalPathCount=$paths.Count
         payloadBundleDigest="sha256:$bundle"; access='nur-lesend'; legacySnapshotRequired=$false
     }
+}
+
+function Test-UniversaarlCurrentSpectraBinding {
+    param(
+        [Parameter(Mandatory)][string]$Repository,
+        [Parameter(Mandatory)][string]$Commit,
+        [Parameter(Mandatory)][string]$SpectraRepository
+    )
+    Assert-FullCommitSha $Commit
+    $bindingPath = 'governance/consumer-bindings.yaml'
+    $text = (Read-UniversaarlCommitText -Repository $Repository -Commit $Commit -Path $bindingPath -MaximumBytes 262144 -Required).content
+    $section = [regex]::Match($text, '(?m)^spectraReleaseBinding:[ \t]*\r?\n(?<body>(?:^[ \t]+[^\r\n]*(?:\r?\n|$))+)')
+    if (-not $section.Success) { throw 'Die aktuelle Spectra-Consumerbindung fehlt.' }
+
+    $allowed = @('bindingStatus','productId','technicalRepositoryName','repositoryUrl','releaseVersion','releaseTag','tagCommit','manifestPath','manifestSourceCommit','consumerMode','installableBlueprint','digestAlgorithm','payloadBundleDigest','installationStatus','reason')
+    $values = @{}
+    foreach ($line in @($section.Groups['body'].Value -split "`r?`n" | Where-Object { $_ -match '\S' })) {
+        $match = [regex]::Match($line, '^  (?<name>[A-Za-z][A-Za-z0-9]*):\s*(?<value>.*?)\s*$')
+        if (-not $match.Success) { throw 'Die aktuelle Spectra-Consumerbindung enthaelt keine reine skalare Struktur.' }
+        $name = [string]$match.Groups['name'].Value
+        if ($name -notin $allowed -or $values.ContainsKey($name)) { throw "Spectra-Consumerbindungsfeld '$name' ist unbekannt oder doppelt." }
+        $values[$name] = [string]$match.Groups['value'].Value
+    }
+    if ($values.Count -ne $allowed.Count -or @($allowed | Where-Object { -not $values.ContainsKey($_) }).Count -gt 0) { throw 'Die aktuelle Spectra-Consumerbindung ist unvollstaendig.' }
+    if ($values.bindingStatus -cne 'BOUND' -or $values.installableBlueprint -cne 'true' -or $values.installationStatus -cne 'geplant-nicht-installiert') { throw 'Die aktuelle Spectra-Consumerbindung behauptet keinen ehrlichen installierbaren Releasevertrag.' }
+
+    $binding = [pscustomobject]@{
+        bindingStatus = $values.bindingStatus
+        productId = $values.productId
+        technicalRepositoryName = $values.technicalRepositoryName
+        repositoryUrl = $values.repositoryUrl
+        releaseVersion = $values.releaseVersion
+        releaseTag = $values.releaseTag
+        tagCommit = $values.tagCommit
+        manifestPath = $values.manifestPath
+        manifestSourceCommit = $values.manifestSourceCommit
+        consumerMode = $values.consumerMode
+        installableBlueprint = $true
+        digestAlgorithm = $values.digestAlgorithm
+        payloadBundleDigest = $values.payloadBundleDigest
+    }
+    $proof = Test-UniversaarlSpectraReleaseBinding -Repository $SpectraRepository -Binding $binding
+    if ($proof.fullValidationPassed -ne $true) { throw 'Die aktuelle Spectra-Consumerbindung besitzt keinen vollstaendigen Release-Nachweis.' }
+    [pscustomobject]@{ status='passed'; fullValidationPassed=$true; consumerCommit=$Commit; bindingPath=$bindingPath; binding=$binding; proof=$proof }
 }
 
 function Test-UniversaarlPortableSnapshotRelease {

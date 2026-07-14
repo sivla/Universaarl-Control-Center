@@ -182,7 +182,7 @@ $blueprintReadme = ''
 $walkthroughBuilder = ''
 $walkthroughTests = ''
 $blueprintConsumerBinding = ''
-$portableSnapshotProof = $null
+$branchIndexProof = $null
 $spectraBindingArtifactPresent = $false
 $spectraBindingIdentityValid = $false
 $spectraReleaseProof = $null
@@ -194,20 +194,21 @@ if ($blueprintState.head) {
     $blueprintReadme = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'README.md' -Findings $blueprintFindings -Code 'GOAL-BP-ARTIFACT'
     $walkthroughBuilder = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'scripts/build-walkthrough.mjs' -Findings $blueprintFindings -Code 'GOAL-BP-ARTIFACT'
     $walkthroughTests = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'tests/artifacts/walkthrough.test.mjs' -Findings $blueprintFindings -Code 'GOAL-BP-ARTIFACT'
+    $blueprintConsumerBinding = Read-RequiredGoalText -Repository $blueprintRoot -Commit $blueprintState.head -Path 'governance/consumer-bindings.yaml' -Findings $spectraFindings -Code 'GOAL-SPECTRA-BINDING'
     try {
-        $portableSnapshotProof = Test-UniversaarlPortableSnapshotRelease -Repository $blueprintRoot -Commit $blueprintState.head -SpectraRepository $verificationSourceRoot
+        $currentSpectra = Test-UniversaarlCurrentSpectraBinding -Repository $blueprintRoot -Commit $blueprintState.head -SpectraRepository $verificationSourceRoot
         $spectraBindingArtifactPresent = $true
         $spectraBindingIdentityValid = $true
-        $spectraReleaseProof = $portableSnapshotProof.spectraProof
+        $spectraReleaseProof = $currentSpectra.proof
     }
     catch {
-        $spectraFindings.Add((New-GoalFinding high 'GOAL-SPECTRA-SNAPSHOT-UNVERIFIED' "Die portable Spectra- und Snapshotkette hat den Vollvalidator nicht bestanden: $($_.Exception.Message)" 'current.json; Release-Manifest; BCProjectOS-Releaseevidence' 'Portable Releasekette korrigieren und erneut vollstaendig pruefen.'))
+        $spectraFindings.Add((New-GoalFinding high 'GOAL-SPECTRA-SNAPSHOT-UNVERIFIED' "Die aktuelle Spectra-Consumerbindung hat den Vollvalidator nicht bestanden: $($_.Exception.Message)" 'governance/consumer-bindings.yaml; BCProjectOS-Releaseevidence' 'Aktuelle Releasebindung korrigieren und erneut vollstaendig pruefen.'))
     }
 }
 
 if (-not [string]::IsNullOrWhiteSpace($blueprintConsumerBinding)) {
     $spectraBindingArtifactPresent = $true
-    $spectraSection = [regex]::Match($blueprintConsumerBinding, '(?ms)^spectraReleaseBinding:\s*\r?\n(?<body>(?:^[ \t]+.*(?:\r?\n|$))+)')
+    $spectraSection = [regex]::Match($blueprintConsumerBinding, '(?m)^spectraReleaseBinding:[ \t]*\r?\n(?<body>(?:^[ \t]+[^\r\n]*(?:\r?\n|$))+)')
     if (-not $spectraSection.Success -or [string]$spectraSection.Groups['body'].Value -notmatch '(?m)^  productId:\s*spectra\s*$' -or
         [string]$spectraSection.Groups['body'].Value -notmatch '(?m)^  technicalRepositoryName:\s*BCProjectOS\s*$' -or
         [string]$spectraSection.Groups['body'].Value -notmatch '(?m)^  repositoryUrl:\s*https://github\.com/sivla/BCProjectOS\.git\s*$') {
@@ -308,9 +309,13 @@ if ($twinState.head) {
         elseif ($approvalState -eq 'open') { $twinFindings.Add((New-GoalFinding medium 'GOAL-TW-003' 'Die ausdrueckliche menschliche Freigabe ist fuer den Zwischenstand weiterhin offen.' $mvpPath 'Keine Freigabe erfinden; vor der endgueltigen Freigabe ausdrueckliche menschliche Zustimmung einholen.')) }
     }
 
-    $currentChange = [string]$GoalConfig.projects.'project-twin'.currentChange
-    if ([string]::IsNullOrWhiteSpace($currentChange) -or $currentChange -notmatch '^[a-z0-9][a-z0-9-]+$') { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-006' 'Die aktuelle Mehrprojekt-Aenderung ist nicht sicher konfiguriert.' 'project-goals.json' 'Aktuelle Change-ID explizit konfigurieren.')) }
+    $currentChange = $GoalConfig.projects.'project-twin'.currentChange
+    if ($null -eq $currentChange) {
+        if ($twinState.activeChanges.Count -gt 0) { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-006' 'Aktive Twin-Aenderungen sind vorhanden, obwohl die Zielkonfiguration keinen aktiven Change ausweist.' 'project-goals.json; commitgebundener OpenSpec-Baum' 'Genau einen aktiven Change konfigurieren oder den abgeschlossenen Change archivieren.')) }
+    }
+    elseif ($currentChange -isnot [string] -or [string]$currentChange -notmatch '^[a-z0-9][a-z0-9-]+$') { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-006' 'Die aktuelle Mehrprojekt-Aenderung ist nicht sicher konfiguriert.' 'project-goals.json' 'Aktuelle Change-ID explizit konfigurieren.')) }
     else {
+        $currentChange = [string]$currentChange
         $currentTaskPath = "openspec/changes/$currentChange/tasks.md"
         $twinCurrentTasks = Read-RequiredGoalText -Repository $twinRoot -Commit $twinState.head -Path $currentTaskPath -Findings $twinFindings -Code 'GOAL-TW-006'
         if (-not [string]::IsNullOrWhiteSpace($twinCurrentTasks) -and $twinCurrentTasks -notmatch '(?m)^\s*-\s*\[[ xX]\]\s+') { $twinFindings.Add((New-GoalFinding high 'GOAL-TW-006' 'Die aktuelle Aenderung besitzt keine strukturell erkennbare Aufgabenliste.' $currentTaskPath 'Aufgaben als eindeutige OpenSpec-Checkboxen dokumentieren.')) }
@@ -329,17 +334,17 @@ if ($twinAdapter -match "imagePath\.includes\('/run-1/'\)" -and $twinAdapter -ma
 if ($twinState.dirty -eq $true) { $twinFindings.Add((New-GoalFinding low 'GOAL-TW-007' 'Der aktuelle Twin-Arbeitsbaum ist lokal unsauber.' 'git status --porcelain' 'Lokalen und veroeffentlichten Stand getrennt ausweisen.')) }
 
 if ($blueprintState.head -and $twinState.head) {
-    $snapshotPointerEntry = Get-UniversaarlBlobEntry -Repository $blueprintRoot -Commit $blueprintState.head -Path 'exports/project-data/v1/snapshots/current.json'
-    $branchIndexPresent = $null -ne $snapshotPointerEntry
-    $branchIndexProof = $portableSnapshotProof
-    $twinConsumesProjectData = $twinSnapshotCatalog -match 'exports/project-data/v1/snapshots/current\.json' -and
-        $twinSnapshotCatalog -match 'uabc-portable-snapshot-release-v1' -and
-        $twinSnapshotCatalog -match 'createFilesystemTransport' -and $twinSnapshotCatalog -match 'createHttpsTransport' -and
-        $twinSnapshotCatalog -notmatch 'UABC_SOURCE_REPO|UABC_STABLE_BRANCH'
-    if (-not $twinConsumesProjectData) { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-002' 'Der Twin liest den portablen BC-Basic-Snapshotvertrag nicht als einzigen produktiven Ladepfad.' 'current.json; Twin-Snapshotreader' 'Filesystem-/HTTPS-Snapshotreader ohne Git-Laufzeitfallback bereitstellen.')) }
-    if (-not $branchIndexPresent) { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-SNAPSHOT-POINTER' 'Der BC-Basic-Snapshotzeiger fehlt; der Twin darf den Projektstand nicht lesen.' 'exports/project-data/v1/snapshots/current.json im Blueprint-HEAD' 'Portablen unveraenderlichen Snapshotrelease erzeugen und validieren.')) }
+    $branchIndexPresent = $null -ne (Get-UniversaarlBlobEntry -Repository $blueprintRoot -Commit $blueprintState.head -Path 'exports/project-data/v1/index.yaml')
+    try { $branchIndexProof = Test-UniversaarlBranchIndex -Repository $blueprintRoot -Commit $blueprintState.head -ExpectedBranch 'codex/universaarl-projekt' }
+    catch { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-SNAPSHOT-INVALID' "Der commitgebundene Branch-Index besitzt keinen Vollvalidatornachweis: $($_.Exception.Message)" 'Blueprint-Commit, Tree, Index und positivgelistete Git-Blobs' 'Branch-Index und Positivliste korrigieren und erneut pruefen.')) }
+    $twinConsumesProjectData = $twinAdapter -match 'readBranchProjectDataSources' -and
+        $twinAdapter -match 'UABC_BRANCH_COMMIT_CONTRACT' -and
+        $twinRegistry -match 'productionRegistry' -and
+        $twinRegistry -match 'exports/project-data/v1/index\.yaml'
+    if (-not $twinConsumesProjectData) { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-002' 'Der Twin besitzt keinen eindeutig commit-, tree- und indexgebundenen Nur-Lese-Pfad fuer BC Basic.' 'Twin-Adapter und Projektregistry' 'Commitgebundenen Git-Blob-Leser ohne Rueckschreibpfad bereitstellen.')) }
+    if (-not $branchIndexPresent) { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-SNAPSHOT-INDEX' 'Der BC-Basic-Branch-Index fehlt; der Twin darf den Projektstand nicht lesen.' 'exports/project-data/v1/index.yaml im Blueprint-HEAD' 'Validierten Branch-Index erzeugen und pruefen.')) }
     elseif ($null -eq $branchIndexProof -or $branchIndexProof.fullValidationPassed -ne $true) {
-        $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-SNAPSHOT-INVALID' 'Die portable Snapshotkette besitzt keinen vollstaendigen Validatornachweis.' 'Snapshotzeiger, Release-Manifest und positivgelistete Releasebytes' 'Portable Releasekette korrigieren und erneut pruefen.'))
+        if (@($relationshipFindings | Where-Object code -eq 'GOAL-X-SNAPSHOT-INVALID').Count -eq 0) { $relationshipFindings.Add((New-GoalFinding high 'GOAL-X-SNAPSHOT-INVALID' 'Der commitgebundene Branch-Index besitzt keinen vollstaendigen Validatornachweis.' 'Blueprint-Commit, Tree, Index und positivgelistete Git-Blobs' 'Branch-Index korrigieren und erneut pruefen.')) }
     }
 }
 else {
@@ -392,7 +397,7 @@ if ($null -ne $branchIndexProof -and $branchIndexProof.fullValidationPassed -eq 
 $blueprintResult = [pscustomobject]@{ id = 'blueprint'; objective = [string]$GoalConfig.projects.blueprint.objective; currentGoal = [string]$GoalConfig.projects.blueprint.currentGoal; status = Get-GoalStatus @($blueprintFindings); evidenceCoverage = $blueprintCoverage; state = $blueprintState; findings = @($blueprintFindings) }
 $twinResult = [pscustomobject]@{ id = 'project-twin'; objective = [string]$GoalConfig.projects.'project-twin'.objective; currentGoal = [string]$GoalConfig.projects.'project-twin'.currentGoal; status = Get-GoalStatus @($twinFindings); evidenceCoverage = $twinCoverage; state = $twinState; findings = @($twinFindings) }
 $spectraRelationshipResult = [pscustomobject]@{ id = 'blueprint-binds-spectra'; contractType = 'versioned-product-release'; objective = [string]$GoalConfig.relationships.'blueprint-binds-spectra'.objective; status = Get-GoalStatus @($spectraFindings); fullValidationPassed = ($null -ne $spectraReleaseProof -and $spectraReleaseProof.fullValidationPassed -eq $true); evidenceCoverage = $spectraCoverage; productName = 'Spectra'; productId = 'spectra'; technicalProjectName = 'BCProjectOS'; sourceCommit = $verificationInput.sourceCommit; consumerCommit = $blueprintState.head; proof = $spectraReleaseProof; findings = @($spectraFindings) }
-$relationshipResult = [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'portable-snapshot-release'; objective = [string]$GoalConfig.relationships.'twin-reads-blueprint'.objective; status = Get-GoalStatus @($relationshipFindings); fullValidationPassed = ($null -ne $branchIndexProof -and $branchIndexProof.fullValidationPassed -eq $true -and $twinConsumesProjectData); evidenceCoverage = $relationshipCoverage; providerCommit = $blueprintState.head; consumerCommit = $twinState.head; proof = $branchIndexProof; findings = @($relationshipFindings) }
+$relationshipResult = [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'validated-branch-commit'; objective = [string]$GoalConfig.relationships.'twin-reads-blueprint'.objective; status = Get-GoalStatus @($relationshipFindings); fullValidationPassed = ($null -ne $branchIndexProof -and $branchIndexProof.fullValidationPassed -eq $true -and $twinConsumesProjectData); evidenceCoverage = $relationshipCoverage; providerCommit = $blueprintState.head; consumerCommit = $twinState.head; proof = $branchIndexProof; findings = @($relationshipFindings) }
 $allFindings = @($blueprintFindings) + @($twinFindings) + @($spectraFindings) + @($relationshipFindings)
 $overall = Get-GoalStatus $allFindings
 $inputShas = [ordered]@{ blueprint = $blueprintState.head; 'project-twin' = $twinState.head }

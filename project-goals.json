@@ -3,11 +3,11 @@
   "principle": "Fachlich schnell, technisch ehrlich.",
   "v1WorkingRule": "V1.0 ist der erste real nutzbare, durchklickbare und fachlich zusammenhaengende Release-Stand. Verbindlich sind Business-Ziel, Datenintegritaet, sichere Bindungen und Kernablaeufe. Nicht blockierende Struktur-, Komfort-, Performance- und Zusatzhaertungsthemen werden nach V1.0 als priorisierter V1.x-Backlog weiterentwickelt.",
   "simulationRule": "Die Simulation verwendet keine beliebigen Mockup-Daten. Alle synthetischen Firmen-, Personen-, Artikel-, Lieferanten-, Kunden-, Finanz-, Steuer-, Bank-, Einkaufs-, Verkaufs-, Lager-, Projekt-, Ticket- und Evidence-Daten muessen untereinander plausibel, fachlich begruendet und ueber den gesamten Projektverlauf konsistent sein. Jeder Kernprozess wird wie in einer realen BC-Basic-Einfuehrung vom Ausloeser bis zu Buchung, Abstimmung, Ausnahme, Freigabe, Schulung, Betrieb und Nachweis durchdacht und als schlanker Standardweg dokumentiert.",
-  "nextPortfolioMilestone": "Die Repositorymigration ist abgeschlossen: vier getrennte oeffentliche Repositories, stabile main-Zweige fuer BC Basic und Project Twin, anonyme Fresh-Clones, gruene Spectra- und Snapshotbeziehungen sowie Windows-/macOS-Evidence. Die alten Universaarl-Zweige in FiBu sind entfernt. Der naechste Portfolioblock ist wieder fachlicher Fortschritt in BC Basic und die ausschliesslich lesende Darstellung neuer validierter Snapshots im Twin.",
+  "nextPortfolioMilestone": "Spectra 1.0.0 ist unveraenderlich veroeffentlicht, die vollstaendige BC-Basic-Referenzsimulation und der read-only Twin sind lokal abgeschlossen. Naechster Meilenstein ist der unabhaengige gruene Kontrolllauf auf den finalen Commit-SHAs und danach die kontrollierte Veroeffentlichung der beiden vorhandenen Zielprojektstaende.",
   "projects": {
     "blueprint": {
       "objective": "BC Basic V1 als verkaufbares, durchdachtes und lean wiederholbares Standardprodukt fertigstellen, mit dem ein realer Kunde auf dem kuerzesten belastbaren Weg von Angebot und Vorbereitung ueber Fit-to-Standard, Konfiguration, Datenmigration, UAT und Befaehigung bis zu Cutover, Hypercare und sicherem Betrieb gefuehrt werden kann.",
-      "currentGoal": "Der im eigenen oeffentlichen Repository auf Commit 281d2bab4fadce74c7756cc42a14dbf0a6a9eb45 verankerte Snapshot UABC-PORTABLE-PILOT-0004 ist auf Arbeitszweig und main kontrolliert veroeffentlicht. Er bindet Spectra 1.2.0-alpha.12, 158 Projektquellen und insgesamt 161 Dateien mit Manifestdigest 38fcef85b101c05aee075a0692e08956a5090796aa2015affd5c687a2503daf3.",
+      "currentGoal": "Die vollstaendige synthetische BC-Basic-Referenzsimulation ist auf dem Arbeitszweig fachlich abgeschlossen, bindet den echten Spectra-Release 1.0.0 und stellt einen validierten repository-relativen Index mit 179 Projektionen bereit. Reale Tenant-, Kunden-, Steuer- und Produktivfreigaben bleiben ehrlich ausserhalb der Simulation.",
       "v1ExitCriteria": [
         "Ein eindeutiges Standardangebot, Scope, Voraussetzungen, Nichtleistungen und Change-Regel",
         "Reproduzierbare Standardprozesse und feldnahe Konfigurations-/SoD-Baseline",
@@ -34,10 +34,10 @@
       ]
     },
     "project-twin": {
-      "objective": "Project Twin V1 als strikt nur-lesendes, deutschsprachiges und in weniger als zwei Minuten erfassbares Produkt- und Projektcockpit veroeffentlichungsreif machen, das ausschliesslich validierte portable BC-Basic-Snapshotreleases ueber Filesystem oder HTTPS darstellt.",
-      "currentGoal": "Der im eigenen oeffentlichen Repository auf Commit cae38797e4cdee0cd53e59ff2b7e84446a2d9363 belegte Twin-Stand ist auf Arbeitszweig und main kontrolliert veroeffentlicht. Er liest UABC-PORTABLE-PILOT-0004 ohne produktive Git-Laufzeitabhaengigkeit, validiert die Consumeridentitaet strikt und hat im Plattformlauf 29305275477 unter Windows und macOS einschliesslich Browser-Smoke bestanden.",
+      "objective": "Project Twin V1 als strikt nur-lesendes, deutschsprachiges und in weniger als zwei Minuten erfassbares Projektcockpit veroeffentlichungsreif machen, das ausschliesslich einen extern festgehaltenen, validierten BC-Basic-Branch-Commit ueber dessen Index und Git-Blobs darstellt.",
+      "currentGoal": "Der Twin ist auf den finalen validierten BC-Basic-Commit, dessen Tree und Index-Digest gebunden, zeigt die komplette synthetische Projektgeschichte auf Desktop und Mobil und blockiert ungueltige Quellen sichtbar fail-closed. Der Standard-Produktivpfad besitzt keine Git-Laufzeitkapazitaet; der commitgebundene Branchleser ist ein expliziter Nur-Lese-Betriebs- und Evidencepfad.",
       "v1ExitCriteria": [
-        "Explizite Releasebindung ueber current.json, unveraenderliches Manifest und vollstaendige SHA-256-Allowlist",
+        "Explizite Bindung an Branch, Commit, Tree, repository-relativen Index und vollstaendig gepruefte Git-Blobs",
         "Fuenf handlungsorientierte Leitfragen decken Angebot bis Betrieb ohne neue Fachwahrheit ab",
         "Desktop, A11y und sichtbare deutsche Inhalte abgenommen; Mobil mit einfachem Responsive-Smoke ohne offensichtliche Unbenutzbarkeit",
         "Manipulierte, unvollstaendige oder widerspruechliche Quellen liefern sichtbar HTTP 503",
@@ -52,8 +52,8 @@
         "Epic, Story, Aufgabe, Unteraufgabe, Fehler und Aenderung sind in Board, Listen und Details durch eine Jira-nahe konsistente Icon-/Farblogik unmittelbar erkennbar; Typtext und Barrierefreiheit verhindern eine reine Farbcodierung",
         "Confluence-Module und Jira-Gruppen werden ausschliesslich aus der commitgebundenen Projektquellenstruktur modular, tastaturbedienbar und auf-/einklappbar gerendert; ungueltige Strukturen blockieren fail-closed"
       ],
-      "requiredBaseCommit": "4167d0cb2e3cbc72544190e8c3a40002f800d7cf",
-      "currentChange": "establish-read-only-project-twin-mvp",
+      "requiredBaseCommit": "08eef7c830ef93b80e5e603f62ba4c5350990472",
+      "currentChange": null,
       "antiGoals": [
         "Dokumentenarchiv statt handlungsorientierter Orientierung",
         "Rueckschreiben oder eigene fachliche Wahrheit",
@@ -68,7 +68,7 @@
       "objective": "BC Basic bindet nur unveraenderliche, vollstaendig nachgewiesene Spectra-Releases; neue Spectra-Entwicklung bleibt bis zur Veroeffentlichung PENDING und veraendert den laufenden Kundenstand nicht."
     },
     "twin-reads-blueprint": {
-      "objective": "Twin liest ausschliesslich einen expliziten Filesystem- oder HTTPS-Katalog aus current.json, unveraenderlichem Release-Manifest und vollstaendig digestgeprueften Payloads; Git-, Branch- und Arbeitsbaumfallbacks bleiben verboten und ungueltige Quellen blockieren sichtbar mit HTTP 503."
+      "objective": "Twin liest ausschliesslich den extern festgehaltenen validierten BC-Basic-Branch-Commit ueber dessen repository-relativen Index und regulaere Git-Blobs; Commit, Tree, Remote, Branch, Allowlist und Digests werden fail-closed geprueft, der Arbeitsbaum wird nie zur Fachquelle und ungueltige Quellen blockieren sichtbar mit HTTP 503."
     }
   }
 }

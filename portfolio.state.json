@@ -8,26 +8,26 @@
     {
       "projectId": "spectra",
       "overallGoal": "Ein kundenunabhaengiges, ausrollbares Projekt-, Support-, Wissens- und Informationsbetriebssystem mit kontrollierter Jira-/Confluence-Adoption.",
-      "largestGap": "Spectra ist auf Commit 717cf27697b4ea04fbc50f653da84762fd5ef050 als portable Einzelprojekt-Plattform vorbereitet, aber das verbindliche Hauptziel spectra-v1.0.0 ist noch nicht erreicht. Der einzige aktuell gebundene echte Release ist spectra-v1.2.0-alpha.12; der neuere Arbeitsstand besitzt noch keinen eigenen unveraenderlichen Release-Nachweis und die vollstaendige 1.0-Gap-Matrix ist noch nicht abgearbeitet.",
-      "lastCommit": "717cf27697b4ea04fbc50f653da84762fd5ef050",
-      "mainBlocker": "Der vorhandene Arbeitsstand beweist Plattform- und Onboarding-Bereitschaft, aber weder den vollstaendigen BC-Basic-Lebenszyklus noch den Releaseabschluss 1.0.0. Ein Arbeitscommit darf nicht als Release oder Produktabschluss umgedeutet werden.",
-      "nextDeliveryBlock": "Im BCProjectOS-Projekt die aktuelle 1.0-Gap-Matrix commitgebunden aktualisieren und genau den groessten fehlenden Releaseblock als einzigen WIP-1-OpenSpec-Zyklus bis Candidate, unabhaengigem Gate und echtem Folgerelease ausfuehren."
+      "largestGap": "Der echte unveraenderliche Release spectra-v1.0.0 ist veroeffentlicht und durch Tagobjekt, Commit, Tree, finales Manifest, 330 Git-Blobs und SHA-256-Payloaddigest belegt. Fuer den synthetischen Portfolioabschluss besteht keine offene Spectra-Lieferluecke.",
+      "lastCommit": "c05649bd10ed29a082bbe2338d7d326d3d755687",
+      "mainBlocker": "Kein Blocker fuer den synthetischen Portfolioabschluss. Reale Installationen und spaetere Produktweiterentwicklung bleiben eigene Release- beziehungsweise Kundenauftraege.",
+      "nextDeliveryBlock": "Nach dem Portfolioabschluss nur noch kontrollierte V1.x-Aenderungen ueber einen neuen expliziten OpenSpec- und Releasezyklus beginnen."
     },
     {
       "projectId": "blueprint",
       "overallGoal": "Ein verkaufbares und lean wiederholbares BC-Basic-Standardprodukt, das den Kunden fachlich, organisatorisch und operativ bis zur sicheren taeglichen Nutzung befaehigt.",
-      "largestGap": "Die Kundeninstanz ist auf Commit 40248b7c042753cf03a4eed8c4b9adc5920f6a6a und Snapshot UABC-PORTABLE-PILOT-0005 sauber gebunden und fuer Kundenarbeit vorbereitet. Die vollstaendige synthetische Projektgeschichte ist jedoch noch nicht abgeschlossen: Angebot, Tickets, Worklogs, BC-Playthroughs, SIT/UAT, Cutover-GO_SIMULATION, Go-live, Hypercare, Restart, erster Abschluss, UStVA-Vorschau und Handover muessen noch als zusammenhaengende Simulation bis zum Abschluss belegt werden.",
-      "lastCommit": "40248b7c042753cf03a4eed8c4b9adc5920f6a6a",
-      "mainBlocker": "Der vorherige Zielstatus hat reale Kundenevidence faelschlich zum Abschlussblocker der Simulation gemacht. Reale Tenant-, Kunden- und Steuerfreigaben blockieren nur einen echten Go-live; die repositorybasierte Simulation muss ihre eigenen synthetischen Gates jetzt vollstaendig schliessen.",
-      "nextDeliveryBlock": "Im BC-Basic-Projekt als groessten Lieferblock die gesamte konsistente Referenzsimulation vom versionierten Angebot bis zum letzten Hypercaretag und Support-Handover ausfuehren, alle UABC-Tickets mit Historie, Evidence und Abschlusskommentar vervollstaendigen und einen neuen validierten Snapshot erzeugen."
+      "largestGap": "Die vollstaendige repositorybasierte Referenzsimulation ist auf Commit 6583b6f070979de23c4746bd69c6d328b5ef889f abgeschlossen und auf dem kanonischen Arbeitszweig veroeffentlicht: 50 Tickets, 19 Task-Worklogs, 80 Stunden, 9.600 EUR, sieben BC-Playthroughs, GO_SIMULATION, keine offenen P1/P2-Simulationsfehler, 270/270 Tests und ein validierter Index mit 179 Projektionen.",
+      "lastCommit": "6583b6f070979de23c4746bd69c6d328b5ef889f",
+      "mainBlocker": "Acht reale Tenant-, Kunden-, Steuer- und Produktivfreigaben bleiben fuer einen echten Kunden-Go-live offen, blockieren aber nicht den synthetischen Projektabschluss.",
+      "nextDeliveryBlock": "Ein reales Kundenprojekt erst nach expliziter Tenant-, Kunden-, Steuer- und Produktivfreigabe starten; die abgeschlossene synthetische Referenz bleibt unveraendert."
     },
     {
       "projectId": "project-twin",
       "overallGoal": "Ein strikt nur-lesendes, handlungsorientiertes Cockpit fuer den neuesten validierten BC-Basic-Branch-Commit.",
-      "largestGap": "Project Twin liest Snapshot UABC-PORTABLE-PILOT-0005 auf Commit 1be30598bb669186c67a43d3864c42164dda7862 sicher und read-only. Er kann aber noch nicht die abgeschlossene Projektgeschichte zeigen, weil der Producer-Snapshot diese noch nicht enthaelt; ausserdem fehlt fuer den finalen Stand noch ein echter fail-closed-Browsernachweis neben Desktop- und Mobilansicht.",
-      "lastCommit": "1be30598bb669186c67a43d3864c42164dda7862",
-      "mainBlocker": "Der Twin ist technisch arbeitsbereit, sein fachlicher Endzustand ist aber producerabhaengig. Er darf weder die fehlende Abschlusshistorie erfinden noch den aktuellen Teilstand als vollstaendigen Projektabschluss darstellen.",
-      "nextDeliveryBlock": "Nach der validierten BC-Basic-Uebergabe den Twin im eigenen Projekt auf genau den neuen Snapshot binden, Angebot, Seitenbaum, Tickets, BC-Sitzungen, Tests, Gates, Hypercare und Handover sichtbar machen und Desktop-, Mobil- sowie einen echten fail-closed-Browserfall belegen."
+      "largestGap": "Project Twin ist auf dem veroeffentlichten Commit 548dfa1bb98b1db4e64f2bba4da0ade20d2b5dc2 exakt an BC Basic 6583b6f070979de23c4746bd69c6d328b5ef889f, dessen Tree und Index-Digest gebunden. Deutsche Desktop-, Mobil- und sichtbare Fail-closed-Evidence liegen vor; der unabhaengige Vollcheck ist bestanden.",
+      "lastCommit": "548dfa1bb98b1db4e64f2bba4da0ade20d2b5dc2",
+      "mainBlocker": "Kein bekannter reproduzierbarer Produktfehler. Externe macOS-, GitHub-Actions- und menschliche Releasepunkte bleiben getrennte Folgegates und werden nicht als ausgefuehrt behauptet.",
+      "nextDeliveryBlock": "Eine spaetere Main-Integration oder formale Produktfreigabe nur nach ausdruecklicher menschlicher Zustimmung beginnen; bis dahin bleibt der veroeffentlichte Arbeitszweig der belegte Stand."
     }
   ]
 }

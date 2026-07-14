@@ -63,7 +63,7 @@ if ($verificationSourceNames.Count -ne 1 -or $verificationSourceNames[0] -cne 'b
 $relationshipIds = @($config.relationships | ForEach-Object { [string]$_.id })
 if ($relationshipIds.Count -ne 2 -or @($relationshipIds | Sort-Object -Unique).Count -ne 2 -or
     $relationshipIds -cnotcontains 'blueprint-binds-spectra' -or $relationshipIds -cnotcontains 'twin-reads-blueprint') {
-    throw 'Die Rollengrenze erfordert exakt die Spectra-Bindungs- und portable Snapshot-Lesebeziehung.'
+    throw 'Die Rollengrenze erfordert exakt die Spectra-Bindungs- und commitgebundene Snapshot-Lesebeziehung.'
 }
 
 $agents = Get-Content -LiteralPath (Join-Path $root 'AGENTS.md') -Raw

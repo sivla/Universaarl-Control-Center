@@ -242,7 +242,7 @@ function Test-UniversaarlPortableSnapshotRelease {
     $manifestDigest = Get-UniversaarlBytesSha256 $manifestBytes
     if ($manifestDigest -cne [string]$pointer.manifestSha256) { throw 'Manifestdigest des Snapshotzeigers stimmt nicht mit dem Commitblob ueberein.' }
     $manifest = [Text.UTF8Encoding]::new($false, $true).GetString($manifestBytes) | ConvertFrom-Json
-    Assert-UniversaarlExactProperties $manifest @('schemaVersion','manifestContract','releaseId','immutable','producer','releaseBinding','pathSemantics','byteContract','sourceInventoryDigest','projectData','files','validationStatus') 'Portables Snapshotmanifest'
+    Assert-UniversaarlExactProperties $manifest @('schemaVersion','manifestContract','releaseId','immutable','producer','consumer','releaseBinding','pathSemantics','byteContract','sourceInventoryDigest','projectData','files','validationStatus') 'Portables Snapshotmanifest'
     if ($manifest.schemaVersion -ne 1 -or $manifest.manifestContract -cne 'uabc-portable-snapshot-release-v1' -or
         $manifest.releaseId -cne $pointer.currentReleaseId -or $manifest.immutable -ne $true -or
         $manifest.pathSemantics -cne 'repository-relative' -or $manifest.byteContract -cne 'identical-canonical-bytes' -or
@@ -252,6 +252,15 @@ function Test-UniversaarlPortableSnapshotRelease {
     Assert-UniversaarlExactProperties $manifest.producer @('customerId','projectIds','commitShaProvenance') 'Snapshotproduzent'
     if ($manifest.producer.customerId -cne $pointer.customerId -or @($manifest.producer.projectIds).Count -ne 1 -or
         [string]$manifest.producer.projectIds[0] -cne $pointer.projectId) { throw 'Snapshotproduzent widerspricht dem Zeiger.' }
+
+    Assert-UniversaarlExactProperties $manifest.consumer @('consumerId','repositoryUrl','branch','access','authorizationScope') 'Snapshotverbraucher'
+    if ($manifest.consumer.consumerId -cne 'project-twin' -or
+        $manifest.consumer.repositoryUrl -cne 'https://github.com/sivla/Universaarl-Project-Twin.git' -or
+        $manifest.consumer.branch -cne 'codex/universaarl-projekt-twin' -or
+        $manifest.consumer.access -cne 'nur-lesend' -or
+        $manifest.consumer.authorizationScope -cne 'ausschliesslich-validierte-snapshots-lesen') {
+        throw 'Snapshotverbraucher ist nicht der kanonische strikt nur-lesende Project Twin.'
+    }
 
     Assert-UniversaarlExactProperties $manifest.releaseBinding @('bindingStatus','pendingReason','consumerEligible','publishEligible','requiredEvidence','spectraReleaseBinding') 'Snapshot-Releasebindung'
     if ($manifest.releaseBinding.bindingStatus -cne $pointer.bindingStatus -or $null -ne $manifest.releaseBinding.pendingReason -or

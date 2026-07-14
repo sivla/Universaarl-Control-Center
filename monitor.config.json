@@ -29,7 +29,7 @@
         "enabled": true,
         "remote": "origin",
         "branch": "codex/universaarl-projekt",
-        "expectedPushUrl": "https://github.com/sivla/FiBu.git"
+        "expectedPushUrl": "https://github.com/sivla/Universaarl-BC-Basic.git"
       }
     },
     {
@@ -51,7 +51,7 @@
         "enabled": true,
         "remote": "origin",
         "branch": "codex/universaarl-projekt-twin",
-        "expectedPushUrl": "https://github.com/sivla/FiBu.git"
+        "expectedPushUrl": "https://github.com/sivla/Universaarl-Project-Twin.git"
       }
     }
   ],

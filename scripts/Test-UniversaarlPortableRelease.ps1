@@ -237,7 +237,7 @@ try {
         try { $manifest = $raw | ConvertFrom-Json } catch { Add-Finding 'PORTABLE_MANIFEST_INVALID' $_.Exception.Message }
     }
 
-    $expected = [ordered]@{ spectra='https://github.com/sivla/BCProjectOS.git'; blueprint='https://github.com/sivla/Universaarl-BC-Basic-Demo.git'; 'project-twin'='https://github.com/sivla/Universaarl-Project-Twin.git'; 'control-center'='https://github.com/sivla/Universaarl-Control-Center.git' }
+    $expected = [ordered]@{ spectra='https://github.com/sivla/BCProjectOS.git'; blueprint='https://github.com/sivla/Universaarl-BC-Basic.git'; 'project-twin'='https://github.com/sivla/Universaarl-Project-Twin.git'; 'control-center'='https://github.com/sivla/Universaarl-Control-Center.git' }
     $componentLines = [Collections.Generic.List[string]]::new()
     $components = @()
     $calculatedComponentDigest = $null

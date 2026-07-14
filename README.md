@@ -19,8 +19,8 @@ Das Kontrollzentrum steht außerhalb dieser Datenkette. Es prüft:
 | Komponente | Stand |
 |---|---|
 | Spectra | `spectra-v1.2.0-alpha.12`, Commit `6b3d9a1bfaf6cd806218a802fdde8f1a4cfa55a1` |
-| BC Basic | Commit `83a63c0af8775001e4c7f909a46c5b227f3cce3d`, Snapshot `UABC-PORTABLE-PILOT-0003` |
-| Project Twin | Commit `0e6f7c931a073955fd4920247f6ffc49eff6e0f4` |
+| BC Basic | Commit `281d2bab4fadce74c7756cc42a14dbf0a6a9eb45`, Snapshot `UABC-PORTABLE-PILOT-0004` |
+| Project Twin | Commit `cae38797e4cdee0cd53e59ff2b7e84446a2d9363` |
 
 Der Snapshot bindet das Manifest mit SHA-256 `5710f0c5315ede59f8af1bbe6a154725a180ef9c87c6502a83f1008892eaf863`, 158 Projektquellen und insgesamt 161 Releasefiles. Der Spectra-Payloaddigest lautet `b637a82c381d7744f08949c264393382cb90d7e6b1f67d56afacb6e88a312c7b`.
 
@@ -31,8 +31,8 @@ Diese Werte sind Prüfevidence, keine freie Versionskonfiguration. Ein späterer
 | Rolle | Lokaler Standardordner | Remote / Zweig |
 |---|---|---|
 | Spectra-Evidence | `C:\Users\kkali\Documents\BC Project OS` | `sivla/BCProjectOS`, Tag `spectra-v1.2.0-alpha.12` |
-| Kundeninstanz | `C:\Users\kkali\Documents\Universaarl Projekt BC Basic` | `sivla/FiBu`, `codex/universaarl-projekt` |
-| Project Twin | `C:\Users\kkali\Documents\Universaarl-Project-Twin` | `sivla/FiBu`, `codex/universaarl-projekt-twin` |
+| Kundeninstanz | `C:\Users\kkali\Documents\Universaarl Projekt BC Basic` | `sivla/Universaarl-BC-Basic`, `codex/universaarl-projekt` |
+| Project Twin | `C:\Users\kkali\Documents\Universaarl-Project-Twin` | `sivla/Universaarl-Project-Twin`, `codex/universaarl-projekt-twin` |
 | Kontrollzentrum | `C:\Users\kkali\Documents\Universaarl ai` | `sivla/Universaarl-Control-Center` |
 
 Abweichende lokale Pfade werden ausschließlich über `UNIVERSAARL_BCPROJECTOS_PATH`, `UNIVERSAARL_BLUEPRINT_PATH` und `UNIVERSAARL_TWIN_PATH` übergeben. Sie werden nicht als dauerhafte Laufzeitkopplung gespeichert.
@@ -43,8 +43,8 @@ Voraussetzungen sind Git ab 2.40, Node.js 20.19 oder ab 22.12, npm und auf macOS
 
 ```powershell
 git clone https://github.com/sivla/BCProjectOS.git "BC Project OS"
-git clone --single-branch --branch codex/universaarl-projekt https://github.com/sivla/FiBu.git "Universaarl Projekt BC Basic"
-git clone --single-branch --branch codex/universaarl-projekt-twin https://github.com/sivla/FiBu.git "Universaarl-Project-Twin"
+git clone --single-branch --branch codex/universaarl-projekt https://github.com/sivla/Universaarl-BC-Basic.git "Universaarl Projekt BC Basic"
+git clone --single-branch --branch codex/universaarl-projekt-twin https://github.com/sivla/Universaarl-Project-Twin.git "Universaarl-Project-Twin"
 git clone https://github.com/sivla/Universaarl-Control-Center.git "Universaarl ai"
 ```
 

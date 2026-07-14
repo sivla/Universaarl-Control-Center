@@ -23,6 +23,6 @@
 - [x] Commitgebundenen fail-closed Validator fuer Plattform-, Onboarding-, Kunden-Go-live-, Deployment- und Lizenzgrenzen implementieren.
 - [x] Positive und negative Vertragspruefungen fuer Simulation, fehlende Evidence, Selbstreferenz und unvollstaendigen realen Go-live implementieren.
 - [x] Kontrollzentrum-Readiness-Evidence und Windows-/macOS-Workflow vorbereiten.
-- [ ] Eigenen Windows-/macOS-Workflow fuer den finalen Kontrollzentrum-Commit ausfuehren und die Evidence binden.
+- [x] Eigenen Windows-/macOS-Workflow fuer den finalen Kontrollzentrum-Commit ausfuehren und die Evidence binden.
 - [ ] Readiness-Evidence der drei Zielkomponenten an ihren uebergebenen Commits unabhaengig validieren.
 - [ ] Vollstaendigen Portfolio-Onboarding-Rehearsal aus anonymen Fresh Clones ausfuehren.

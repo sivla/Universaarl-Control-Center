@@ -4,13 +4,14 @@
   "projectId": "control-center",
   "assessments": {
     "platformReady": {
-      "status": "pending",
+      "status": "passed",
       "evidenceMode": "technical",
       "evidence": [
         {"kind": "test-report", "path": "tests/Test-ControlCenterPortability.ps1"},
+        {"kind": "platform-matrix", "path": ".github/workflows/control-center-production-readiness.yml"},
         {"kind": "operator-guide", "path": "README.md"}
       ],
-      "blockers": ["Der neue Kontrollzentrum-Produktionsreife-Commit besitzt noch keinen eigenen bestandenen Windows-/macOS-Workflowlauf."]
+      "blockers": []
     },
     "onboardingReady": {
       "status": "passed",

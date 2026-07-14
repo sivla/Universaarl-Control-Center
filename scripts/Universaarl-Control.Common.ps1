@@ -140,6 +140,15 @@ function Assert-FullCommitSha {
     if ($Commit -notmatch '^[0-9a-f]{40}$') { throw 'Eine vollstaendige 40-stellige Commit-SHA ist erforderlich.' }
 }
 
+function Test-UniversaarlJsonInteger {
+    param($Value)
+    if ($null -eq $Value) { return $false }
+    $Value.GetType().FullName -in @(
+        'System.SByte','System.Byte','System.Int16','System.UInt16',
+        'System.Int32','System.UInt32','System.Int64','System.UInt64'
+    )
+}
+
 function Get-UniversaarlSha256 {
     param([AllowEmptyString()][string]$Text)
     $sha = [Security.Cryptography.SHA256]::Create()
@@ -211,7 +220,7 @@ function Assert-UniversaarlMonitorConfiguration {
         }
     }
 
-    if ($Configuration.schemaVersion -isnot [int] -or $Configuration.schemaVersion -ne 1) { throw 'Die Kontrollzentrum-Konfiguration besitzt keine exakt typisierte bekannte Schemaversion.' }
+    if (-not (Test-UniversaarlJsonInteger $Configuration.schemaVersion) -or $Configuration.schemaVersion -ne 1) { throw 'Die Kontrollzentrum-Konfiguration besitzt keine exakt typisierte bekannte Schemaversion.' }
     if ($Configuration.projects -isnot [array]) { throw 'Die operativen Zielprojekte muessen als Liste konfiguriert sein.' }
     $projects = @($Configuration.projects)
     $ids = @($projects | ForEach-Object {
@@ -224,14 +233,14 @@ function Assert-UniversaarlMonitorConfiguration {
     if ([string]::IsNullOrWhiteSpace([string]$Configuration.reportDirectory) -or [IO.Path]::IsPathRooted([string]$Configuration.reportDirectory) -or [string]$Configuration.reportDirectory -match '(^|[\\/])\.\.([\\/]|$)') {
         throw 'Das Berichtverzeichnis muss ein sicherer relativer Kontrollzentrum-Pfad sein.'
     }
-    if ($Configuration.validationTimeoutSeconds -isnot [int] -or $Configuration.validationTimeoutSeconds -lt 1 -or $Configuration.validationTimeoutSeconds -gt 3600) { throw 'Das konfigurierte Pruefzeitlimit ist ungueltig oder nicht exakt als Ganzzahl typisiert.' }
+    if (-not (Test-UniversaarlJsonInteger $Configuration.validationTimeoutSeconds) -or $Configuration.validationTimeoutSeconds -lt 1 -or $Configuration.validationTimeoutSeconds -gt 3600) { throw 'Das konfigurierte Pruefzeitlimit ist ungueltig oder nicht exakt als Ganzzahl typisiert.' }
     foreach ($project in $projects) {
         if ([string]$project.pathEnvironmentVariable -notmatch '^UNIVERSAARL_[A-Z0-9_]+_PATH$') { throw "Ungueltige Pfad-Umgebungsvariable fuer '$($project.id)'." }
         if (-not [IO.Path]::IsPathRooted([string]$project.defaultPath)) { throw "Standardpfad fuer '$($project.id)' muss absolut sein." }
         $null = Assert-SafeRepositoryRelativePath -Path ([string]$project.reviewFile)
         if ([string]::IsNullOrWhiteSpace([string]$project.requiredNpmScript) -or @($project.validationArguments).Count -eq 0) { throw "Technische Pruefung fuer '$($project.id)' ist unvollstaendig konfiguriert." }
         if ($null -eq $project.germanCheck -or $project.germanCheck.npmScript -isnot [string] -or [string]::IsNullOrWhiteSpace($project.germanCheck.npmScript) -or
-            $project.germanCheck.resultSchemaVersion -isnot [int] -or $project.germanCheck.resultSchemaVersion -ne 1) { throw "Deutsch-Pruefung fuer '$($project.id)' ist unvollstaendig oder falsch typisiert konfiguriert." }
+            -not (Test-UniversaarlJsonInteger $project.germanCheck.resultSchemaVersion) -or $project.germanCheck.resultSchemaVersion -ne 1) { throw "Deutsch-Pruefung fuer '$($project.id)' ist unvollstaendig oder falsch typisiert konfiguriert." }
         $mediaProperty = @($project.PSObject.Properties | Where-Object { $_.Name -ceq 'allowedVersionedMedia' })
         if ($mediaProperty.Count -ne 1) { throw "Projektbezogene Positivliste versionierter Medien fuer '$($project.id)' fehlt oder ist nicht exakt benannt." }
         $allowedMedia = @($mediaProperty[0].Value)
@@ -240,13 +249,13 @@ function Assert-UniversaarlMonitorConfiguration {
             $entryProperties = @($allowedMedia[0].PSObject.Properties.Name)
             if ($entryProperties.Count -ne 3 -or $entryProperties -cnotcontains 'path' -or $entryProperties -cnotcontains 'maxBytes' -or $entryProperties -cnotcontains 'mode' -or
                 [string]$allowedMedia[0].path -cne 'artifacts/walkthrough/generated/UABC-WT-ENV-001/walkthrough.webm' -or
-                $allowedMedia[0].maxBytes -isnot [int] -or [int]$allowedMedia[0].maxBytes -ne 1048576 -or
+                -not (Test-UniversaarlJsonInteger $allowedMedia[0].maxBytes) -or [int64]$allowedMedia[0].maxBytes -ne 1048576 -or
                 $allowedMedia[0].mode -isnot [string] -or [string]$allowedMedia[0].mode -cne '100644') {
                 throw 'Blueprint-Positivliste muss exakt den kanonischen Walkthrough-WebM-Pfad mit 1 MiB Grenze und Blobmodus 100644 enthalten.'
             }
         }
         elseif ($allowedMedia.Count -ne 0) { throw 'Project Twin darf keine versionierten Medienartefakte positivlisten.' }
-        if ($project.maxActiveChanges -isnot [int] -or $project.maxActiveChanges -lt 0 -or $project.maxActiveChanges -gt 10) { throw "Grenze aktiver Aenderungen fuer '$($project.id)' ist ungueltig oder nicht exakt als Ganzzahl typisiert." }
+        if (-not (Test-UniversaarlJsonInteger $project.maxActiveChanges) -or $project.maxActiveChanges -lt 0 -or $project.maxActiveChanges -gt 10) { throw "Grenze aktiver Aenderungen fuer '$($project.id)' ist ungueltig oder nicht exakt als Ganzzahl typisiert." }
         if ($project.publish -isnot [pscustomobject] -or $project.publish.enabled -isnot [bool] -or
             $project.publish.remote -isnot [string] -or $project.publish.branch -isnot [string] -or $project.publish.expectedPushUrl -isnot [string]) {
             throw "Publisher-Konfiguration fuer '$($project.id)' ist unvollstaendig oder falsch typisiert."
@@ -341,7 +350,7 @@ function Assert-UniversaarlMonitorConfiguration {
 
 function Assert-UniversaarlGoalConfiguration {
     param([Parameter(Mandatory)]$Configuration)
-    if ($Configuration.schemaVersion -isnot [int] -or $Configuration.schemaVersion -ne 1) { throw 'Die Zielkonfiguration besitzt keine exakt typisierte bekannte Schemaversion.' }
+    if (-not (Test-UniversaarlJsonInteger $Configuration.schemaVersion) -or $Configuration.schemaVersion -ne 1) { throw 'Die Zielkonfiguration besitzt keine exakt typisierte bekannte Schemaversion.' }
     if ($Configuration.projects -isnot [pscustomobject]) { throw 'Die Projektziele muessen als exakt benanntes Objekt vorliegen.' }
     foreach ($id in @('blueprint', 'project-twin')) {
         $property = $Configuration.projects.PSObject.Properties[$id]
@@ -881,7 +890,7 @@ function Assert-UniversaarlCommitRuntimeSafe {
         $safeAllowedPath = Assert-SafeRepositoryRelativePath -Path ([string]$allowed.path)
         $allowedExtension = [IO.Path]::GetExtension($safeAllowedPath)
         if ($allowedProperties.Count -ne 3 -or $allowedProperties -cnotcontains 'path' -or $allowedProperties -cnotcontains 'maxBytes' -or $allowedProperties -cnotcontains 'mode' -or
-            $allowedExtension -cnotin @('.webm', '.mp4', '.mov') -or $allowed.maxBytes -isnot [int] -or
+            $allowedExtension -cnotin @('.webm', '.mp4', '.mov') -or -not (Test-UniversaarlJsonInteger $allowed.maxBytes) -or
             [int]$allowed.maxBytes -lt 1 -or [int]$allowed.maxBytes -gt 16777216 -or $allowed.mode -isnot [string] -or
             [string]$allowed.mode -cnotin @('100644', '100755') -or $allowedMediaByPath.ContainsKey($safeAllowedPath)) {
             throw 'Positivliste versionierter Medien ist nicht eindeutig, exakt typisiert oder eng begrenzt.'
@@ -1568,7 +1577,7 @@ function Read-UniversaarlBoundReport {
     }
 
     if ($report -isnot [pscustomobject] -or
-        $report.schemaVersion -isnot [int] -or $report.schemaVersion -ne 2 -or
+        -not (Test-UniversaarlJsonInteger $report.schemaVersion) -or $report.schemaVersion -ne 2 -or
         $report.runId -isnot [string] -or $report.runId -cne $RunId -or
         $report.completed -isnot [bool] -or -not $report.completed -or
         $report.kind -isnot [string] -or $report.kind -cne $Kind) {
@@ -1676,9 +1685,9 @@ function Read-UniversaarlBoundReport {
         }
     }
     if ($Kind -ceq 'goal') {
-        if ($report.evidenceCoverage -isnot [int] -or $report.evidenceCoverage -lt 0 -or $report.evidenceCoverage -gt 100) { throw 'Zielbericht besitzt keine exakt typisierte ehrliche Nachweisabdeckung.' }
+        if (-not (Test-UniversaarlJsonInteger $report.evidenceCoverage) -or $report.evidenceCoverage -lt 0 -or $report.evidenceCoverage -gt 100) { throw 'Zielbericht besitzt keine exakt typisierte ehrliche Nachweisabdeckung.' }
         foreach ($relationship in $relationships) {
-            if ($relationship.evidenceCoverage -isnot [int] -or $relationship.evidenceCoverage -lt 0 -or $relationship.evidenceCoverage -gt 100) { throw 'Vertragsbeziehung besitzt keine exakt typisierte Nachweisabdeckung.' }
+            if (-not (Test-UniversaarlJsonInteger $relationship.evidenceCoverage) -or $relationship.evidenceCoverage -lt 0 -or $relationship.evidenceCoverage -gt 100) { throw 'Vertragsbeziehung besitzt keine exakt typisierte Nachweisabdeckung.' }
         }
     }
     $report

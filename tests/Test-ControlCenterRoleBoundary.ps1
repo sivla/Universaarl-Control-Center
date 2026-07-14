@@ -22,14 +22,15 @@ foreach ($project in @($portfolio.projects)) {
 if (@($portfolio.projects.projectId | Select-Object -Unique).Count -ne 3) { throw 'Portfolio enthaelt doppelte Projektkennungen.' }
 $forbidden = @(
     'consumer',
-    'scripts\Install-BCProjectOSConsumer.ps1',
-    'scripts\Test-BCProjectOSConsumer.ps1',
-    'tests\Test-BCProjectOSConsumer.ps1'
+    'scripts/Install-BCProjectOSConsumer.ps1',
+    'scripts/Test-BCProjectOSConsumer.ps1',
+    'tests/Test-BCProjectOSConsumer.ps1'
 )
 
 foreach ($relative in $forbidden) {
     $path = [IO.Path]::GetFullPath((Join-Path $root $relative))
-    if (-not $path.StartsWith($root.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+    $rootPrefix = $root.TrimEnd([char[]]@('\', '/')) + [IO.Path]::DirectorySeparatorChar
+    if (-not $path.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Ungueltiger Rollenpruefpfad: $relative"
     }
     if (Test-Path -LiteralPath $path) {

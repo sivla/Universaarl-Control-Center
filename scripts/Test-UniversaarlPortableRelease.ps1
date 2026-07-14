@@ -159,7 +159,7 @@ if($ControlAnchorSelfTest){
 function Test-EvidenceRecord {
     param([Parameter(Mandatory)]$Record,[Parameter(Mandatory)][string]$ExpectedId,[Parameter(Mandatory)][string]$AssetRoot,[Parameter(Mandatory)][string]$Platform,[Parameter(Mandatory)][string]$SnapshotDigest,[Parameter(Mandatory)][string]$ComponentDigest,[switch]$MetadataOnly)
     $expectedCommand=[string]$requiredCommands[$ExpectedId]
-    if ($null -eq $Record -or [string]$Record.id -cne $ExpectedId -or [string]$Record.command -cne $expectedCommand -or $Record.exitCode -isnot [int] -or $Record.exitCode -ne 0 -or -not (Test-RelativeAssetPath $Record.artifact) -or -not (Test-Digest $Record.artifactSha256) -or [string]$Record.startedAt -notmatch '^\d{4}-\d{2}-\d{2}T' -or [string]$Record.completedAt -notmatch '^\d{4}-\d{2}-\d{2}T') {
+    if ($null -eq $Record -or [string]$Record.id -cne $ExpectedId -or [string]$Record.command -cne $expectedCommand -or -not (Test-UniversaarlJsonInteger $Record.exitCode) -or $Record.exitCode -ne 0 -or -not (Test-RelativeAssetPath $Record.artifact) -or -not (Test-Digest $Record.artifactSha256) -or [string]$Record.startedAt -notmatch '^\d{4}-\d{2}-\d{2}T' -or [string]$Record.completedAt -notmatch '^\d{4}-\d{2}-\d{2}T') {
         Add-Finding 'PORTABLE_EVIDENCE_RECORD_INVALID' "Ausfuehrungsrecord '$ExpectedId' fuer $Platform ist unvollstaendig oder nicht erfolgreich."
         return
     }
@@ -168,7 +168,7 @@ function Test-EvidenceRecord {
     if (-not (Test-UniversaarlPathWithinRoot -Root $AssetRoot -Path $artifactPath) -or -not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) { Add-Finding 'PORTABLE_EVIDENCE_ARTIFACT_MISSING' "Artefakt fuer '$ExpectedId' auf $Platform fehlt."; return }
     if ((Get-FileDigest $artifactPath) -cne [string]$Record.artifactSha256) { Add-Finding 'PORTABLE_EVIDENCE_ARTIFACT_DIGEST' "Artefaktdigest fuer '$ExpectedId' auf $Platform stimmt nicht." }
     try{$artifact=Get-Content -LiteralPath $artifactPath -Raw|ConvertFrom-Json}catch{Add-Finding 'PORTABLE_EVIDENCE_ARTIFACT_SCHEMA' "Artefakt fuer '$ExpectedId' auf $Platform ist kein JSON.";return}
-    if($artifact.schemaVersion -isnot[int] -or $artifact.schemaVersion -ne 1 -or [string]$artifact.recordId -cne $ExpectedId -or [string]$artifact.platform -cne $Platform -or [string]$artifact.status -cne 'passed' -or [string]$artifact.snapshotDigest -cne $SnapshotDigest -or [string]$artifact.componentDigest -cne $ComponentDigest -or [string]$artifact.commandSha256 -cne (Get-TextDigest $expectedCommand) -or -not(Test-Digest $artifact.outputDigest) -or @($artifact.checks).Count -lt 1 -or @($artifact.checks|Where-Object{$_-isnot[string]-or[string]::IsNullOrWhiteSpace([string]$_)}).Count -gt 0){Add-Finding 'PORTABLE_EVIDENCE_ARTIFACT_SCHEMA' "Artefakt fuer '$ExpectedId' auf $Platform bindet Command, Snapshot oder Ergebnis nicht exakt."}
+    if(-not (Test-UniversaarlJsonInteger $artifact.schemaVersion) -or $artifact.schemaVersion -ne 1 -or [string]$artifact.recordId -cne $ExpectedId -or [string]$artifact.platform -cne $Platform -or [string]$artifact.status -cne 'passed' -or [string]$artifact.snapshotDigest -cne $SnapshotDigest -or [string]$artifact.componentDigest -cne $ComponentDigest -or [string]$artifact.commandSha256 -cne (Get-TextDigest $expectedCommand) -or -not(Test-Digest $artifact.outputDigest) -or @($artifact.checks).Count -lt 1 -or @($artifact.checks|Where-Object{$_-isnot[string]-or[string]::IsNullOrWhiteSpace([string]$_)}).Count -gt 0){Add-Finding 'PORTABLE_EVIDENCE_ARTIFACT_SCHEMA' "Artefakt fuer '$ExpectedId' auf $Platform bindet Command, Snapshot oder Ergebnis nicht exakt."}
 }
 if($ArchiveBindingSelfTest){
     $probe=Join-Path ([IO.Path]::GetTempPath()) ('universaarl-archive-binding-'+[Guid]::NewGuid().ToString('N'))
@@ -191,7 +191,7 @@ function Test-SpectraReleaseManifest {
     if((Get-FileDigest $Path)-cne[string]$Binding.manifestFileSha256){Add-Finding 'PORTABLE_SPECTRA_MANIFEST_FILE_DIGEST' 'SHA-256 der Spectra-Manifestdatei stimmt nicht.';return}
     try{
         $release=Get-Content -LiteralPath $Path -Raw|ConvertFrom-Json
-        if($release.schema_version -isnot[int] -or [string]$release.product_id -cne 'spectra' -or [string]$release.expected_tag -cne [string]$Binding.tag -or [string]$release.payload.digest_algorithm -cne 'SHA-256' -or -not(Test-Digest $release.payload.bundle_digest) -or $release.payload.file_count -isnot[int] -or $release.payload.file_count -lt 1){Add-Finding 'PORTABLE_SPECTRA_AGGREGATE_DIGEST' 'Deklarierter Spectra-Aggregatdigest entspricht nicht dem Releasemanifest-Schema.';return}
+        if(-not (Test-UniversaarlJsonInteger $release.schema_version) -or [string]$release.product_id -cne 'spectra' -or [string]$release.expected_tag -cne [string]$Binding.tag -or [string]$release.payload.digest_algorithm -cne 'SHA-256' -or -not(Test-Digest $release.payload.bundle_digest) -or -not (Test-UniversaarlJsonInteger $release.payload.file_count) -or $release.payload.file_count -lt 1){Add-Finding 'PORTABLE_SPECTRA_AGGREGATE_DIGEST' 'Deklarierter Spectra-Aggregatdigest entspricht nicht dem Releasemanifest-Schema.';return}
         $seen=@{};$records=[Collections.Generic.List[object]]::new()
         foreach($file in @($release.payload.files)){
             $relative=Assert-UniversaarlContractPath ([string]$file.path);if($seen.ContainsKey($relative)){throw 'Doppelter Payloadpfad.'};$seen[$relative]=$true
@@ -242,7 +242,7 @@ try {
     $components = @()
     $calculatedComponentDigest = $null
     if ($null -ne $manifest) {
-        if ($manifest.schemaVersion -isnot [int] -or $manifest.schemaVersion -ne 3 -or [string]$manifest.kind -cne 'portfolio-portability-final-evidence') { Add-Finding 'PORTABLE_SCHEMA_INVALID' 'Finales Manifest muss exakt Schema 3 und den finalen Evidence-Typ verwenden.' }
+        if (-not (Test-UniversaarlJsonInteger $manifest.schemaVersion) -or $manifest.schemaVersion -ne 3 -or [string]$manifest.kind -cne 'portfolio-portability-final-evidence') { Add-Finding 'PORTABLE_SCHEMA_INVALID' 'Finales Manifest muss exakt Schema 3 und den finalen Evidence-Typ verwenden.' }
         if ([string]$manifest.status -cne 'READY') { Add-Finding 'PORTABLE_STATUS_NOT_READY' 'Finales Manifest ist nicht READY.' }
         if ($manifest.controlContract -isnot [pscustomobject] -or -not (Test-FullSha $manifest.controlContract.validatorCommit) -or [string]$manifest.controlContract.templatePath -cne 'release/portfolio-portability-manifest.template.json' -or $manifest.controlContract.templateSchemaVersion -ne 3) { Add-Finding 'PORTABLE_TWO_STAGE_BINDING_INVALID' 'Externe Evidence bindet Validatorcommit und versionierte Vorlage nicht exakt.' }
         else {

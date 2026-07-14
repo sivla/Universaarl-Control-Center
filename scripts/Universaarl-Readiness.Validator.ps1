@@ -11,7 +11,7 @@ function Assert-UniversaarlReadinessExactProperties {
 function Assert-UniversaarlReadinessContract {
     param([Parameter(Mandatory)]$Contract)
     Assert-UniversaarlReadinessExactProperties -Value $Contract -Names @('schemaVersion','kind','customerOnboardingGatePath','readinessLevels','evidenceKinds','requiredRealCustomerEvidenceKinds','components') -Label 'Produktionsreifevertrag'
-    if ($Contract.schemaVersion -isnot [int] -or $Contract.schemaVersion -ne 1 -or $Contract.kind -cne 'universaarl-production-readiness-contract') { throw 'Produktionsreifevertrag besitzt keine bekannte Identitaet.' }
+    if (-not (Test-UniversaarlJsonInteger $Contract.schemaVersion) -or $Contract.schemaVersion -ne 1 -or $Contract.kind -cne 'universaarl-production-readiness-contract') { throw 'Produktionsreifevertrag besitzt keine bekannte Identitaet.' }
     $onboardingGatePath = Assert-SafeRepositoryRelativePath -Path ([string]$Contract.customerOnboardingGatePath)
     if ($onboardingGatePath -cne 'release/real-customer-onboarding-gate-v1.json') { throw 'Der reale Kunden-Onboarding-Gatevertrag besitzt keinen kanonischen Pfad.' }
     $levels = @($Contract.readinessLevels); $expectedLevels = @('platformReady','onboardingReady','customerGoLiveReady')
@@ -47,9 +47,9 @@ function Assert-UniversaarlReadinessContract {
 function Assert-UniversaarlCustomerOnboardingGate {
     param([Parameter(Mandatory)]$Gate,[Parameter(Mandatory)]$Contract)
     Assert-UniversaarlReadinessExactProperties -Value $Gate -Names @('schemaVersion','kind','projectType','billing','phases','gates','officialSources') -Label 'Kunden-Onboarding-Gate'
-    if ($Gate.schemaVersion -isnot [int] -or $Gate.schemaVersion -ne 1 -or $Gate.kind -cne 'universaarl-real-customer-onboarding-gate' -or $Gate.projectType -cne 'business-central-basic') { throw 'Kunden-Onboarding-Gate besitzt keine bekannte Identitaet.' }
+    if (-not (Test-UniversaarlJsonInteger $Gate.schemaVersion) -or $Gate.schemaVersion -ne 1 -or $Gate.kind -cne 'universaarl-real-customer-onboarding-gate' -or $Gate.projectType -cne 'business-central-basic') { throw 'Kunden-Onboarding-Gate besitzt keine bekannte Identitaet.' }
     Assert-UniversaarlReadinessExactProperties -Value $Gate.billing -Names @('currency','budgetCeilingExclusive','billingModel','worklogLevel','frequency','changeControlRequired') -Label 'Abrechnungsvertrag'
-    if ($Gate.billing.currency -cne 'EUR' -or $Gate.billing.budgetCeilingExclusive -isnot [int] -or $Gate.billing.budgetCeilingExclusive -ne 10000 -or $Gate.billing.billingModel -cne 'time-and-materials' -or $Gate.billing.worklogLevel -cne 'task' -or $Gate.billing.frequency -cne 'weekly' -or $Gate.billing.changeControlRequired -isnot [bool] -or -not $Gate.billing.changeControlRequired) { throw 'Abrechnungsvertrag muss unter 10.000 EUR, aufgabenbasiert, wochenweise und change-kontrolliert sein.' }
+    if ($Gate.billing.currency -cne 'EUR' -or -not (Test-UniversaarlJsonInteger $Gate.billing.budgetCeilingExclusive) -or $Gate.billing.budgetCeilingExclusive -ne 10000 -or $Gate.billing.billingModel -cne 'time-and-materials' -or $Gate.billing.worklogLevel -cne 'task' -or $Gate.billing.frequency -cne 'weekly' -or $Gate.billing.changeControlRequired -isnot [bool] -or -not $Gate.billing.changeControlRequired) { throw 'Abrechnungsvertrag muss unter 10.000 EUR, aufgabenbasiert, wochenweise und change-kontrolliert sein.' }
     $phases=@($Gate.phases);$expectedPhases=@('preparation','implementation-week','hypercare-close')
     if($phases.Count -ne 3 -or @($phases.id|Sort-Object -Unique).Count -ne 3 -or @($expectedPhases|Where-Object{$_ -notin @($phases.id)}).Count -gt 0){throw 'Kunden-Onboarding muss exakt drei Phasen besitzen.'}
     foreach($phase in $phases){Assert-UniversaarlReadinessExactProperties -Value $phase -Names @('id','name','duration') -Label "Phase '$($phase.id)'";if([string]::IsNullOrWhiteSpace([string]$phase.name)-or[string]::IsNullOrWhiteSpace([string]$phase.duration)){throw 'Phase besitzt keinen Namen oder keine Dauerannahme.'}}
@@ -89,7 +89,7 @@ function Assert-UniversaarlComponentProductionReadiness {
     param([Parameter(Mandatory)]$Evidence,[Parameter(Mandatory)]$Component,[Parameter(Mandatory)]$Contract,[Parameter(Mandatory)][string]$Repository,[Parameter(Mandatory)][string]$Commit)
     Assert-FullCommitSha -Commit $Commit
     Assert-UniversaarlReadinessExactProperties -Value $Evidence -Names @('schemaVersion','kind','projectId','assessments','distribution','deploymentBoundary') -Label "Readiness-Evidence '$($Component.projectId)'"
-    if ($Evidence.schemaVersion -isnot [int] -or $Evidence.schemaVersion -ne 1 -or $Evidence.kind -cne 'universaarl-component-production-readiness' -or $Evidence.projectId -cne [string]$Component.projectId) { throw "Readiness-Evidence fuer '$($Component.projectId)' besitzt eine falsche Identitaet." }
+    if (-not (Test-UniversaarlJsonInteger $Evidence.schemaVersion) -or $Evidence.schemaVersion -ne 1 -or $Evidence.kind -cne 'universaarl-component-production-readiness' -or $Evidence.projectId -cne [string]$Component.projectId) { throw "Readiness-Evidence fuer '$($Component.projectId)' besitzt eine falsche Identitaet." }
     if ($Evidence.deploymentBoundary -cne [string]$Component.deploymentBoundary) { throw "Deploymentgrenze fuer '$($Component.projectId)' widerspricht dem Kontrollvertrag." }
     Assert-UniversaarlReadinessExactProperties -Value $Evidence.assessments -Names @($Contract.readinessLevels) -Label 'Readiness-Bewertungen'
     $assessmentResults = [ordered]@{}

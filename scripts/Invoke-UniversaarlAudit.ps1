@@ -245,53 +245,21 @@ function Get-VerificationSourceObservation {
 function Get-SpectraBindingObservation {
     param([Parameter(Mandatory)][string]$Repository, [Parameter(Mandatory)][string]$Commit, [Parameter(Mandatory)][string]$ProviderRepository)
     $findings = [Collections.Generic.List[object]]::new()
-    $bindingStatus = 'unknown'
     try {
-        $binding = Read-UniversaarlCommitText -Repository $Repository -Commit $Commit -Path 'governance/consumer-bindings.yaml' -MaximumBytes 262144 -Required
-        $section = [regex]::Match([string]$binding.content, '(?ms)^spectraReleaseBinding:\s*\r?\n(?<body>(?:^[ \t]+.*(?:\r?\n|$))+)')
-        if (-not $section.Success) { throw 'Der Spectra-Bindungsabschnitt fehlt.' }
-        $body = [string]$section.Groups['body'].Value
-        $readScalar = {
-            param([string]$Name)
-            $match = [regex]::Match($body, "(?m)^  $([regex]::Escape($Name)):\s*(?<value>[^\r\n#]+?)\s*$")
-            if ($match.Success) { [string]$match.Groups['value'].Value } else { $null }
-        }
-        $bindingStatus = & $readScalar 'bindingStatus'
-        $productId = & $readScalar 'productId'
-        $technicalRepositoryName = & $readScalar 'technicalRepositoryName'
-        $repositoryUrl = & $readScalar 'repositoryUrl'
-        if ($productId -cne 'spectra' -or $technicalRepositoryName -cne 'BCProjectOS' -or $repositoryUrl -cne 'https://github.com/sivla/BCProjectOS.git') {
-            throw 'Produkt-ID, technischer Projektname oder Repository-URL der Spectra-Bindung ist ungueltig.'
-        }
-        if ($bindingStatus -ceq 'PENDING_BCPROJECTOS_RELEASE') {
-            foreach ($field in @('releaseVersion', 'releaseTag', 'tagCommit', 'manifestPath', 'manifestSourceCommit', 'consumerMode', 'installableBlueprint', 'payloadBundleDigest')) {
-                if ((& $readScalar $field) -cne 'null') { throw "Pending-Feld '$field' muss ausdruecklich null sein." }
-            }
-            if ((& $readScalar 'digestAlgorithm') -cne 'SHA-256') { throw 'Pending muss den Digestalgorithmus eindeutig als SHA-256 festlegen.' }
-            $findings.Add((New-Finding critical 'SPECTRA-BINDING-PENDING' 'Spectra besitzt noch keinen verifizierten installierbaren Release aus BCProjectOS; die Kundenbindung und jeder Snapshot bleiben blockiert.'))
-        }
-        elseif ($bindingStatus -ceq 'BOUND') {
-            $bound = [pscustomobject]@{}
-            foreach ($field in @('bindingStatus','productId','technicalRepositoryName','repositoryUrl','releaseVersion','releaseTag','tagCommit','manifestPath','manifestSourceCommit','consumerMode','digestAlgorithm','payloadBundleDigest')) { $bound | Add-Member -NotePropertyName $field -NotePropertyValue (& $readScalar $field) }
-            $installable = & $readScalar 'installableBlueprint'
-            $bound | Add-Member -NotePropertyName installableBlueprint -NotePropertyValue ($installable -ceq 'true')
-            $proof = Test-UniversaarlSpectraReleaseBinding -Repository $ProviderRepository -Binding $bound
-            return [pscustomobject]@{ id='blueprint-binds-spectra'; contractType='versioned-product-release'; status='passed'; fullValidationPassed=$true; bindingStatus='BOUND'; productName='Spectra'; productId='spectra'; technicalProjectName='BCProjectOS'; repositoryUrl='https://github.com/sivla/BCProjectOS.git'; binding=$bound; proof=$proof; findings=@() }
-        }
-        else {
-            throw 'Unbekannter Spectra-Bindungsstatus.'
-        }
+        $snapshotProof = Test-UniversaarlPortableSnapshotRelease -Repository $Repository -Commit $Commit -SpectraRepository $ProviderRepository
+        $bound = $snapshotProof.spectraBinding
+        $proof = $snapshotProof.spectraProof
+        return [pscustomobject]@{ id='blueprint-binds-spectra'; contractType='versioned-product-release'; status='passed'; fullValidationPassed=$true; bindingStatus='BOUND'; productName='Spectra'; productId='spectra'; technicalProjectName='BCProjectOS'; repositoryUrl='https://github.com/sivla/BCProjectOS.git'; binding=$bound; proof=$proof; snapshotProof=$snapshotProof; findings=@() }
     }
     catch {
-        $bindingStatus = 'invalid'
-        $findings.Add((New-Finding critical 'SPECTRA-BINDING-INVALID' "Die commitgebundene Spectra-Consumerbindung ist ungueltig: $($_.Exception.Message)"))
+        $findings.Add((New-Finding critical 'SPECTRA-BINDING-INVALID' "Die releasegebundene Spectra- und Snapshotkette ist ungueltig: $($_.Exception.Message)"))
     }
     [pscustomobject]@{
         id = 'blueprint-binds-spectra'
         contractType = 'versioned-product-release'
         status = 'failed'
         fullValidationPassed = $false
-        bindingStatus = $bindingStatus
+        bindingStatus = 'invalid'
         productName = 'Spectra'
         productId = 'spectra'
         technicalProjectName = 'BCProjectOS'
@@ -396,25 +364,25 @@ $SandboxRoot = $null
 
 if ($inputShas['blueprint']) {
     try {
-        $branchIndexEntry = Get-UniversaarlBlobEntry -Repository $projectPaths['blueprint'] -Commit $inputShas['blueprint'] -Path 'exports/project-data/v1/index.yaml'
-        if ($null -eq $branchIndexEntry) {
-            $relationshipFindings.Add((New-Finding critical 'CROSS-BRANCH-INDEX-MISSING' 'Der commitgebundene BC-Basic-Branch-Index fehlt; die validierte Consumerbeziehung bleibt blockiert.'))
+        $pointerEntry = Get-UniversaarlBlobEntry -Repository $projectPaths['blueprint'] -Commit $inputShas['blueprint'] -Path 'exports/project-data/v1/snapshots/current.json'
+        if ($null -eq $pointerEntry) {
+            $relationshipFindings.Add((New-Finding critical 'CROSS-SNAPSHOT-POINTER-MISSING' 'Der commitgebundene BC-Basic-Snapshotzeiger fehlt; die validierte Consumerbeziehung bleibt blockiert.'))
         }
-        elseif ($spectraRelationship.fullValidationPassed -eq $true -and $null -ne $spectraRelationship.binding) {
-            $snapshotProof = Test-UniversaarlBranchIndex -Repository $projectPaths['blueprint'] -Commit $inputShas['blueprint'] -ExpectedBranch 'codex/universaarl-projekt'
+        elseif ($spectraRelationship.fullValidationPassed -eq $true -and $null -ne $spectraRelationship.snapshotProof) {
+            $snapshotProof = $spectraRelationship.snapshotProof
             $twinBoundaryProof = Test-UniversaarlTwinContractBoundary -Repository $projectPaths['project-twin'] -Commit $inputShas['project-twin']
             $crossStatus = 'passed'
             $crossFullValidationPassed = $true
             $crossStats = [pscustomobject]@{ snapshot=$snapshotProof; twinBoundary=$twinBoundaryProof }
         }
         else {
-            $relationshipFindings.Add((New-Finding critical 'CROSS-BRANCH-UPSTREAM-BLOCKED' 'Der Branch-Index kann ohne vollstaendig gebundene Spectra-Evidence nicht freigegeben werden.'))
+            $relationshipFindings.Add((New-Finding critical 'CROSS-SNAPSHOT-UPSTREAM-BLOCKED' 'Der portable Snapshot kann ohne vollstaendig gebundene Spectra-Evidence nicht freigegeben werden.'))
         }
     }
-    catch { $relationshipFindings.Add((New-Finding critical 'CROSS-BRANCH-INDEX-INVALID' "Der commitgebundene Branch-Index kann nicht sicher validiert werden: $($_.Exception.Message)")) }
+    catch { $relationshipFindings.Add((New-Finding critical 'CROSS-SNAPSHOT-INVALID' "Der portable Snapshot kann nicht sicher validiert werden: $($_.Exception.Message)")) }
 }
 else {
-    $relationshipFindings.Add((New-Finding critical 'CROSS-BRANCH-INDEX-UNKNOWN' 'Ohne vollstaendige Blueprint-Commit-SHA kann kein Branch-Index-Vertrag geprueft werden.'))
+    $relationshipFindings.Add((New-Finding critical 'CROSS-SNAPSHOT-UNKNOWN' 'Ohne vollstaendige Blueprint-Commit-SHA kann kein portabler Snapshotvertrag geprueft werden.'))
 }
 
 if ($RunValidations) {
@@ -432,7 +400,7 @@ if ($RunValidations) {
             if (-not $result.snapshotEligible) { continue }
             $snapshot = Join-Path $SandboxRoot ([string]$project.id)
             try {
-                New-UniversaarlCommitSnapshot -SourceRepository $projectPaths[[string]$project.id] -Commit $result.commit -Destination $snapshot -SandboxRoot $SandboxRoot -ExpectedBranch $result.branch -AllowedVersionedMedia @($project.allowedVersionedMedia) | Out-Null
+                New-UniversaarlCommitSnapshot -SourceRepository $projectPaths[[string]$project.id] -Commit $result.commit -Destination $snapshot -SandboxRoot $SandboxRoot -ExpectedBranch $result.branch -IncludeHistory:([string]$project.id -eq 'blueprint') -AllowedVersionedMedia @($project.allowedVersionedMedia) | Out-Null
                 $snapshotPaths[[string]$project.id] = $snapshot
             }
             catch { $result.findings += New-Finding critical 'SAFE-001' "Commitgebundene Wegwerfkopie konnte nicht erstellt werden: $($_.Exception.Message)" }
@@ -442,7 +410,10 @@ if ($RunValidations) {
             $result = @($results | Where-Object { $_.id -eq [string]$project.id })[0]
             if (-not $snapshotPaths.ContainsKey([string]$project.id)) { continue }
             $extraEnvironment = @{}
-            if ([string]$project.id -eq 'project-twin' -and $snapshotPaths.ContainsKey('blueprint')) { $extraEnvironment['UABC_SOURCE_REPO'] = $snapshotPaths['blueprint'] }
+            if ([string]$project.id -eq 'project-twin' -and $snapshotPaths.ContainsKey('blueprint')) {
+                $extraEnvironment['UABC_PORTABLE_PRODUCER_ROOT'] = $snapshotPaths['blueprint']
+                $extraEnvironment['UABC_REQUIRE_PORTABLE_PRODUCER'] = '1'
+            }
             try {
                 $validation = Invoke-ProjectValidation -Project $project -Commit $result.commit -SnapshotPath $snapshotPaths[[string]$project.id] -SandboxRoot $SandboxRoot -Runner $runner -AdditionalEnvironment $extraEnvironment
                 $result.validation = $validation.validation
@@ -466,8 +437,9 @@ if ($RunValidations) {
                 New-UniversaarlCommitSnapshot -SourceRepository $projectPaths['blueprint'] -Commit $inputShas['blueprint'] -Destination $smokeBlueprint -SandboxRoot $smokeRoot -ExpectedBranch (@($results | Where-Object { $_.id -eq 'blueprint' })[0].branch) -AllowedVersionedMedia @($projectConfigs['blueprint'].allowedVersionedMedia) | Out-Null
                 New-UniversaarlCommitSnapshot -SourceRepository $projectPaths['project-twin'] -Commit $inputShas['project-twin'] -Destination $smokeTwin -SandboxRoot $smokeRoot -ExpectedBranch (@($results | Where-Object { $_.id -eq 'project-twin' })[0].branch) -AllowedVersionedMedia @($projectConfigs['project-twin'].allowedVersionedMedia) | Out-Null
                 $runtime = Get-NpmRuntime
+                $node = Resolve-UniversaarlTool -Names @('node', 'node.exe') -Description 'Node.js'
                 $smokeInstallLog = Join-Path $LogRoot "$RunId-vertrag-installation.log"
-                $smokeInstall = Invoke-UniversaarlSanitizedProcess -Runner $runner -FilePath $runtime.node -Arguments @($runtime.npmCli, 'ci', '--ignore-scripts', '--no-audit', '--no-fund') -WorkingDirectory $smokeTwin -SandboxRoot $smokeRoot -LogPath $smokeInstallLog -LogRoot $LogRoot -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots @($smokeTwin, $smokeBlueprint, $smokeRoot)
+                $smokeInstall = Invoke-UniversaarlSanitizedProcess -Runner $runner -FilePath $runtime.executable -Arguments (@($runtime.prefix) + @('ci', '--ignore-scripts', '--no-audit', '--no-fund')) -WorkingDirectory $smokeTwin -SandboxRoot $smokeRoot -LogPath $smokeInstallLog -LogRoot $LogRoot -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots @($smokeTwin, $smokeBlueprint, $smokeRoot)
                 if ($smokeInstall.exitCode -ne 0 -or $smokeInstall.outputTruncated) { throw 'Die frische, skriptfreie Vertragsinstallation ist fehlgeschlagen oder lieferte zu viel Ausgabe.' }
 
                 $twinBeforeSmoke = Get-UniversaarlRepositoryFingerprint -Repository $smokeTwin
@@ -475,11 +447,10 @@ if ($RunValidations) {
                 $smokeScript = Join-Path $PSScriptRoot 'Invoke-TwinContractSmoke.mjs'
                 $crossLog = Join-Path $LogRoot "$RunId-vertrag.log"
                 $smokeEnvironment = @{
-                    UABC_SOURCE_REPO = $smokeBlueprint
-                    UABC_EXPECTED_COMMIT = $inputShas['blueprint']
-                    UABC_BRANCH_COMMIT_CONTRACT = '1'
+                    UABC_PORTABLE_PRODUCER_ROOT = $smokeBlueprint
+                    UABC_REQUIRE_PORTABLE_PRODUCER = '1'
                 }
-                $smoke = Invoke-UniversaarlSanitizedProcess -Runner $runner -FilePath $runtime.node -Arguments @($smokeScript, $smokeTwin, $smokeBlueprint, $inputShas['project-twin'], $inputShas['blueprint']) -WorkingDirectory $smokeTwin -SandboxRoot $smokeRoot -LogPath $crossLog -LogRoot $LogRoot -AdditionalEnvironment $smokeEnvironment -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots @($smokeTwin, $smokeBlueprint, $smokeRoot)
+                $smoke = Invoke-UniversaarlSanitizedProcess -Runner $runner -FilePath $node -Arguments @($smokeScript, $smokeTwin, $smokeBlueprint, $inputShas['project-twin'], $inputShas['blueprint']) -WorkingDirectory $smokeTwin -SandboxRoot $smokeRoot -LogPath $crossLog -LogRoot $LogRoot -AdditionalEnvironment $smokeEnvironment -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots @($smokeTwin, $smokeBlueprint, $smokeRoot)
                 if ($smoke.exitCode -ne 0 -or $smoke.outputTruncated) { throw 'Der Twin konnte die frisch installierte Blueprint-Commitkopie nicht erfolgreich normalisieren.' }
                 try {
                     $payload = $smoke.output.Trim() | ConvertFrom-Json
@@ -559,7 +530,7 @@ $report = [pscustomobject]@{
     projects = @($results)
     relationships = @(
         $spectraRelationship
-        [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'validated-branch-index'; status = $crossStatus; fullValidationPassed = $crossFullValidationPassed; runtimeBindingInspected = $runtimeBindingInspected; legacySmokeStatus = $legacySmokeStatus; providerCommit = $inputShas['blueprint']; consumerCommit = $inputShas['project-twin']; stats = $crossStats; warnings = @($crossWarnings); findings = @($relationshipFindings) }
+        [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'portable-snapshot-release'; status = $crossStatus; fullValidationPassed = $crossFullValidationPassed; runtimeBindingInspected = $runtimeBindingInspected; legacySmokeStatus = $legacySmokeStatus; providerCommit = $inputShas['blueprint']; consumerCommit = $inputShas['project-twin']; stats = $crossStats; warnings = @($crossWarnings); findings = @($relationshipFindings) }
     )
     safety = [pscustomobject]@{ snapshotSource = 'exact-commit'; worktreeContentHashed = $false; realEnvironmentFilesRead = $false; operatingSystemSandbox = $false; gitOptionalLocksDisabled = $true }
 }

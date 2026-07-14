@@ -397,7 +397,7 @@ try {
         )
         relationships = @(
             [pscustomobject]@{ id = 'blueprint-binds-spectra'; contractType = 'versioned-product-release'; productName = 'Spectra'; productId = 'spectra'; technicalProjectName = 'BCProjectOS'; sourceCommit = $reportSha; consumerCommit = $reportSha; status = 'failed'; fullValidationPassed = $false },
-            [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'validated-branch-index'; providerCommit = $reportSha; consumerCommit = $reportSha; status = 'failed'; fullValidationPassed = $false }
+            [pscustomobject]@{ id = 'twin-reads-blueprint'; contractType = 'portable-snapshot-release'; providerCommit = $reportSha; consumerCommit = $reportSha; status = 'failed'; fullValidationPassed = $false }
         )
     }
     [IO.File]::WriteAllText($reportPath, ($validReport | ConvertTo-Json -Depth 12), [Text.UTF8Encoding]::new($false))
@@ -588,8 +588,8 @@ try {
     ); verificationSources = [pscustomobject]@{
         bcprojectos = [pscustomobject]@{ verificationOnly = $true; technicalProjectName = 'BCProjectOS'; expectedProduct = [pscustomobject]@{ name = 'Spectra'; productId = 'spectra' }; pathAlias = '<BCPROJECTOS_ROOT>'; defaultPath = $goalBlueprint.path; pathEnvironmentVariable = 'UNIVERSAARL_BCPROJECTOS_PATH'; remote = 'origin'; canonicalRemoteUrl = 'https://github.com/sivla/BCProjectOS.git' }
     }; relationships = @(
-        [pscustomobject]@{ id = 'blueprint-binds-spectra'; consumerProjectId = 'blueprint'; providerVerificationSourceId = 'bcprojectos'; contractType = 'versioned-product-release'; productId = 'spectra'; contractMarker = 'PENDING_BCPROJECTOS_RELEASE' },
-        [pscustomobject]@{ id = 'twin-reads-blueprint'; consumerProjectId = 'project-twin'; providerProjectId = 'blueprint'; contractType = 'validated-branch-index'; environmentVariable = 'UABC_SOURCE_REPO'; contractMarker = 'UABC_SOURCE_REPO' }
+        [pscustomobject]@{ id = 'blueprint-binds-spectra'; consumerProjectId = 'blueprint'; providerVerificationSourceId = 'bcprojectos'; contractType = 'versioned-product-release'; productId = 'spectra'; contractMarker = 'BOUND_BCPROJECTOS_RELEASE' },
+        [pscustomobject]@{ id = 'twin-reads-blueprint'; consumerProjectId = 'project-twin'; providerProjectId = 'blueprint'; contractType = 'portable-snapshot-release'; pointerPath = 'exports/project-data/v1/snapshots/current.json'; contractMarker = 'uabc-portable-snapshot-current-v1' }
     ) }
     $fixtureGoals = [pscustomobject]@{ schemaVersion = 1; projects = [pscustomobject]@{
         blueprint = [pscustomobject]@{ objective = 'Fixture'; currentGoal = 'Fixture' }
@@ -675,11 +675,11 @@ try {
     $wrongSpectraRelationshipProductConfig.relationships[0].productId = 'bcprojectos'
     Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongSpectraRelationshipProductConfig } -Message 'Falsche Produkt-ID in der Spectra-Bindungsbeziehung wurde akzeptiert.'
     $wrongSpectraContractConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
-    $wrongSpectraContractConfig.relationships[0].contractMarker = 'BOUND'
+    $wrongSpectraContractConfig.relationships[0].contractMarker = 'PENDING_BCPROJECTOS_RELEASE'
     Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongSpectraContractConfig } -Message 'Erfundener Spectra-Vertragsmarker wurde akzeptiert.'
     $wrongSnapshotContractConfig = (($fixtureConfig | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
     $wrongSnapshotContractConfig.relationships[1].contractType = 'working-tree'
-    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongSnapshotContractConfig } -Message 'Twin-Beziehung ohne validated-branch-index-Vertrag wurde akzeptiert.'
+    Assert-Throws -Action { Assert-UniversaarlMonitorConfiguration -Configuration $wrongSnapshotContractConfig } -Message 'Twin-Beziehung ohne portable-snapshot-release-Vertrag wurde akzeptiert.'
     $missingGoalRelationshipConfig = (($fixtureGoals | ConvertTo-Json -Depth 12) | ConvertFrom-Json)
     $missingGoalRelationshipConfig.relationships.PSObject.Properties.Remove('blueprint-binds-spectra')
     Assert-Throws -Action { Assert-UniversaarlGoalConfiguration -Configuration $missingGoalRelationshipConfig } -Message 'Fehlendes Spectra-Ziel im Zusammenspiel wurde akzeptiert.'

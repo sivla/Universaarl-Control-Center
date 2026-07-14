@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "kind": "universaarl-portable-chain-verification",
+  "status": "VERIFIED_PUBLISHED_WITH_DOCUMENTED_FOLLOWUPS",
+  "generatedAt": "2026-07-14T03:05:00Z",
+  "architecture": "BCProjectOS/Spectra -> Universaarl Projekt BC Basic -> validierter portabler Snapshot -> read-only Project Twin",
+  "spectra": {
+    "repository": "https://github.com/sivla/BCProjectOS.git",
+    "branch": "codex/spectra-portable-bootstrap-registry",
+    "releaseTag": "spectra-v1.2.0-alpha.12",
+    "annotatedTagObject": "80563e5823a042a95582c88cb41aaf6306a9cfce",
+    "tagCommit": "6b3d9a1bfaf6cd806218a802fdde8f1a4cfa55a1",
+    "tagTree": "e6beb8bc570927c35eb48c415024aaf486007324",
+    "manifestSourceCommit": "cf8c182141328a35780f55211459e6af3a45d57c",
+    "manifestSourceTree": "291f88c7aaec4aa0b07c07752771017ed737829c",
+    "manifestSha256": "07fe275852e381eb697732e8ba84d6a6eef93f00bf64d31c71b670967a779dfe",
+    "payloadBundleSha256": "b637a82c381d7744f08949c264393382cb90d7e6b1f67d56afacb6e88a312c7b",
+    "payloadFileCount": 323,
+    "releaseUrl": "https://github.com/sivla/BCProjectOS/releases/tag/spectra-v1.2.0-alpha.12",
+    "platformEvidenceUrl": "https://github.com/sivla/BCProjectOS/actions/runs/29293515568",
+    "platformStatus": "passed"
+  },
+  "blueprint": {
+    "repository": "https://github.com/sivla/FiBu.git",
+    "branch": "codex/universaarl-projekt",
+    "publishedCommit": "83a63c0af8775001e4c7f909a46c5b227f3cce3d",
+    "tree": "fdd679984750f6952b8f9b43fef91ff1d77c3233",
+    "snapshotReleaseId": "UABC-PORTABLE-PILOT-0003",
+    "snapshotSourceCommit": "8132f2ce692dfcb8e12a3a4db4a287c643a6376f",
+    "manifestSha256": "5710f0c5315ede59f8af1bbe6a154725a180ef9c87c6502a83f1008892eaf863",
+    "sourceInventorySha256": "ee18e4bd3eb2842ca11a26cbc5fb02ee4644e309c9215b37dacca687919a8894",
+    "projectSourceCount": 158,
+    "releaseFileCount": 161,
+    "transports": ["filesystem", "https"],
+    "status": "published-and-validated"
+  },
+  "projectTwin": {
+    "repository": "https://github.com/sivla/FiBu.git",
+    "branch": "codex/universaarl-projekt-twin",
+    "publishedCommit": "0e6f7c931a073955fd4920247f6ffc49eff6e0f4",
+    "tree": "9991b193c0a50eb668ccc1d5519a47968a811e35",
+    "runtimeSources": ["filesystem", "https"],
+    "productiveGitRuntimeDependency": false,
+    "access": "nur-lesend",
+    "normalizedState": {
+      "tickets": 50,
+      "pages": 28,
+      "relations": 1044,
+      "documents": 43
+    },
+    "status": "published-and-validated"
+  },
+  "controlEvidence": {
+    "publisherRunId": "publish-project-twin-20260714T025236Z-411e5047db564f00b5ffe3bb310c4d42",
+    "auditStatus": "GELB",
+    "goalReviewStatus": "GELB",
+    "evidenceCoveragePercent": 100,
+    "blueprintTechnicalValidation": "passed",
+    "projectTwinTechnicalValidation": "passed",
+    "germanSurfaceValidation": "passed",
+    "spectraBinding": "passed",
+    "portableSnapshotRelationship": "passed",
+    "runtimeSmoke": "passed-with-warning"
+  },
+  "platformEvidence": {
+    "workflowRunId": 29302569099,
+    "workflowRunUrl": "https://github.com/sivla/FiBu/actions/runs/29302569099",
+    "headCommit": "0e6f7c931a073955fd4920247f6ffc49eff6e0f4",
+    "status": "passed",
+    "windows": {
+      "jobId": 86989206902,
+      "status": "passed",
+      "artifactId": 8299048254,
+      "artifactName": "snapshot-katalog-windows-latest",
+      "artifactArchiveSha256": "b64c4872ad842c71a14b7784e22fd18cabadff23ff5bcbb572a9c366874b39b3"
+    },
+    "macos14": {
+      "jobId": 86989206930,
+      "status": "passed",
+      "artifactId": 8299049068,
+      "artifactName": "snapshot-katalog-macos-14",
+      "artifactArchiveSha256": "94eac687133802db46cb47f2e29cc411728965304f468464b3a969ed6b3fac53"
+    }
+  },
+  "safety": {
+    "targetWorktreesClean": true,
+    "targetFingerprintsUnchangedDuringValidation": true,
+    "forcePushUsed": false,
+    "worktreesCreated": false,
+    "realEnvironmentFilesRead": false
+  },
+  "documentedFollowups": [
+    {
+      "id": "TWIN-HUMAN-APPROVAL",
+      "blockingForPublishedTechnicalChain": false,
+      "status": "open",
+      "description": "Die ausdrueckliche menschliche Twin-Freigabe wurde nicht erfunden und bleibt vor einer endgueltigen V1-Freigabe offen."
+    },
+    {
+      "id": "TWIN-OPENSPEC-ARCHIVE",
+      "blockingForPublishedTechnicalChain": false,
+      "status": "open",
+      "description": "Die aktive Twin-MVP-Aenderung bleibt mit vier offenen Aufgaben unarchiviert."
+    },
+    {
+      "id": "OPTIONAL-RESOURCE-CATALOG",
+      "blockingForPublishedTechnicalChain": false,
+      "status": "open",
+      "description": "Der Producer liefert noch keinen optionalen kanonischen Ressourcenkatalog; Tickets, Seiten, Relationen und Dokumente sind davon nicht betroffen."
+    },
+    {
+      "id": "CONTROL-CENTER-MACOS-RUNTIME",
+      "blockingForPublishedTechnicalChain": false,
+      "status": "open",
+      "description": "Die eigene Kontrollzentrum-Portabilitaetskandidatur bleibt bis zu einem separaten macOS-Runtime-Nachweis ehrlich PENDING_MACOS_RUNNER_EVIDENCE; die Windows-/macOS-Matrix des Project Twin ist davon getrennt und bestanden."
+    }
+  ]
+}

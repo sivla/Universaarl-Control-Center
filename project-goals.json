@@ -3,11 +3,11 @@
   "principle": "Fachlich schnell, technisch ehrlich.",
   "v1WorkingRule": "V1.0 ist der erste real nutzbare, durchklickbare und fachlich zusammenhaengende Release-Stand. Verbindlich sind Business-Ziel, Datenintegritaet, sichere Bindungen und Kernablaeufe. Nicht blockierende Struktur-, Komfort-, Performance- und Zusatzhaertungsthemen werden nach V1.0 als priorisierter V1.x-Backlog weiterentwickelt.",
   "simulationRule": "Die Simulation verwendet keine beliebigen Mockup-Daten. Alle synthetischen Firmen-, Personen-, Artikel-, Lieferanten-, Kunden-, Finanz-, Steuer-, Bank-, Einkaufs-, Verkaufs-, Lager-, Projekt-, Ticket- und Evidence-Daten muessen untereinander plausibel, fachlich begruendet und ueber den gesamten Projektverlauf konsistent sein. Jeder Kernprozess wird wie in einer realen BC-Basic-Einfuehrung vom Ausloeser bis zu Buchung, Abstimmung, Ausnahme, Freigabe, Schulung, Betrieb und Nachweis durchdacht und als schlanker Standardweg dokumentiert.",
-  "nextPortfolioMilestone": "Die belegten BC- und Twin-Staende werden unabhaengig kontrollgeprueft, in ihre stabilen Zweige integriert und erst danach veroeffentlicht. Der laufende Twin bleibt bis dahin auf dem letzten validierten Producerstand sichtbar; neue Fach- oder Komfortarbeit wird nicht in diesen Abschlussblock aufgenommen.",
+  "nextPortfolioMilestone": "Die portable Kette aus Spectra 1.2.0-alpha.12, BC-Basic-Snapshot UABC-PORTABLE-PILOT-0003 und Project Twin ist digestgebunden geprueft, auf den stabilen Projektzweigen veroeffentlicht und unter Windows sowie macOS belegt. Die offene menschliche Twin-Freigabe, Archivierung und optionale Ressourcenkatalog-Erweiterung bleiben getrennte Folgeziele.",
   "projects": {
     "blueprint": {
       "objective": "BC Basic V1 als verkaufbares, durchdachtes und lean wiederholbares Standardprodukt fertigstellen, mit dem ein realer Kunde auf dem kuerzesten belastbaren Weg von Angebot und Vorbereitung ueber Fit-to-Standard, Konfiguration, Datenmigration, UAT und Befaehigung bis zu Cutover, Hypercare und sicherem Betrieb gefuehrt werden kann.",
-      "currentGoal": "Den auf Commit 4557d93c4b89697c13c7345b39c167f09f441d03 belegten Drei-Space-Stand stabil halten und kontrolliert in den Producerbranch integrieren. Kundenprojekt, Produktbuch und Consultant-Handbuch sind source-driven getrennt; 28 Seiten, 43 Katalogdokumente, 19/19 Migrationen und 50 Jira-Tickets sind validiert. Neue Fachinhalte oder Strukturarbeit erfolgen erst nach diesem Integrations- und Publishblock.",
+      "currentGoal": "Der auf Commit 83a63c0af8775001e4c7f909a46c5b227f3cce3d verankerte Snapshot UABC-PORTABLE-PILOT-0003 ist kontrolliert veroeffentlicht. Er bindet Spectra 1.2.0-alpha.12, 158 Projektquellen, Knowledge-Payload und Kundenkatalog digestgebunden; neue Fachinhalte oder Strukturarbeit sind eigene Folgeauftraege.",
       "v1ExitCriteria": [
         "Ein eindeutiges Standardangebot, Scope, Voraussetzungen, Nichtleistungen und Change-Regel",
         "Reproduzierbare Standardprozesse und feldnahe Konfigurations-/SoD-Baseline",
@@ -15,7 +15,7 @@
         "Ein Consultant kann damit ein echtes Projekt starten und der Kunde versteht Mitwirkung, Entscheidungen und Betrieb",
         "Alle synthetischen Aussagen bleiben von realen Kunden-, Sandbox-, Steuer- und Rechtsbestaetigungen getrennt",
         "Vollstaendiger validierter Snapshot fuer Project Twin",
-        "Unveraenderliche Bindung an Spectra 1.0.0 mit Tag, Commit, Manifest und Digest",
+        "Unveraenderliche Bindung an einen echten installierbaren Spectra-Release mit Tag, Commit, Manifest und Digest",
         "Finaler sauberer V1.0-Commit mit leerem REVIEW.md und vollstaendiger End-to-End-Regression",
         "Plausible, ueber alle Prozessketten konsistente synthetische Unternehmens- und Belegdaten statt beliebiger Mockups",
         "Standardisierte fachliche Sollprozesse mit Ausnahmen, Kontrollen, Entscheidungen, Verantwortlichkeiten und Kundenerklaerung",
@@ -34,16 +34,16 @@
       ]
     },
     "project-twin": {
-      "objective": "Project Twin V1 als strikt nur-lesendes, deutschsprachiges und in weniger als zwei Minuten erfassbares Produkt- und Projektcockpit veroeffentlichungsreif machen, das immer den neuesten vollstaendig validierten BC-Basic-Branch-Commit sicher darstellt.",
-      "currentGoal": "Den auf Commit 4167d0cb2e3cbc72544190e8c3a40002f800d7cf belegten Twin-Stand stabil halten und kontrolliert veroeffentlichen. Der dauerhafte Branchkanal liest den letzten validierten Producercommit; der Drei-Space-Kandidat 4557d93c4b89697c13c7345b39c167f09f441d03 ist mit Cross-Contract 3/3, 144/144 Tests sowie Desktop- und 390px-Browsernachweisen abgenommen. Neue UI-Funktionen bleiben ausserhalb dieses Abschlussblocks.",
+      "objective": "Project Twin V1 als strikt nur-lesendes, deutschsprachiges und in weniger als zwei Minuten erfassbares Produkt- und Projektcockpit veroeffentlichungsreif machen, das ausschliesslich validierte portable BC-Basic-Snapshotreleases ueber Filesystem oder HTTPS darstellt.",
+      "currentGoal": "Der auf Commit 0e6f7c931a073955fd4920247f6ffc49eff6e0f4 belegte Twin-Stand ist kontrolliert veroeffentlicht und in GitHub Actions unter Windows sowie macOS bestanden. Er liest UABC-PORTABLE-PILOT-0003 ohne produktive Git-Laufzeitabhaengigkeit und zeigt 50 Tickets, 28 Seiten sowie 1044 Relationen; menschliche Freigabe und Archivierung bleiben offen.",
       "v1ExitCriteria": [
-        "Automatische einmalige Commitbindung an den neuesten validierten BC-Basic-Branchstand",
+        "Explizite Releasebindung ueber current.json, unveraenderliches Manifest und vollstaendige SHA-256-Allowlist",
         "Fuenf handlungsorientierte Leitfragen decken Angebot bis Betrieb ohne neue Fachwahrheit ab",
         "Desktop, A11y und sichtbare deutsche Inhalte abgenommen; Mobil mit einfachem Responsive-Smoke ohne offensichtliche Unbenutzbarkeit",
         "Manipulierte, unvollstaendige oder widerspruechliche Quellen liefern sichtbar HTTP 503",
         "Technische Evidence bleibt nachgelagert und die Oberflaeche schreibt niemals zurueck",
         "Eigene V1-Release- und Repository-Gates sind vollstaendig geklaert",
-        "Cockpit und Projektdokumentation lesen nachweislich denselben finalen BC-Basic-V1.0-Commit",
+        "Cockpit und Projektdokumentation lesen nachweislich dasselbe finale BC-Basic-Snapshotrelease",
         "Finaler sauberer Twin-V1.0-Commit mit leerem REVIEW.md und reproduzierbarer Browser-Evidence",
         "Komplette fachliche Projektstory und Prozessketten ohne technische Vorkenntnisse nachvollziehbar",
         "Realistische Daten, Entscheidungen, Tests, Schulungen und Betriebsergebnisse sichtbar statt generischer Mockup-Kacheln",
@@ -68,7 +68,7 @@
       "objective": "BC Basic bindet nur unveraenderliche, vollstaendig nachgewiesene Spectra-Releases; neue Spectra-Entwicklung bleibt bis zur Veroeffentlichung PENDING und veraendert den laufenden Kundenstand nicht."
     },
     "twin-reads-blueprint": {
-      "objective": "Twin loest den erlaubten BC-Basic-Branch je Lauf genau einmal auf eine volle Commit-SHA auf und liest nur validierte, positivgelistete Git-Blobs dieses Commits; ungueltige Quellen blockieren sichtbar mit HTTP 503."
+      "objective": "Twin liest ausschliesslich einen expliziten Filesystem- oder HTTPS-Katalog aus current.json, unveraenderlichem Release-Manifest und vollstaendig digestgeprueften Payloads; Git-, Branch- und Arbeitsbaumfallbacks bleiben verboten und ungueltige Quellen blockieren sichtbar mit HTTP 503."
     }
   }
 }

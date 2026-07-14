@@ -77,7 +77,7 @@ function Test-UniversaarlSpectraReleaseBinding {
     $manifestBlob = Read-UniversaarlCommitText -Repository $Repository -Commit $tagCommit -Path ([string]$Binding.manifestPath) -MaximumBytes 1048576 -Required
     $manifest = $manifestBlob.content | ConvertFrom-Json
     $manifestSchema = [int]$manifest.schema_version
-    if ($manifestSchema -notin @(1,2,3)) { throw 'Spectra-Releasemanifest verwendet eine nicht unterstuetzte Schemaversion.' }
+    if ($manifestSchema -notin @(1,2,3,4)) { throw 'Spectra-Releasemanifest verwendet eine nicht unterstuetzte Schemaversion.' }
     $manifestProperties = @('schema_version','product_id','release_version','release_kind','manifest_state','release_date','expected_tag','source_commit')
     if ($manifestSchema -ge 2) { $manifestProperties += 'source_tree' }
     $manifestProperties += @('consumer_mode','installable_blueprint','blueprint_version','payload','binding_requirements','excluded_from_payload','known_limits')
@@ -96,7 +96,11 @@ function Test-UniversaarlSpectraReleaseBinding {
         $bytes = Get-UniversaarlGitBlobBytes -Repository $Repository -Object $entry.object
         $digest = Get-UniversaarlBytesSha256 $bytes
         if ($entry.size -ne [int64]$file.size_bytes -or $digest -cne [string]$file.sha256) { throw "Spectra-Payload '$path' stimmt nicht mit dem Manifest ueberein (Blob: $($entry.size)/$digest; Manifest: $($file.size_bytes)/$($file.sha256))." }
-        $records.Add([pscustomobject]@{ path=$path; line="$digest  $path" })
+        if ($manifestSchema -ge 4) {
+            if ($file.mode -notmatch '^100(644|755)$' -or $entry.mode -cne [string]$file.mode) { throw "Spectra-Payload '$path' besitzt keinen passenden gebundenen Git-Modus." }
+            $records.Add([pscustomobject]@{ path=$path; line="$digest  $($file.mode)  $path" })
+        }
+        else { $records.Add([pscustomobject]@{ path=$path; line="$digest  $path" }) }
         $sourceEntry = Get-UniversaarlBlobEntry -Repository $Repository -Commit ([string]$Binding.manifestSourceCommit) -Path $path -Required
         if ($sourceEntry.object -cne $entry.object -or $sourceEntry.mode -cne $entry.mode) { throw "Spectra-Payload '$path' wurde nach dem Source-Commit veraendert." }
     }
@@ -207,6 +211,154 @@ function Test-UniversaarlBranchIndex {
         status='passed'; fullValidationPassed=$true; providerCommit=$Commit; branch=$ExpectedBranch
         indexPath=$indexPath; indexBlob=$indexEntry.object; artifactCount=$records.Count
         payloadBundleDigest="sha256:$bundle"; access='nur-lesend'; legacySnapshotRequired=$false
+    }
+}
+
+function Test-UniversaarlPortableSnapshotRelease {
+    param(
+        [Parameter(Mandatory)][string]$Repository,
+        [Parameter(Mandatory)][string]$Commit,
+        [Parameter(Mandatory)][string]$SpectraRepository
+    )
+    Assert-FullCommitSha $Commit
+    $pointerPath = 'exports/project-data/v1/snapshots/current.json'
+    $pointerEntry = Get-UniversaarlBlobEntry -Repository $Repository -Commit $Commit -Path $pointerPath -Required
+    if ($pointerEntry.mode -cne '100644') { throw 'Der Snapshotzeiger ist kein regulaerer Git-Blob im Modus 100644.' }
+    $pointerBlob = Read-UniversaarlCommitText -Repository $Repository -Commit $Commit -Path $pointerPath -MaximumBytes 65536 -Required
+    $pointer = $pointerBlob.content | ConvertFrom-Json
+    Assert-UniversaarlExactProperties $pointer @('schemaVersion','pointerContract','customerId','projectId','currentReleaseId','manifestPath','manifestSha256','bindingStatus','consumerEligible','publishEligible','updatedAt') 'Snapshotzeiger'
+    if ($pointer.schemaVersion -ne 1 -or $pointer.pointerContract -cne 'uabc-portable-snapshot-current-v1' -or
+        $pointer.customerId -cne 'UABC-CUSTOMER-001' -or $pointer.projectId -cne 'UABC-BC-BASIC-001' -or
+        $pointer.currentReleaseId -notmatch '^UABC-PORTABLE-PILOT-[0-9]{4}$' -or
+        $pointer.bindingStatus -cne 'BOUND_BCPROJECTOS_RELEASE' -or $pointer.consumerEligible -ne $true -or $pointer.publishEligible -ne $true -or
+        $pointer.manifestSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Snapshotzeiger besitzt keine freigegebene portable Identitaet.' }
+
+    $manifestPath = Assert-UniversaarlContractPath ([string]$pointer.manifestPath)
+    $releaseRoot = "exports/project-data/v1/snapshots/releases/$($pointer.currentReleaseId)"
+    if ($manifestPath -cne "$releaseRoot/manifest.json") { throw 'Snapshotzeiger verweist nicht auf das unveraenderliche Manifest seines Releases.' }
+    $manifestEntry = Get-UniversaarlBlobEntry -Repository $Repository -Commit $Commit -Path $manifestPath -Required
+    if ($manifestEntry.mode -cne '100644') { throw 'Das portable Snapshotmanifest ist kein regulaerer Git-Blob im Modus 100644.' }
+    $manifestBytes = Get-UniversaarlGitBlobBytes -Repository $Repository -Object $manifestEntry.object
+    $manifestDigest = Get-UniversaarlBytesSha256 $manifestBytes
+    if ($manifestDigest -cne [string]$pointer.manifestSha256) { throw 'Manifestdigest des Snapshotzeigers stimmt nicht mit dem Commitblob ueberein.' }
+    $manifest = [Text.UTF8Encoding]::new($false, $true).GetString($manifestBytes) | ConvertFrom-Json
+    Assert-UniversaarlExactProperties $manifest @('schemaVersion','manifestContract','releaseId','immutable','producer','releaseBinding','pathSemantics','byteContract','sourceInventoryDigest','projectData','files','validationStatus') 'Portables Snapshotmanifest'
+    if ($manifest.schemaVersion -ne 1 -or $manifest.manifestContract -cne 'uabc-portable-snapshot-release-v1' -or
+        $manifest.releaseId -cne $pointer.currentReleaseId -or $manifest.immutable -ne $true -or
+        $manifest.pathSemantics -cne 'repository-relative' -or $manifest.byteContract -cne 'identical-canonical-bytes' -or
+        $manifest.validationStatus -cne 'validated-release' -or $manifest.sourceInventoryDigest -notmatch '^[0-9a-f]{64}$') {
+        throw 'Portables Snapshotmanifest besitzt keine unveraenderliche freigegebene Identitaet.'
+    }
+    Assert-UniversaarlExactProperties $manifest.producer @('customerId','projectIds','commitShaProvenance') 'Snapshotproduzent'
+    if ($manifest.producer.customerId -cne $pointer.customerId -or @($manifest.producer.projectIds).Count -ne 1 -or
+        [string]$manifest.producer.projectIds[0] -cne $pointer.projectId) { throw 'Snapshotproduzent widerspricht dem Zeiger.' }
+
+    Assert-UniversaarlExactProperties $manifest.releaseBinding @('bindingStatus','pendingReason','consumerEligible','publishEligible','requiredEvidence','spectraReleaseBinding') 'Snapshot-Releasebindung'
+    if ($manifest.releaseBinding.bindingStatus -cne $pointer.bindingStatus -or $null -ne $manifest.releaseBinding.pendingReason -or
+        $manifest.releaseBinding.consumerEligible -ne $true -or $manifest.releaseBinding.publishEligible -ne $true) { throw 'Snapshot-Releasebindung ist nicht vollstaendig freigegeben.' }
+    $requiredEvidence = @($manifest.releaseBinding.requiredEvidence)
+    foreach ($name in @('annotatedTag','peeledCommit','finalManifest','productDigest','platformMatrix')) {
+        if ($requiredEvidence -cnotcontains $name) { throw "Snapshot-Releasebindung fordert '$name' nicht an." }
+    }
+    $spectra = $manifest.releaseBinding.spectraReleaseBinding
+    Assert-UniversaarlExactProperties $spectra @('evidencePath','productId','technicalRepositoryName','repositoryUrl','releaseVersion','releaseTag','annotatedTagObject','peeledCommit','manifestPath','manifestSourceCommit','sourceTree','consumerMode','installableBlueprint','digestAlgorithm','payloadBundleDigest','platformEvidenceStatus','platformEvidenceRun') 'Snapshot-Spectra-Bindung'
+    foreach ($sha in @([string]$spectra.annotatedTagObject,[string]$spectra.peeledCommit,[string]$spectra.manifestSourceCommit,[string]$spectra.sourceTree)) {
+        if ($sha -notmatch '^[0-9a-f]{40}$') { throw 'Snapshot-Spectra-Bindung enthaelt keine vollstaendigen Git-SHAs.' }
+    }
+    if ($spectra.platformEvidenceStatus -cne 'passed' -or $spectra.platformEvidenceRun -notmatch '^https://github\.com/sivla/BCProjectOS/actions/runs/[0-9]+$') {
+        throw 'Snapshot-Spectra-Bindung besitzt keinen bestandenen Plattformnachweis.'
+    }
+    $tagObject = Invoke-UniversaarlGitRead -Repository $SpectraRepository -Arguments @('rev-parse',"refs/tags/$($spectra.releaseTag)")
+    if ($tagObject.exitCode -ne 0 -or $tagObject.output -cne [string]$spectra.annotatedTagObject) { throw 'Annotiertes Spectra-Tagobjekt widerspricht dem Snapshotmanifest.' }
+    $bound = [pscustomobject]@{
+        bindingStatus='BOUND'; productId=[string]$spectra.productId; technicalRepositoryName=[string]$spectra.technicalRepositoryName
+        repositoryUrl=[string]$spectra.repositoryUrl; releaseVersion=[string]$spectra.releaseVersion; releaseTag=[string]$spectra.releaseTag
+        tagCommit=[string]$spectra.peeledCommit; manifestPath=[string]$spectra.manifestPath; manifestSourceCommit=[string]$spectra.manifestSourceCommit
+        consumerMode=[string]$spectra.consumerMode; installableBlueprint=[bool]$spectra.installableBlueprint; digestAlgorithm=[string]$spectra.digestAlgorithm
+        payloadBundleDigest=[string]$spectra.payloadBundleDigest
+    }
+    $spectraProof = Test-UniversaarlSpectraReleaseBinding -Repository $SpectraRepository -Binding $bound
+
+    Assert-UniversaarlExactProperties $manifest.projectData @('contractId','indexSourcePath','indexPath','sourceCommit','artifactCount') 'Snapshot-Projektdaten'
+    if ($manifest.projectData.contractId -cne 'UABC-PROJECT-DATA-V1' -or $manifest.projectData.indexSourcePath -cne 'exports/project-data/v1/index.yaml' -or
+        $manifest.projectData.indexPath -cne "$releaseRoot/data/exports/project-data/v1/index.yaml" -or [int]$manifest.projectData.artifactCount -le 0) {
+        throw 'Snapshot-Projektdatenvertrag ist ungueltig.'
+    }
+    $sourceCommit = [string]$manifest.projectData.sourceCommit
+    Assert-FullCommitSha $sourceCommit
+    if ($sourceCommit -cne [string]$manifest.producer.commitShaProvenance -or -not (Test-UniversaarlGitAncestor -Repository $Repository -Ancestor $sourceCommit -Descendant $Commit)) {
+        throw 'Snapshot-Source-Commit ist nicht konsistent oder kein Vorfahr des Releasecommits.'
+    }
+
+    $files = @($manifest.files)
+    if ($files.Count -ne ([int]$manifest.projectData.artifactCount + 3)) { throw 'Snapshotmanifest enthaelt nicht exakt Projektindex, Projektquellen, Knowledge-Payload und Katalogfragment.' }
+    $ids = @{}; $paths = @{}; $sourceRecords = @{}; $kindCounts = @{}
+    foreach ($file in $files) {
+        Assert-UniversaarlExactProperties $file @('kind','id','sourcePath','format','selector','path','sizeBytes','sha256','transports') 'Snapshotdatei'
+        $id = [string]$file.id; $path = Assert-UniversaarlContractPath ([string]$file.path); $kind = [string]$file.kind
+        if ($id -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,118}[A-Za-z0-9]$' -or $ids.ContainsKey($id)) { throw "Snapshotdatei-ID '$id' ist ungueltig oder doppelt." }
+        if ($paths.ContainsKey($path) -or -not $path.StartsWith("$releaseRoot/", [StringComparison]::Ordinal)) { throw "Snapshotdateipfad '$path' ist doppelt oder liegt ausserhalb des Releases." }
+        $ids[$id]=$true; $paths[$path]=$true; $kindCounts[$kind]=1+$(if($kindCounts.ContainsKey($kind)){[int]$kindCounts[$kind]}else{0})
+        if ([int64]$file.sizeBytes -lt 1 -or $file.sha256 -notmatch '^[0-9a-f]{64}$') { throw "Snapshotdatei '$path' besitzt ungueltige Groesse oder Digest." }
+        $entry = Get-UniversaarlBlobEntry -Repository $Repository -Commit $Commit -Path $path -Required
+        if ($entry.mode -cne '100644' -or $entry.size -ne [int64]$file.sizeBytes) { throw "Snapshotdatei '$path' ist kein passender regulaerer Commitblob." }
+        $bytes = Get-UniversaarlGitBlobBytes -Repository $Repository -Object $entry.object
+        if ((Get-UniversaarlBytesSha256 $bytes) -cne [string]$file.sha256) { throw "Snapshotdateidigest fuer '$path' stimmt nicht." }
+        $transports=@($file.transports); if($transports.Count-ne 2){throw "Snapshotdatei '$path' besitzt nicht exakt zwei Transporte."}
+        $transportTypes=@{}
+        foreach($transport in $transports){
+            Assert-UniversaarlExactProperties $transport @('type','relativePath','sha256') 'Snapshottransport'
+            if($transport.type -notin @('filesystem','https') -or $transportTypes.ContainsKey([string]$transport.type) -or
+                $transport.relativePath -cne $path -or $transport.sha256 -cne [string]$file.sha256){throw "Snapshottransport fuer '$path' ist ungueltig."}
+            $transportTypes[[string]$transport.type]=$true
+        }
+        if ($kind -in @('project-index','project-source')) {
+            $sourcePath = Assert-UniversaarlContractPath ([string]$file.sourcePath)
+            if ($path -cne "$releaseRoot/data/$sourcePath") { throw "Snapshotquellabbildung fuer '$sourcePath' ist ungueltig." }
+            $sourceEntry = Get-UniversaarlBlobEntry -Repository $Repository -Commit $sourceCommit -Path $sourcePath -Required
+            if ($sourceEntry.mode -cne '100644' -or $sourceEntry.object -cne $entry.object) { throw "Snapshotquellbytes fuer '$sourcePath' sind nicht identisch mit dem Source-Commit." }
+            if ($kind -ceq 'project-source') { $sourceRecords[$id]=[pscustomobject]@{ path=$sourcePath; format=[string]$file.format; selector=$file.selector } }
+        }
+        elseif ($null -ne $file.sourcePath) { throw "Snapshotdatei '$path' darf keinen Quellpfad besitzen." }
+    }
+    if ($kindCounts['project-index'] -ne 1 -or $kindCounts['project-source'] -ne [int]$manifest.projectData.artifactCount -or
+        $kindCounts['knowledge-payload'] -ne 1 -or $kindCounts['catalog-fragment'] -ne 1) { throw 'Snapshotdateiarten oder Anzahlen sind ungueltig.' }
+
+    $indexText = (Read-UniversaarlCommitText -Repository $Repository -Commit $sourceCommit -Path ([string]$manifest.projectData.indexSourcePath) -MaximumBytes 1048576 -Required).content
+    $declared = @([regex]::Matches($indexText, '(?ms)^  - id:\s*(?<id>[^\r\n#]+?)\s*\r?\n(?<body>.*?)(?=^  - id:|\z)'))
+    if ($declared.Count -ne [int]$manifest.projectData.artifactCount -or $sourceRecords.Count -ne $declared.Count) { throw 'Snapshot-Projektquellenmenge stimmt nicht mit der Index-Allowlist ueberein.' }
+    foreach($match in $declared){
+        $id=[string]$match.Groups['id'].Value; $body=[string]$match.Groups['body'].Value
+        $pathMatch=[regex]::Match($body,'(?m)^    path:\s*(?<value>[^\r\n#]+?)\s*$'); $requiredMatch=[regex]::Match($body,'(?m)^    required:\s*(?<value>true|false)\s*$')
+        $formatMatch=[regex]::Match($body,'(?m)^    format:\s*(?<value>[^\r\n#]+?)\s*$')
+        if(-not $pathMatch.Success -or -not $requiredMatch.Success -or -not $formatMatch.Success){throw "Index-Allowlist-Eintrag '$id' ist unvollstaendig."}
+        $path=[string]$pathMatch.Groups['value'].Value; $format=[string]$formatMatch.Groups['value'].Value
+        if($requiredMatch.Groups['value'].Value -cne 'true' -or -not $sourceRecords.ContainsKey($id) -or
+            $sourceRecords[$id].path -cne $path -or $sourceRecords[$id].format -cne $format){throw "Snapshot-Projektquelle '$id' widerspricht der Index-Allowlist."}
+    }
+    $treeEntries = @(Get-UniversaarlCommitTree -Repository $Repository -Commit $Commit | Where-Object { $_.path -ceq $manifestPath -or $_.path.StartsWith("$releaseRoot/", [StringComparison]::Ordinal) })
+    if ($treeEntries.Count -ne ($files.Count + 1) -or @($treeEntries | Where-Object { $_.type -cne 'blob' -or $_.mode -cne '100644' }).Count -gt 0) {
+        throw 'Snapshotrelease enthaelt zusaetzliche, fehlende oder nicht regulaere Dateien.'
+    }
+    $payloadRecord=@($files|Where-Object{$_.kind -ceq 'knowledge-payload'})[0]
+    $fragmentRecord=@($files|Where-Object{$_.kind -ceq 'catalog-fragment'})[0]
+    $payload=(Read-UniversaarlCommitText -Repository $Repository -Commit $Commit -Path ([string]$payloadRecord.path) -MaximumBytes 1048576 -Required).content|ConvertFrom-Json
+    if($payload.schemaVersion-ne 1 -or $payload.releaseId-cne $pointer.currentReleaseId -or $payload.customerId-cne $pointer.customerId -or $payload.projectId-cne $pointer.projectId -or
+        $payload.truthBoundary.liveExecutionClaimed-ne $false -or $payload.truthBoundary.externalSyncClaimed-ne $false -or $payload.truthBoundary.uncheckedKnowledgePromoted-ne $false){throw 'Knowledge-Payload verletzt Identitaet oder Wahrheitsgrenze.'}
+    $fragment=(Read-UniversaarlCommitText -Repository $Repository -Commit $Commit -Path ([string]$fragmentRecord.path) -MaximumBytes 1048576 -Required).content|ConvertFrom-Json
+    $projects=@($fragment.projects)
+    if($fragment.schemaVersion-ne 1 -or $fragment.fragmentContract-cne 'uabc-customer-project-fragment-v1' -or $fragment.customerId-cne $pointer.customerId -or $fragment.fixtureOnly-ne $false -or
+        $projects.Count-ne 1 -or $projects[0].projectId-cne $pointer.projectId -or $projects[0].snapshotReleaseId-cne $pointer.currentReleaseId -or
+        $projects[0].consumerEligible-ne $true -or $projects[0].publishEligible-ne $true -or $fragment.payload.path-cne $payloadRecord.path -or
+        $fragment.payload.sha256-cne $payloadRecord.sha256 -or [int64]$fragment.payload.sizeBytes-ne [int64]$payloadRecord.sizeBytes -or
+        $fragment.projectData.sourceCommit-cne $sourceCommit -or [int]$fragment.projectData.artifactCount-ne [int]$manifest.projectData.artifactCount){throw 'Katalogfragment verletzt Identitaet, Isolation oder Payloadbindung.'}
+
+    [pscustomobject]@{
+        status='passed'; fullValidationPassed=$true; providerCommit=$Commit; sourceCommit=$sourceCommit; pointerPath=$pointerPath
+        releaseId=[string]$pointer.currentReleaseId; manifestPath=$manifestPath; manifestSha256=$manifestDigest
+        sourceInventoryDigest=[string]$manifest.sourceInventoryDigest; artifactCount=[int]$manifest.projectData.artifactCount; fileCount=$files.Count
+        customerId=[string]$pointer.customerId; projectId=[string]$pointer.projectId; transports=@('filesystem','https')
+        spectraBinding=$bound; spectraProof=$spectraProof; access='nur-lesend'
     }
 }
 

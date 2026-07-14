@@ -1,29 +1,23 @@
-## 1. Architektur und Fehlablage
+## 1. Produkt- und Snapshotvertrag
 
-- [x] 1.1 Fehlplatzierten BCProjectOS-Consumer, Installationspfad und dessen Tests aus dem Kontrollzentrum entfernen.
-- [x] 1.2 Repository-Rollen, bekannte Remote-/Zweigidentitaeten und weiterhin ausstehenden Release-/Snapshotstatus dokumentieren.
+- [x] 1.1 Spectra 1.2.0-alpha.12 mit annotiertem Tagobjekt, Tagcommit, Source-Commit, Source-Tree, Schema-4-Modusbindung und 323 Payloaddigesten unabhängig prüfen.
+- [x] 1.2 BC-Basic-Snapshot 0003 mit Zeiger, Manifestdigest, 158 Projektquellen, Knowledge-Payload, Katalogfragment und vollständiger Index-Allowlist prüfen.
+- [x] 1.3 Filesystem-/HTTPS-Transportrecords, Kundenisolation, Pfadsicherheit, Dateimenge und alle SHA-256-Werte fail-closed validieren.
 
-## 2. Produzentenvertraege uebernehmen
+## 2. Twin-Consumer
 
-- [x] 2.1 Das generische Spectra-Releasemanifest- und Release-Binding-Schema mit `product_id: spectra`, `spectra-v<SemVer>` und technischer BCProjectOS-Herkunft samt Produktumfang gegen den uebergebenen BCProjectOS-Commit pruefen.
-- [x] 2.2 Den konkreten BC-Basic-Branch-Index, seine Allowlist, sicheren Pfade und commitgebundenen Git-Blobs gegen den uebergebenen Blueprint-Commit pruefen.
-- [x] 2.3 Den Project-Twin-Consumervertrag ohne direkte BCProjectOS-Kopplung gegen den uebergebenen Twin-Commit pruefen.
+- [x] 2.1 Twin-Grenze ohne direkte BCProjectOS-Abhängigkeit prüfen.
+- [x] 2.2 Reale Snapshotnormalisierung mit geleertem Prozesspfad und ohne Git-Laufzeitfallback im frischen Commit-Snapshot nachweisen.
+- [x] 2.3 Erwarteten Projektzustand mit 50 Tickets, 28 Seiten und 1044 Relationen commitgebunden prüfen.
 
-## 3. Kontrollzentrum-Pruefung
+## 3. Kontrollzentrum
 
-- [x] 3.1 Produktvertragsquelle als reine Pruefquelle konfigurieren, ohne sie als drittes Zielprojekt oder Publisherziel aufzunehmen.
-- [x] 3.2 Commitgebundenen Validator fuer Pending-/Bound-Spectra-Bindung aus BCProjectOS und den BC-Basic-Branch-Index implementieren.
-- [x] 3.3 Audit- und Zielberichte um die Beziehungen Blueprint bindet Spectra aus BCProjectOS und Twin liest den validierten Branch-Index erweitern.
-- [x] 3.4 Publisher bei Pending, fehlendem oder ungueltigem Index oder direkter Twin-Produktkopplung fail-closed blockieren.
+- [x] 3.1 Monitorvertrag, Audit, Zielprüfung, Berichtsparser und Publisher auf `portable-snapshot-release` umstellen.
+- [x] 3.2 Projektziele und Installationstexte auf Spectra 1.2.0-alpha.12 und Snapshot 0003 aktualisieren.
+- [x] 3.3 Kontrollzentrum-Fixtures, OpenSpec strict, Deutschprüfung und `git diff --check` ausführen.
 
-## 4. Deterministische Evidence
+## 4. Veröffentlichung und Plattform
 
-- [x] 4.1 Positive Fixture fuer eine vollstaendig konsistente Produkt- und Snapshotbindung erstellen.
-- [x] 4.2 Negative Fixtures fuer fehlenden Tag, falschen Tag-Commit, Manifestkonflikt, Source-Ancestry, Candidate-Digest, falschen Branch, unsichere oder doppelte Indexpfade/-IDs und fehlende aktuelle Simulationsevidence ergaenzen.
-- [x] 4.3 Nachweisen, dass alle Zielprojekt-Lesevorgaenge commitgebunden, indexneutral und ohne reale `.env*`, Secrets oder Authentifizierungszustaende erfolgen.
-- [x] 4.4 Kontrollzentrum-Haertung, Deutschpruefung, OpenSpec strict, `git diff --check` und diffbezogenen Secret-/Tenant-Scan ausfuehren.
-
-## 5. Uebergabe
-
-- [ ] 5.1 Spectra-Releasecommit, validierten BC-Basic-Branchcommit, Twin-Commit und Kontrollzentrum-Commit samt Trees, Testevidence und offenen Gates getrennt dokumentieren.
-- [x] 5.2 Kein Zielprojekt pushen, solange der jeweilige Projekt- und Kontrollzentrum-Publish-Gate nicht separat bestanden ist.
+- [x] 4.1 BC Basic und Project Twin nach vollständigem Kontrolllauf einzeln über `Publish-UniversaarlCommit.ps1` veröffentlichen.
+- [x] 4.2 GitHub-Actions-Matrix für Twin auf `windows-latest` und `macos-14` real ausführen und beide Jobs commitgebunden prüfen.
+- [x] 4.3 Finale SHAs, Trees, Digests, Plattformstatus und offene menschliche Freigabe im Kontrollzentrum-Bericht dokumentieren.

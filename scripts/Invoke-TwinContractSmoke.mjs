@@ -1,6 +1,5 @@
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { execFileSync } from 'node:child_process';
 
 const [twinRoot, blueprintRoot, expectedTwinCommit, expectedBlueprintCommit] = process.argv.slice(2);
 
@@ -10,82 +9,64 @@ if (!twinRoot || !blueprintRoot || !path.isAbsolute(twinRoot) || !path.isAbsolut
   process.exit(2);
 }
 
-const readGit = (root, args) => execFileSync('git', ['-C', root, ...args], {
-  encoding: 'utf8',
-  env: {
-    ...process.env,
-    GIT_OPTIONAL_LOCKS: '0',
-    GIT_TERMINAL_PROMPT: '0',
-    GIT_PAGER: 'cat',
-  },
-  stdio: ['ignore', 'pipe', 'pipe'],
-  windowsHide: true,
-}).trim();
-
-let twinHead;
-let blueprintHead;
-let twinStatus;
-let blueprintStatus;
-try {
-  twinHead = readGit(twinRoot, ['rev-parse', '--verify', 'HEAD^{commit}']);
-  blueprintHead = readGit(blueprintRoot, ['rev-parse', '--verify', 'HEAD^{commit}']);
-  twinStatus = readGit(twinRoot, ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', 'status', '--porcelain=v1', '--untracked-files=all']);
-  blueprintStatus = readGit(blueprintRoot, ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false', 'status', '--porcelain=v1', '--untracked-files=all']);
-} catch {
-  console.error('Commitzustand der Vertragskopien kann nicht sicher gelesen werden.');
-  process.exit(3);
-}
-if (twinHead !== expectedTwinCommit || blueprintHead !== expectedBlueprintCommit || twinStatus || blueprintStatus) {
-  console.error('Vertragskopien stimmen nicht exakt mit beiden erwarteten sauberen Commits ueberein.');
-  process.exit(3);
-}
-
 const viteEntry = path.join(twinRoot, 'node_modules', 'vite', 'dist', 'node', 'index.js');
 const { createServer } = await import(pathToFileURL(viteEntry).href);
-const server = await createServer({
-  root: twinRoot,
-  appType: 'custom',
-  logLevel: 'silent',
-  server: { middlewareMode: true },
-});
+const server = await createServer({ root: twinRoot, configFile: false, appType: 'custom', logLevel: 'silent', server: { middlewareMode: true } });
 
 try {
-  const adapter = await server.ssrLoadModule('/src/server/adapter.ts');
-  const bcBasicState = await adapter.createTwinState('bc-basic', blueprintRoot, {
-    projectDataContract: {
-      manifestPath: 'exports/project-data/v1/snapshot-manifest.json',
-      schemaPath: 'governance/schemas/project-snapshot-manifest.schema.json',
-      indexPath: 'exports/project-data/v1/index.yaml',
+  const catalogModule = await server.ssrLoadModule('/src/server/snapshot-catalog.ts');
+  const previousPath = process.env.PATH;
+  process.env.PATH = '';
+  let loaded;
+  try {
+    loaded = await catalogModule.loadSnapshotCatalog({
+      id: 'bc-basic',
+      type: 'filesystem',
+      address: blueprintRoot,
+      expectedCustomerId: 'UABC-CUSTOMER-001',
       expectedProjectId: 'UABC-BC-BASIC-001',
-      expectedProducerId: 'blueprint',
-    },
-  });
-  const story = bcBasicState.story;
-  const summary = {
-    sources: {
-      bcBasic: { commit: bcBasicState.source.commit, dirty: bcBasicState.source.dirty },
-    },
-    stats: { bcBasic: bcBasicState.stats },
-    story: story ? {
-      offers: story.offer?.versions.length ?? 0,
-      pages: story.pages.length,
-      tickets: story.tickets.length,
-      timeline: story.timeline.length,
-      hypercare: story.hypercare.length,
-      relations: story.relations.length,
-    } : null,
-    warningCount: bcBasicState.warnings.length,
-    warnings: bcBasicState.warnings,
-    gapCount: bcBasicState.gaps.length,
-  };
+      displayName: 'Universaarl BC Basic',
+    });
+  } finally {
+    process.env.PATH = previousPath;
+  }
 
+  const state = loaded.state;
+  const story = state.story;
+  const summary = {
+    releaseId: loaded.releaseId,
+    source: {
+      projectId: state.source.projectId,
+      commit: state.source.commit,
+      branch: state.source.branch,
+      dirty: state.source.dirty,
+      catalog: state.source.catalog,
+    },
+    spectra: state.source.snapshot?.spectraReleaseBinding ?? null,
+    stats: {
+      tickets: story?.tickets.length ?? 0,
+      pages: story?.pages.length ?? 0,
+      relations: story?.relations.length ?? 0,
+      documents: state.documents.length,
+      resources: state.resources.length,
+      evidence: state.evidenceItems.length,
+      payloads: loaded.payloads.size,
+    },
+    warnings: state.warnings,
+  };
   console.log(JSON.stringify(summary));
 
-  if (bcBasicState.source.commit !== expectedBlueprintCommit || bcBasicState.source.dirty
-    || bcBasicState.source.projectId !== 'bc-basic' || !story
-    || story.offer?.versions.length !== 3 || story.pages.length !== 19 || story.tickets.length !== 17
-    || story.timeline.length !== 15 || story.hypercare.length !== 3 || story.relations.length !== 252
-    || bcBasicState.evidenceItems.length !== 0) {
+  if (loaded.releaseId !== 'UABC-PORTABLE-PILOT-0003'
+    || state.source.projectId !== 'bc-basic'
+    || state.source.commit !== '8132f2ce692dfcb8e12a3a4db4a287c643a6376f'
+    || state.source.branch !== null || state.source.dirty
+    || state.source.catalog?.customerId !== 'UABC-CUSTOMER-001'
+    || state.source.catalog?.projectId !== 'UABC-BC-BASIC-001'
+    || state.source.catalog?.manifestDigest !== 'sha256:5710f0c5315ede59f8af1bbe6a154725a180ef9c87c6502a83f1008892eaf863'
+    || state.source.snapshot?.spectraReleaseBinding?.releaseTag !== 'spectra-v1.2.0-alpha.12'
+    || state.source.snapshot?.spectraReleaseBinding?.tagCommit !== '6b3d9a1bfaf6cd806218a802fdde8f1a4cfa55a1'
+    || !story || story.tickets.length !== 50 || story.pages.length !== 28 || story.relations.length !== 1044
+    || state.documents.length < 28) {
     process.exitCode = 3;
   }
 } finally {

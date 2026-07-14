@@ -4,7 +4,7 @@ $script:UniversaarlTextBlobLimit = 1048576
 $script:UniversaarlReportLimit = 8388608
 $script:UniversaarlLogCharacterLimit = 131072
 # Wird erst zusammen mit einem commitgebundenen Spectra-Release- und
-# Branch-Index-/Allowlist-/Blob-Validator auf $true gesetzt. Bis dahin
+# portablen Snapshot-/Allowlist-/Blob-Validator auf $true gesetzt. Bis dahin
 # kann kein Berichtswert eine Veroeffentlichung freischalten.
 $script:UniversaarlFullContractValidatorAvailable = $true
 if ($null -eq (Get-Variable -Scope Script -Name UniversaarlDirectoryLockRegistry -ErrorAction SilentlyContinue)) {
@@ -318,7 +318,7 @@ function Assert-UniversaarlMonitorConfiguration {
         $spectraRelationship.providerVerificationSourceId -isnot [string] -or [string]$spectraRelationship.providerVerificationSourceId -cne 'bcprojectos' -or
         $spectraRelationship.contractType -isnot [string] -or [string]$spectraRelationship.contractType -cne 'versioned-product-release' -or
         $spectraRelationship.productId -isnot [string] -or [string]$spectraRelationship.productId -cne 'spectra' -or
-        $spectraRelationship.contractMarker -isnot [string] -or [string]$spectraRelationship.contractMarker -cne 'PENDING_BCPROJECTOS_RELEASE') {
+        $spectraRelationship.contractMarker -isnot [string] -or [string]$spectraRelationship.contractMarker -cne 'BOUND_BCPROJECTOS_RELEASE') {
         throw 'Die Beziehung Blueprint bindet Spectra ist unvollstaendig oder widerspruechlich.'
     }
     $snapshotRelationship = @($relationships | Where-Object { [string]$_.id -ceq 'twin-reads-blueprint' })[0]
@@ -327,14 +327,14 @@ function Assert-UniversaarlMonitorConfiguration {
         'consumerProjectId',
         'providerProjectId',
         'contractType',
-        'environmentVariable',
+        'pointerPath',
         'contractMarker'
     ) 'Beziehung Twin liest Blueprint'
     if ($snapshotRelationship.consumerProjectId -isnot [string] -or [string]$snapshotRelationship.consumerProjectId -cne 'project-twin' -or
         $snapshotRelationship.providerProjectId -isnot [string] -or [string]$snapshotRelationship.providerProjectId -cne 'blueprint' -or
-        $snapshotRelationship.contractType -isnot [string] -or [string]$snapshotRelationship.contractType -cne 'validated-branch-index' -or
-        $snapshotRelationship.environmentVariable -isnot [string] -or [string]$snapshotRelationship.environmentVariable -cne 'UABC_SOURCE_REPO' -or
-        $snapshotRelationship.contractMarker -isnot [string] -or [string]$snapshotRelationship.contractMarker -cne 'UABC_SOURCE_REPO') {
+        $snapshotRelationship.contractType -isnot [string] -or [string]$snapshotRelationship.contractType -cne 'portable-snapshot-release' -or
+        $snapshotRelationship.pointerPath -isnot [string] -or [string]$snapshotRelationship.pointerPath -cne 'exports/project-data/v1/snapshots/current.json' -or
+        $snapshotRelationship.contractMarker -isnot [string] -or [string]$snapshotRelationship.contractMarker -cne 'uabc-portable-snapshot-current-v1') {
         throw 'Die Beziehung Twin liest Blueprint ist unvollstaendig oder widerspruechlich.'
     }
 }
@@ -1113,7 +1113,7 @@ function New-UniversaarlCommitSnapshot {
     $populateAttempts = [Collections.Generic.List[string]]::new()
     $populate = $null
     for ($attempt = 0; $attempt -lt 2; $attempt++) {
-        $populate = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('read-tree', '-mu', 'HEAD')
+        $populate = Invoke-UniversaarlIsolatedGit -GitHome $gitHome -Repository $Destination -Arguments @('-c', 'core.longpaths=true', 'read-tree', '-mu', 'HEAD')
         $populateAttempts.Add("Versuch $($attempt + 1) (Code $($populate.exitCode)): $($populate.output)")
         if ($populate.exitCode -eq 0) { break }
         if ($attempt -eq 0) { Start-Sleep -Milliseconds 200 }
@@ -1645,7 +1645,7 @@ function Read-UniversaarlBoundReport {
     $relationshipIds = @($relationships | ForEach-Object { if ($_ -isnot [pscustomobject] -or $_.id -isnot [string]) { throw 'Vertragsbeziehungskennung im Laufbericht ist ungueltig typisiert.' }; $_.id })
     if ($relationships.Count -ne 2 -or @($relationshipIds | Sort-Object -Unique).Count -ne 2 -or
         $relationshipIds -cnotcontains 'blueprint-binds-spectra' -or $relationshipIds -cnotcontains 'twin-reads-blueprint') {
-        throw 'Laufbericht enthaelt nicht exakt die Spectra-Bindungs- und Branch-Index-Lesebeziehung.'
+        throw 'Laufbericht enthaelt nicht exakt die Spectra-Bindungs- und portable Snapshot-Lesebeziehung.'
     }
     $spectraRelationship = @($relationships | Where-Object { [string]$_.id -ceq 'blueprint-binds-spectra' })[0]
     $snapshotRelationship = @($relationships | Where-Object { [string]$_.id -ceq 'twin-reads-blueprint' })[0]
@@ -1658,11 +1658,11 @@ function Read-UniversaarlBoundReport {
         $spectraRelationship.fullValidationPassed -isnot [bool]) {
         throw 'Spectra-Bindungsbeziehung ist nicht an Produkt-, Evidence- und Blueprint-Commit gebunden.'
     }
-    if ($snapshotRelationship.contractType -isnot [string] -or [string]$snapshotRelationship.contractType -cne 'validated-branch-index' -or
+    if ($snapshotRelationship.contractType -isnot [string] -or [string]$snapshotRelationship.contractType -cne 'portable-snapshot-release' -or
         $snapshotRelationship.providerCommit -isnot [string] -or $snapshotRelationship.providerCommit -cne $report.inputShas.blueprint -or
         $snapshotRelationship.consumerCommit -isnot [string] -or $snapshotRelationship.consumerCommit -cne $report.inputShas.'project-twin' -or
         $snapshotRelationship.fullValidationPassed -isnot [bool]) {
-        throw 'Branch-Index-Lesebeziehung ist nicht an Blueprint- und Twin-Commit gebunden.'
+        throw 'Portable Snapshot-Lesebeziehung ist nicht an Blueprint- und Twin-Commit gebunden.'
     }
     $allowedRelationshipStatuses = if ($Kind -ceq 'audit') { @('passed', 'failed', 'warning', 'not-run') } else { @('GRUEN', 'GELB', 'ROT') }
     foreach ($relationship in $relationships) {

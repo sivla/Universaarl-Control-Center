@@ -77,15 +77,15 @@
       "providerVerificationSourceId": "bcprojectos",
       "contractType": "versioned-product-release",
       "productId": "spectra",
-      "contractMarker": "PENDING_BCPROJECTOS_RELEASE"
+      "contractMarker": "BOUND_BCPROJECTOS_RELEASE"
     },
     {
       "id": "twin-reads-blueprint",
       "consumerProjectId": "project-twin",
       "providerProjectId": "blueprint",
-      "contractType": "validated-branch-index",
-      "environmentVariable": "UABC_SOURCE_REPO",
-      "contractMarker": "UABC_SOURCE_REPO"
+      "contractType": "portable-snapshot-release",
+      "pointerPath": "exports/project-data/v1/snapshots/current.json",
+      "contractMarker": "uabc-portable-snapshot-current-v1"
     }
   ]
 }

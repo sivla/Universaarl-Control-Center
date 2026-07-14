@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "universaarl-real-customer-onboarding-gate",
+  "projectType": "business-central-basic",
+  "billing": {
+    "currency": "EUR",
+    "budgetCeilingExclusive": 10000,
+    "billingModel": "time-and-materials",
+    "worklogLevel": "task",
+    "frequency": "weekly",
+    "changeControlRequired": true
+  },
+  "phases": [
+    {"id": "preparation", "name": "Vorbereitung und Discovery", "duration": "customer-dependent"},
+    {"id": "implementation-week", "name": "Einrichtung und Umsetzung", "duration": "five-business-days-target"},
+    {"id": "hypercare-close", "name": "Go-live, Hypercare und Abschluss", "duration": "through-first-close-and-vat"}
+  ],
+  "gates": [
+    {"id": "qualification-offer-scope", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "project-lead", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "input-contract"},
+    {"id": "contract-raci-budget", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "project-lead", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "input-contract"},
+    {"id": "weekly-worklogs-billing-change-control", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "project-lead", "ticketRequired": true, "meetingTranscriptRequired": false, "evidenceKind": "readiness-validation"},
+    {"id": "customer-data-request-transfer-retention", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "data-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "input-contract"},
+    {"id": "tenant-license-access-plan", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "customer-admin", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "input-contract"},
+    {"id": "sandbox-production-localization-update-plan", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "solution-consultant", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "onboarding-runbook"},
+    {"id": "security-groups-permission-sets-emergency-access", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "security-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "onboarding-runbook"},
+    {"id": "fit-to-standard-decisions", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "process-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "profile-proof"},
+    {"id": "finance-vat-posting-groups-design", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "finance-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "source-register"},
+    {"id": "purchasing-sales-inventory-design", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "process-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "profile-proof"},
+    {"id": "migration-trial-load-control-totals", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "data-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "onboarding-runbook"},
+    {"id": "sit-uat-training-cutover-plan", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "project-lead", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "onboarding-runbook"},
+    {"id": "backup-restore-business-continuity-support-plan", "phase": "preparation", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "support-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "recovery-proof"},
+    {"id": "configured-sandbox-and-company", "phase": "implementation-week", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "solution-consultant", "ticketRequired": true, "meetingTranscriptRequired": false, "evidenceKind": "profile-proof"},
+    {"id": "finance-p2p-o2c-inventory-sit", "phase": "implementation-week", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "solution-consultant", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "readiness-validation"},
+    {"id": "training-and-cutover-rehearsal", "phase": "implementation-week", "readinessLevel": "onboardingReady", "requiredEvidenceMode": "template-or-simulated", "ownerRole": "project-lead", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "readiness-validation"},
+    {"id": "real-tenant", "phase": "implementation-week", "readinessLevel": "customerGoLiveReady", "requiredEvidenceMode": "real", "ownerRole": "customer-admin", "ticketRequired": true, "meetingTranscriptRequired": false, "evidenceKind": "real-tenant"},
+    {"id": "real-licenses", "phase": "implementation-week", "readinessLevel": "customerGoLiveReady", "requiredEvidenceMode": "real", "ownerRole": "customer-admin", "ticketRequired": true, "meetingTranscriptRequired": false, "evidenceKind": "real-licenses"},
+    {"id": "real-permissions", "phase": "implementation-week", "readinessLevel": "customerGoLiveReady", "requiredEvidenceMode": "real", "ownerRole": "security-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "real-permissions"},
+    {"id": "real-uat", "phase": "implementation-week", "readinessLevel": "customerGoLiveReady", "requiredEvidenceMode": "real", "ownerRole": "process-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "real-uat"},
+    {"id": "real-cutover", "phase": "implementation-week", "readinessLevel": "customerGoLiveReady", "requiredEvidenceMode": "real", "ownerRole": "steering-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "real-cutover"},
+    {"id": "real-first-close", "phase": "hypercare-close", "readinessLevel": "customerGoLiveReady", "requiredEvidenceMode": "real", "ownerRole": "finance-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "real-first-close"},
+    {"id": "real-vat-submission", "phase": "hypercare-close", "readinessLevel": "customerGoLiveReady", "requiredEvidenceMode": "real", "ownerRole": "finance-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "real-vat-submission"},
+    {"id": "real-support-handover", "phase": "hypercare-close", "readinessLevel": "customerGoLiveReady", "requiredEvidenceMode": "real", "ownerRole": "support-owner", "ticketRequired": true, "meetingTranscriptRequired": true, "evidenceKind": "real-support-handover"}
+  ],
+  "officialSources": [
+    {"title": "Overview of tasks to set up Business Central", "url": "https://learn.microsoft.com/en-us/dynamics365/business-central/setup", "accessedAt": "2026-07-14", "useCase": "Company und Kernsetup", "conclusion": "Assisted Setup, Templates, Frageboegen und manuelle Setups muessen als kontrollierter Einrichtungsweg geplant werden."},
+    {"title": "Production and sandbox environments", "url": "https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/environment-types", "accessedAt": "2026-07-14", "useCase": "Umgebungsstrategie", "conclusion": "Sandbox und Production besitzen getrennte Zwecke; Country, Version, Kapazitaet und Adminverantwortung sind vor der Einrichtung festzulegen."},
+    {"title": "Create users according to licenses", "url": "https://learn.microsoft.com/en-us/dynamics365/business-central/ui-how-users-permissions", "accessedAt": "2026-07-14", "useCase": "Benutzer, Lizenzen und Berechtigungen", "conclusion": "Benutzer stammen aus Microsoft 365, Lizenzen und Permission Sets muessen rollenbasiert eingerichtet und SUPER auf notwendige Administratoren begrenzt werden."},
+    {"title": "Set up company configuration packages", "url": "https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/set-up-standard-company-configuration-packages", "accessedAt": "2026-07-14", "useCase": "Wiederholbare Einrichtung und Migration", "conclusion": "Konfigurationspakete und Templates beschleunigen Standardsetup und Stammdatenimport; gebuchte Posten werden nicht direkt importiert, sondern kontrolliert gebucht."},
+    {"title": "Set up posting groups", "url": "https://learn.microsoft.com/en-us/dynamics365/business-central/finance-posting-groups", "accessedAt": "2026-07-14", "useCase": "Finanzsetup", "conclusion": "Buchungsgruppen verbinden Geschaeftsentitaeten und Belege mit Sachkonten und muessen vor produktiven Buchungen fachlich geprueft sein."},
+    {"title": "Set up value-added tax", "url": "https://learn.microsoft.com/en-us/dynamics365/business-central/finance-setup-vat", "accessedAt": "2026-07-14", "useCase": "MwSt.-Einrichtung", "conclusion": "VAT Posting Setup, Gruppen, Konten, VAT Date und lokale Anforderungen muessen vor Buchungen konsistent eingerichtet und getestet sein."},
+    {"title": "Report VAT to tax authorities", "url": "https://learn.microsoft.com/en-us/dynamics365/business-central/finance-how-report-vat", "accessedAt": "2026-07-14", "useCase": "UStVA und VAT Settlement", "conclusion": "VAT Reports basieren auf VAT Entries, VAT Date und Posting Setup; lokale Meldeanforderungen und die reale Uebermittlung benoetigen eine gesonderte fachliche Freigabe."},
+    {"title": "Restoring an environment in the admin center", "url": "https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/tenant-admin-center-backup-restore", "accessedAt": "2026-07-14", "useCase": "Business Continuity", "conclusion": "Restore erfordert berechtigte Administratoren und Nachkontrollen fuer Benutzer, Job Queues, Apps, Integrationen und bereinigte Verbindungsdaten."}
+  ]
+}

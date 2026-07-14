@@ -1,5 +1,7 @@
 # Aufgaben: Spectra v0.1.0-alpha.1
 
+> Abschlussentscheidung 2026-07-14: superseded. Offene Checkboxen bleiben bewusst offen, weil dieser konkrete Releaseplan nicht ausgefuehrt wurde.
+
 ## 1. Releasekandidat im Spectra-Projekt
 
 - [x] 1.1 Eigenen Branch `codex/spectra-v0-1-0-alpha-1` vom aktuellen

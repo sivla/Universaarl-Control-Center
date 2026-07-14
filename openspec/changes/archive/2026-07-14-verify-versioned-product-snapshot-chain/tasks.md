@@ -1,5 +1,7 @@
 ## 1. Produkt- und Snapshotvertrag
 
+> Archiviert 2026-07-14; alle Aufgaben sind durch commitgebundene Evidence abgeschlossen.
+
 - [x] 1.1 Spectra 1.2.0-alpha.12 mit annotiertem Tagobjekt, Tagcommit, Source-Commit, Source-Tree, Schema-4-Modusbindung und 323 Payloaddigesten unabhängig prüfen.
 - [x] 1.2 BC-Basic-Snapshot 0003 mit Zeiger, Manifestdigest, 158 Projektquellen, Knowledge-Payload, Katalogfragment und vollständiger Index-Allowlist prüfen.
 - [x] 1.3 Filesystem-/HTTPS-Transportrecords, Kundenisolation, Pfadsicherheit, Dateimenge und alle SHA-256-Werte fail-closed validieren.

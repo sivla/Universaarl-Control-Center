@@ -1,5 +1,7 @@
 ## ADDED Requirements
 
+> Archivierte, in den Kontrollvertrag uebernommene Delta-Spezifikation.
+
 ### Requirement: Das Kontrollzentrum bleibt außerhalb der fachlichen Datenkette
 
 Das Kontrollzentrum SHALL genau BC Basic und Project Twin als operative Zielprojekte überwachen. BCProjectOS SHALL ausschließlich als read-only Spectra-Release-Evidence-Quelle verwendet werden.

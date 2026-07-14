@@ -1,5 +1,7 @@
 # Design: erster Spectra-Alpha-Release
 
+> Historischer Entwurf; durch die spaetere versionierte Spectra-/Snapshotkette ersetzt.
+
 ## Release-Identitaet
 
 - Produktname: `Spectra`

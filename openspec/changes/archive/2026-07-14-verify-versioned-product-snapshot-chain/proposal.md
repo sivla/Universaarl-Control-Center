@@ -1,5 +1,7 @@
 ## Why
 
+> Archiviert 2026-07-14 nach vollstaendig bestandenen Aufgaben und verifizierter Repositorymigration.
+
 Spectra, BC Basic und Project Twin besitzen jetzt getrennte, reale Versionsstände. Das Kontrollzentrum muss deren portable Kette unabhängig prüfen, ohne Produktcode zu installieren, Kundenwahrheit zu erzeugen oder Zielprojekt-Commits zu verändern.
 
 Der frühere Branch-Index-Handoff ist nicht mehr der produktive Laufzeitvertrag. BC Basic veröffentlicht mit `current.json` einen unveränderlichen Snapshotrelease; Project Twin liest ausschließlich diesen Release über Filesystem oder HTTPS.

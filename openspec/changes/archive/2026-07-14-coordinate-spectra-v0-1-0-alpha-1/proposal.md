@@ -1,5 +1,7 @@
 # Spectra v0.1.0-alpha.1 koordinieren
 
+> Archiviert als ueberholter, nicht ausgefuehrter Releaseplan. Die offenen Release- und Consumeraufgaben wurden nicht nachtraeglich als erledigt ausgegeben; die spaetere reale Spectra-/Snapshotkette besitzt eigene unveraenderliche Evidence.
+
 ## Warum
 
 Spectra besitzt bereits einen lokal geprueften ersten Produktvertrag, aber noch

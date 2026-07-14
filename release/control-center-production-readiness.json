@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "universaarl-component-production-readiness",
+  "projectId": "control-center",
+  "assessments": {
+    "platformReady": {
+      "status": "pending",
+      "evidenceMode": "technical",
+      "evidence": [
+        {"kind": "test-report", "path": "tests/Test-ControlCenterPortability.ps1"},
+        {"kind": "operator-guide", "path": "README.md"}
+      ],
+      "blockers": ["Der neue Kontrollzentrum-Produktionsreife-Commit besitzt noch keinen eigenen bestandenen Windows-/macOS-Workflowlauf."]
+    },
+    "onboardingReady": {
+      "status": "passed",
+      "evidenceMode": "technical",
+      "evidence": [
+        {"kind": "readiness-validation", "path": "production-readiness.contract.json"},
+        {"kind": "input-contract", "path": "release/real-customer-onboarding-gate-v1.json"},
+        {"kind": "onboarding-runbook", "path": "README.md"},
+        {"kind": "readiness-validation", "path": "scripts/Test-UniversaarlProductionReadiness.ps1"}
+      ],
+      "blockers": []
+    },
+    "customerGoLiveReady": {"status": "not-applicable", "evidenceMode": "none", "evidence": [], "blockers": []}
+  },
+  "distribution": {"status": "internal-only", "licenseDecision": "pending", "evidence": []},
+  "deploymentBoundary": "independent-read-only-verifier"
+}

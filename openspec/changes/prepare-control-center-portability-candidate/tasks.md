@@ -18,3 +18,11 @@
 - [x] Finale Komponenten-SHAs, Snapshot-Gates und echte Windows-/macOS-Evidence binden.
 - [x] Vier getrennte oeffentliche Repositories und deren anonymen Fresh-Clone-Nachweis binden.
 - [x] Pilotanzeige ohne Git-Laufzeit sowie isoliertes Neu-Projekt-Onboarding auf Windows und macOS nachweisen.
+- [x] Veraltete parallele Kontrollzentrum-Changes ehrlich als abgeschlossen beziehungsweise superseded archivieren und genau einen aktiven Change behalten.
+- [x] Dreistufigen Produktionsreifevertrag fuer alle vier Komponenten definieren.
+- [x] Commitgebundenen fail-closed Validator fuer Plattform-, Onboarding-, Kunden-Go-live-, Deployment- und Lizenzgrenzen implementieren.
+- [x] Positive und negative Vertragspruefungen fuer Simulation, fehlende Evidence, Selbstreferenz und unvollstaendigen realen Go-live implementieren.
+- [x] Kontrollzentrum-Readiness-Evidence und Windows-/macOS-Workflow vorbereiten.
+- [ ] Eigenen Windows-/macOS-Workflow fuer den finalen Kontrollzentrum-Commit ausfuehren und die Evidence binden.
+- [ ] Readiness-Evidence der drei Zielkomponenten an ihren uebergebenen Commits unabhaengig validieren.
+- [ ] Vollstaendigen Portfolio-Onboarding-Rehearsal aus anonymen Fresh Clones ausfuehren.

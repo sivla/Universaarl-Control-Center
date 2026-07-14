@@ -1,5 +1,7 @@
 # Spectra Alpha Release
 
+> Historische Delta-Spezifikation; nicht als aktueller Releasevertrag verwenden.
+
 ## ADDED Requirements
 
 ### Requirement: Der erste Release ist eindeutig identifiziert

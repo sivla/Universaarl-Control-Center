@@ -1,5 +1,7 @@
 ## Context
 
+> Archivierter, abgeschlossener Vertragsstand.
+
 Die verbindliche Kette lautet: Spectra-Release aus BCProjectOS → BC-Basic-Kundeninstanz → unveränderlicher Snapshotrelease → read-only Project Twin. Das Kontrollzentrum steht außerhalb dieser Datenkette und prüft nur vorhandene Commit- und Releaseevidence.
 
 ## Decisions

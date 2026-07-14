@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "universaarl-production-readiness-contract",
+  "customerOnboardingGatePath": "release/real-customer-onboarding-gate-v1.json",
+  "readinessLevels": ["platformReady", "onboardingReady", "customerGoLiveReady"],
+  "evidenceKinds": {
+    "platformReady": ["test-report", "operator-guide", "release-evidence", "security-boundary", "platform-matrix"],
+    "onboardingReady": ["onboarding-runbook", "input-contract", "profile-proof", "recovery-proof", "source-register", "readiness-validation"],
+    "customerGoLiveReady": ["real-tenant", "real-licenses", "real-permissions", "real-uat", "real-cutover", "real-first-close", "real-vat-submission", "real-support-handover"]
+  },
+  "requiredRealCustomerEvidenceKinds": ["real-tenant", "real-licenses", "real-permissions", "real-uat", "real-cutover", "real-first-close", "real-vat-submission", "real-support-handover"],
+  "components": [
+    {
+      "projectId": "spectra",
+      "repositorySelector": "verificationSources.bcprojectos",
+      "evidencePath": "release/production-readiness.json",
+      "customerGoLivePolicy": "not-applicable",
+      "deploymentBoundary": "release-bound-product-tooling"
+    },
+    {
+      "projectId": "blueprint",
+      "repositorySelector": "projects.blueprint",
+      "evidencePath": "governance/production-readiness.json",
+      "customerGoLivePolicy": "real-evidence-only",
+      "deploymentBoundary": "customer-source-of-truth"
+    },
+    {
+      "projectId": "project-twin",
+      "repositorySelector": "projects.project-twin",
+      "evidencePath": "operations/production-readiness.json",
+      "customerGoLivePolicy": "source-dependent",
+      "deploymentBoundary": "local-loopback-single-operator"
+    },
+    {
+      "projectId": "control-center",
+      "repositorySelector": "self",
+      "evidencePath": "release/control-center-production-readiness.json",
+      "customerGoLivePolicy": "not-applicable",
+      "deploymentBoundary": "independent-read-only-verifier"
+    }
+  ]
+}

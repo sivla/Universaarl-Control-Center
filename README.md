@@ -76,6 +76,22 @@ Beenden:
 npm run twin:stop
 ```
 
+## Produktionsreife und reales Kunden-Onboarding
+
+Produktionsreife wird in drei getrennten Ebenen bewertet:
+
+1. `platformReady`: Installation, Betrieb, Tests, Sicherheit und Plattformnachweis sind belastbar.
+2. `onboardingReady`: Ein neuer Kunde kann mit vollstaendigen Inputs, Rollen, Runbooks, Recovery und Uebergaben gestartet werden.
+3. `customerGoLiveReady`: Ein konkreter Kunde darf erst nach realem Tenant, Lizenzen, Berechtigungen, UAT, Cutover, erstem Abschluss, UStVA und Supportuebergabe gruene Evidence besitzen.
+
+Eine vollstaendige Simulation kann die ersten beiden Ebenen belegen, niemals aber den realen Kunden-Go-live. Die commitgebundene Pruefung lautet:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-UniversaarlProductionReadiness.ps1
+```
+
+Solange Zielkomponenten ihre versionierte Readiness-Evidence noch nicht uebergeben haben, endet der Lauf absichtlich mit `PORTFOLIO_NOT_READY_FOR_CUSTOMER_WORK`. Mit `-AllowPending -Json` kann der vollstaendige offene Befund fuer die Koordination ausgegeben werden. Die Lizenz- und Distributionsfreigabe ist ein separates Gate; oeffentliche Lesbarkeit eines Repositories erteilt keine Lizenz.
+
 ## Kontrollprüfung
 
 Schnelle Metadaten- und Vertragsprüfung:

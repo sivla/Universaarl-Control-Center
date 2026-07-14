@@ -450,7 +450,7 @@ if ($RunValidations) {
                     UABC_PORTABLE_PRODUCER_ROOT = $smokeBlueprint
                     UABC_REQUIRE_PORTABLE_PRODUCER = '1'
                 }
-                $smoke = Invoke-UniversaarlSanitizedProcess -Runner $runner -FilePath $node -Arguments @($smokeScript, $smokeTwin, $smokeBlueprint, $inputShas['project-twin'], $inputShas['blueprint']) -WorkingDirectory $smokeTwin -SandboxRoot $smokeRoot -LogPath $crossLog -LogRoot $LogRoot -AdditionalEnvironment $smokeEnvironment -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots @($smokeTwin, $smokeBlueprint, $smokeRoot)
+                $smoke = Invoke-UniversaarlSanitizedProcess -Runner $runner -FilePath $node -Arguments @($smokeScript, $smokeTwin, $smokeBlueprint, $inputShas['project-twin'], $inputShas['blueprint'], [string]$snapshotProof.releaseId, [string]$snapshotProof.sourceCommit, [string]$snapshotProof.manifestSha256) -WorkingDirectory $smokeTwin -SandboxRoot $smokeRoot -LogPath $crossLog -LogRoot $LogRoot -AdditionalEnvironment $smokeEnvironment -TimeoutSeconds ([int]$Config.validationTimeoutSeconds) -SensitiveRoots @($smokeTwin, $smokeBlueprint, $smokeRoot)
                 if ($smoke.exitCode -ne 0 -or $smoke.outputTruncated) { throw 'Der Twin konnte die frisch installierte Blueprint-Commitkopie nicht erfolgreich normalisieren.' }
                 try {
                     $payload = $smoke.output.Trim() | ConvertFrom-Json

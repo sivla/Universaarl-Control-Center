@@ -22,7 +22,7 @@ Das Kontrollzentrum steht außerhalb dieser Datenkette. Es prüft:
 | BC Basic | Commit `281d2bab4fadce74c7756cc42a14dbf0a6a9eb45`, Snapshot `UABC-PORTABLE-PILOT-0004` |
 | Project Twin | Commit `cae38797e4cdee0cd53e59ff2b7e84446a2d9363` |
 
-Der Snapshot bindet das Manifest mit SHA-256 `5710f0c5315ede59f8af1bbe6a154725a180ef9c87c6502a83f1008892eaf863`, 158 Projektquellen und insgesamt 161 Releasefiles. Der Spectra-Payloaddigest lautet `b637a82c381d7744f08949c264393382cb90d7e6b1f67d56afacb6e88a312c7b`.
+Der Snapshot bindet das Manifest mit SHA-256 `38fcef85b101c05aee075a0692e08956a5090796aa2015affd5c687a2503daf3`, 158 Projektquellen und insgesamt 161 Releasefiles. Der Spectra-Payloaddigest lautet `b637a82c381d7744f08949c264393382cb90d7e6b1f67d56afacb6e88a312c7b`.
 
 Diese Werte sind Prüfevidence, keine freie Versionskonfiguration. Ein späterer Stand muss erneut vollständig nachgewiesen werden.
 

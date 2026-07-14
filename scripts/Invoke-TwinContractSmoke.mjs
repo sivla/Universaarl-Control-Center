@@ -1,11 +1,13 @@
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const [twinRoot, blueprintRoot, expectedTwinCommit, expectedBlueprintCommit] = process.argv.slice(2);
+const [twinRoot, blueprintRoot, expectedTwinCommit, expectedBlueprintCommit, expectedReleaseId, expectedSourceCommit, expectedManifestDigest] = process.argv.slice(2);
 
 if (!twinRoot || !blueprintRoot || !path.isAbsolute(twinRoot) || !path.isAbsolute(blueprintRoot)
-  || !/^[a-f0-9]{40}$/.test(expectedTwinCommit || '') || !/^[a-f0-9]{40}$/.test(expectedBlueprintCommit || '')) {
-  console.error('Snapshot-Pfade und vollstaendige Eingabe-SHAs von Twin und Blueprint sind erforderlich.');
+  || !/^[a-f0-9]{40}$/.test(expectedTwinCommit || '') || !/^[a-f0-9]{40}$/.test(expectedBlueprintCommit || '')
+  || !/^UABC-PORTABLE-PILOT-[0-9]{4}$/.test(expectedReleaseId || '')
+  || !/^[a-f0-9]{40}$/.test(expectedSourceCommit || '') || !/^[a-f0-9]{64}$/.test(expectedManifestDigest || '')) {
+  console.error('Snapshot-Pfade, Eingabe-SHAs und commitgebundene Snapshotidentitaet sind erforderlich.');
   process.exit(2);
 }
 
@@ -56,13 +58,13 @@ try {
   };
   console.log(JSON.stringify(summary));
 
-  if (loaded.releaseId !== 'UABC-PORTABLE-PILOT-0003'
+  if (loaded.releaseId !== expectedReleaseId
     || state.source.projectId !== 'bc-basic'
-    || state.source.commit !== '8132f2ce692dfcb8e12a3a4db4a287c643a6376f'
+    || state.source.commit !== expectedSourceCommit
     || state.source.branch !== null || state.source.dirty
     || state.source.catalog?.customerId !== 'UABC-CUSTOMER-001'
     || state.source.catalog?.projectId !== 'UABC-BC-BASIC-001'
-    || state.source.catalog?.manifestDigest !== 'sha256:5710f0c5315ede59f8af1bbe6a154725a180ef9c87c6502a83f1008892eaf863'
+    || state.source.catalog?.manifestDigest !== `sha256:${expectedManifestDigest}`
     || state.source.snapshot?.spectraReleaseBinding?.releaseTag !== 'spectra-v1.2.0-alpha.12'
     || state.source.snapshot?.spectraReleaseBinding?.tagCommit !== '6b3d9a1bfaf6cd806218a802fdde8f1a4cfa55a1'
     || !story || story.tickets.length !== 50 || story.pages.length !== 28 || story.relations.length !== 1044

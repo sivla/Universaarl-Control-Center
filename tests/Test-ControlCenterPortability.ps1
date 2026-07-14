@@ -9,6 +9,9 @@ if ($LASTEXITCODE -ne 0) { throw "Doctor fehlgeschlagen: $($output -join ' ')" }
 $result = ($output -join "`n") | ConvertFrom-Json
 if ($result.status -cne 'passed' -or $result.releaseStatus -cne 'PENDING_MACOS_RUNNER_EVIDENCE') { throw 'Doctor meldet keinen ehrlichen lokalen Kandidatenstatus.' }
 . (Join-Path $root 'scripts/Universaarl-Control.Common.ps1')
+if (-not (Test-UniversaarlPortableAbsolutePath 'C:\portable\project') -or -not (Test-UniversaarlPortableAbsolutePath '/portable/project') -or (Test-UniversaarlPortableAbsolutePath 'portable/project') -or (Test-UniversaarlPortableAbsolutePath 'C:\portable\..\escape')) {
+    throw 'Plattformneutrale absolute Konfigurationspfade werden nicht fail-closed erkannt.'
+}
 $fileSystemRoot = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath([IO.Path]::GetTempPath()))
 $normalizedFileSystemRoot = Get-UniversaarlNormalizedPath -Path $fileSystemRoot
 if ([string]::IsNullOrWhiteSpace($normalizedFileSystemRoot) -or -not (Test-UniversaarlPathEqual -Left $normalizedFileSystemRoot -Right $fileSystemRoot)) { throw 'Dateisystemwurzel wird leer oder falsch normalisiert.' }

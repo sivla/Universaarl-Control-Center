@@ -149,6 +149,14 @@ function Test-UniversaarlJsonInteger {
     )
 }
 
+function Test-UniversaarlPortableAbsolutePath {
+    param($Value)
+    if ($Value -isnot [string] -or [string]::IsNullOrWhiteSpace($Value) -or $Value -match '[\x00-\x1f]' -or $Value -match '(^|[\\/])\.\.([\\/]|$)') {
+        return $false
+    }
+    [IO.Path]::IsPathRooted($Value) -or $Value -match '^[A-Za-z]:[\\/]'
+}
+
 function Get-UniversaarlSha256 {
     param([AllowEmptyString()][string]$Text)
     $sha = [Security.Cryptography.SHA256]::Create()
@@ -236,7 +244,7 @@ function Assert-UniversaarlMonitorConfiguration {
     if (-not (Test-UniversaarlJsonInteger $Configuration.validationTimeoutSeconds) -or $Configuration.validationTimeoutSeconds -lt 1 -or $Configuration.validationTimeoutSeconds -gt 3600) { throw 'Das konfigurierte Pruefzeitlimit ist ungueltig oder nicht exakt als Ganzzahl typisiert.' }
     foreach ($project in $projects) {
         if ([string]$project.pathEnvironmentVariable -notmatch '^UNIVERSAARL_[A-Z0-9_]+_PATH$') { throw "Ungueltige Pfad-Umgebungsvariable fuer '$($project.id)'." }
-        if (-not [IO.Path]::IsPathRooted([string]$project.defaultPath)) { throw "Standardpfad fuer '$($project.id)' muss absolut sein." }
+        if (-not (Test-UniversaarlPortableAbsolutePath $project.defaultPath)) { throw "Standardpfad fuer '$($project.id)' muss ein plattformneutral erkennbarer absoluter Pfad sein." }
         $null = Assert-SafeRepositoryRelativePath -Path ([string]$project.reviewFile)
         if ([string]::IsNullOrWhiteSpace([string]$project.requiredNpmScript) -or @($project.validationArguments).Count -eq 0) { throw "Technische Pruefung fuer '$($project.id)' ist unvollstaendig konfiguriert." }
         if ($null -eq $project.germanCheck -or $project.germanCheck.npmScript -isnot [string] -or [string]::IsNullOrWhiteSpace($project.germanCheck.npmScript) -or
@@ -295,7 +303,7 @@ function Assert-UniversaarlMonitorConfiguration {
         throw 'Die erwartete Produktidentitaet muss exakt Spectra mit productId spectra sein.'
     }
     if ($bcProjectOs.pathAlias -isnot [string] -or [string]$bcProjectOs.pathAlias -cne '<BCPROJECTOS_ROOT>' -or
-        $bcProjectOs.defaultPath -isnot [string] -or -not [IO.Path]::IsPathRooted([string]$bcProjectOs.defaultPath) -or
+        -not (Test-UniversaarlPortableAbsolutePath $bcProjectOs.defaultPath) -or
         $bcProjectOs.pathEnvironmentVariable -isnot [string] -or [string]$bcProjectOs.pathEnvironmentVariable -cne 'UNIVERSAARL_BCPROJECTOS_PATH') {
         throw 'Pfadalias, Standardpfad oder Pfad-Umgebungsvariable der BCProjectOS-Verifikationsquelle sind ungueltig.'
     }

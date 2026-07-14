@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-13",
+  "updatedAt": "2026-07-14",
   "principle": "Fachlich schnell, technisch ehrlich.",
   "v1WorkingRule": "Zuerst einen real nutzbaren, fachlich geschlossenen und durchklickbaren V1.0-Stand liefern. Nur reproduzierbare Business-, Integritaets-, Sicherheits- und Releasefehler blockieren; Struktur-, Komfort- und Zusatzhaertung folgen im V1.x-Backlog.",
   "simulationRule": "Keine beliebigen Mockup-Daten: Die synthetische BC-Basic-Firma, Stammdaten, Belege, Salden, Prozesse, Entscheidungen, Tests, Schulungen und Betriebsergebnisse muessen realistisch, konsistent und ueber die komplette Projektstory nachvollziehbar sein.",
@@ -8,24 +8,24 @@
     {
       "projectId": "spectra",
       "overallGoal": "Ein kundenunabhaengiges, ausrollbares Projekt-, Support-, Wissens- und Informationsbetriebssystem mit kontrollierter Jira-/Confluence-Adoption.",
-      "largestGap": "Spectra 1.2.0-alpha.12 ist im eigenen oeffentlichen Repository als echter unveraenderlicher Release gebunden. Tagobjekt 80563e5823a042a95582c88cb41aaf6306a9cfce zeigt auf Commit 6b3d9a1bfaf6cd806218a802fdde8f1a4cfa55a1 und Tree e6beb8bc570927c35eb48c415024aaf486007324; die BC-Basic-Kundeninstanz konsumiert genau diesen Release im Snapshot UABC-PORTABLE-PILOT-0004.",
-      "lastCommit": "6b3d9a1bfaf6cd806218a802fdde8f1a4cfa55a1",
+      "largestGap": "Spectra ist im eigenen oeffentlichen Repository auf Commit 717cf27697b4ea04fbc50f653da84762fd5ef050 und Tree c6a6fc5dab606b6d870af2053e355c2efed9762f als portable Einzelprojekt-Plattform vorbereitet. Der echte unveraenderliche Release spectra-v1.2.0-alpha.12 bleibt die von der BC-Basic-Kundeninstanz gebundene Produktversion; der neuere Arbeitsstand wird nicht als neuer Release ausgegeben.",
+      "lastCommit": "717cf27697b4ea04fbc50f653da84762fd5ef050",
       "mainBlocker": "Fuer den aktuellen Portfoliostand besteht kein Release-Bindungsblocker. Weitere Spectra-Produktentwicklung bleibt ein eigener Produktauftrag und darf die gebundene Kundeninstanz nicht ungeprueft veraendern.",
       "nextDeliveryBlock": "Nach Abschluss der Repositorymigration Spectra ausschliesslich im BCProjectOS-Projekt weiterentwickeln; wiederverwendbare Universaarl-Erkenntnisse nur anonymisiert und als nicht uebernommene blueprint-candidates zufuehren."
     },
     {
       "projectId": "blueprint",
       "overallGoal": "Ein verkaufbares und lean wiederholbares BC-Basic-Standardprodukt, das den Kunden fachlich, organisatorisch und operativ bis zur sicheren taeglichen Nutzung befaehigt.",
-      "largestGap": "Die Kundeninstanz ist im eigenen oeffentlichen Repository auf Commit 281d2bab4fadce74c7756cc42a14dbf0a6a9eb45 und Tree b4c2170eaf3b6165fe283b15fdd688a34df8cdc4 veroeffentlicht. Snapshot UABC-PORTABLE-PILOT-0004 bindet 161 Dateien, davon 158 Projektquellen, mit Manifestdigest 38fcef85b101c05aee075a0692e08956a5090796aa2015affd5c687a2503daf3 und bleibt fachliche Source of Truth.",
-      "lastCommit": "281d2bab4fadce74c7756cc42a14dbf0a6a9eb45",
+      "largestGap": "Die Kundeninstanz ist im eigenen oeffentlichen Repository auf Commit 40248b7c042753cf03a4eed8c4b9adc5920f6a6a und Tree df1edd9eed8186e80853c068ae3b9c0dcd08fb65 veroeffentlicht. Snapshot UABC-PORTABLE-PILOT-0005 bindet 173 Dateien, davon 170 Projektquellen, mit Manifestdigest b0202e3969958aca151121ef53338d5b489a0876250c2b5322ce0dfbbf3b7305 und bleibt fachliche Source of Truth.",
+      "lastCommit": "40248b7c042753cf03a4eed8c4b9adc5920f6a6a",
       "mainBlocker": "Die Repository- und Snapshotmigration ist abgeschlossen. Fachlich bleiben reale BC-Einrichtung, Readback, Kundenentscheidungen, UAT, Cutover, erster Abschluss und Umsatzsteuervoranmeldung ehrlich offen, bis sie im Kundenprojekt ausgefuehrt und belegt werden.",
       "nextDeliveryBlock": "Nach dem Kontrollzentrum-Endgate die BC-Basic-Projektumsetzung im eigenen Projekt fortsetzen: Standard-CRONUS-Ausgangspunkt, Finanz- und Grundeinrichtung, Einkauf, Verkauf, einfaches Lager, Tests, Schulungen, Cutover, Hypercare, erster Abschluss und Umsatzsteuervoranmeldung realitaetsnah und ticketgebunden durchspielen."
     },
     {
       "projectId": "project-twin",
       "overallGoal": "Ein strikt nur-lesendes, handlungsorientiertes Cockpit fuer den neuesten validierten BC-Basic-Branch-Commit.",
-      "largestGap": "Project Twin ist im eigenen oeffentlichen Repository auf Commit cae38797e4cdee0cd53e59ff2b7e84446a2d9363 und Tree db5ea843dd1e7264b3d968ce2685be7642c9b16a veroeffentlicht. Er liest Snapshot UABC-PORTABLE-PILOT-0004 ausschliesslich ueber den validierten Katalog, prueft die neue Consumeridentitaet fail-closed und bestand 248 Tests sowie Plattformlauf 29305275477 unter Windows und macOS einschliesslich Browser-Smoke.",
-      "lastCommit": "cae38797e4cdee0cd53e59ff2b7e84446a2d9363",
+      "largestGap": "Project Twin ist im eigenen oeffentlichen Repository auf Commit 1be30598bb669186c67a43d3864c42164dda7862 und Tree 4e1a24d847e2c3c1394797bdb9457a77b7bd6091 veroeffentlicht. Er liest Snapshot UABC-PORTABLE-PILOT-0005 ausschliesslich ueber den validierten Katalog, trennt Dokumentseiten korrekt von anderen positivgelisteten Markdown-Artefakten und bestand 258 Tests, Produktionsbuild sowie den Browser-Smoke fuer Cockpit, Tickets und Projektdokumentation auf Desktop und Mobil ohne Konsolenfehler oder Warnungen.",
+      "lastCommit": "1be30598bb669186c67a43d3864c42164dda7862",
       "mainBlocker": "Es besteht kein Consumer- oder Repositorydefekt. Die ausdrueckliche menschliche MVP-Freigabe und die spaetere OpenSpec-Archivierung bleiben ehrlich offene, nicht technische Folgeziele.",
       "nextDeliveryBlock": "Twin nur im eigenen Projekt weiterentwickeln und ausschliesslich neue validierte BC-Basic-Snapshots darstellen; keine eigene Fachdatenhaltung und kein Rueckschreiben einfuehren."
     }
